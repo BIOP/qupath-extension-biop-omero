@@ -67,6 +67,7 @@ class OmeroShapes {
 				throws JsonParseException {
 			
 			var type = ((JsonObject)json).get("@type").getAsString().toLowerCase();
+
 			if (type.endsWith("#rectangle"))
 				return context.deserialize(json, Rectangle.class);
 			
@@ -148,6 +149,7 @@ class OmeroShapes {
 				// MultiPolygon
 				logger.info("OMERO shapes do not support holes.");
 				logger.warn("MultiPolygon will be split for OMERO compatibility.");
+
 				roi = RoiTools.fillHoles(roi);
 				PathClass pathClass = src.getPathClass();
 				

@@ -1,1 +1,2 @@
 qupath.lib.images.servers.omero.OmeroRawImageServerBuilder
+qupath.lib.images.servers.omero.OmeroWebImageServerBuilder

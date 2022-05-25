@@ -21,6 +21,9 @@
 
 package qupath.lib.images.servers.omero;
 
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URI;
@@ -55,6 +58,11 @@ import qupath.lib.images.servers.TileRequest;
 import qupath.lib.images.servers.omero.OmeroShapes.OmeroShape;
 import qupath.lib.objects.PathObject;
 import qupath.lib.objects.PathObjectReader;
+import qupath.lib.objects.PathObjects;
+import qupath.lib.regions.ImagePlane;
+import qupath.lib.roi.GeometryROI;
+import qupath.lib.roi.ROIs;
+import qupath.lib.roi.interfaces.ROI;
 
 /**
  * ImageServer that reads pixels using the OMERO web API.
@@ -312,17 +320,31 @@ public class OmeroWebImageServer extends AbstractTileableImageServer implements 
 		//				);
 
 		// Options are: Rectangle, Ellipse, Point, Line, Polyline, Polygon and Label
-		var data = OmeroRequests.requestROIs(scheme, host, port, id);
+		List<JsonElement> data = OmeroRequests.requestROIs(scheme, host, port, id);
 		List<PathObject> list = new ArrayList<>();
 		var gson = new GsonBuilder().registerTypeAdapter(OmeroShape.class, new OmeroShapes.GsonShapeDeserializer()).setLenient().create();
 			
 		for (int i = 0; i < data.size(); i++) {
 			JsonObject roiJson = data.get(i).getAsJsonObject();
 			JsonArray shapesJson = roiJson.getAsJsonArray("shapes");
-			
-			for (int j = 0; j < shapesJson.size(); j++) {
+
+			if (shapesJson.size() > 1) {
 				try {
-					var shape = gson.fromJson(shapesJson.get(j), OmeroShape.class);
+					var shape1 = gson.fromJson(shapesJson.get(0), OmeroShape.class);
+					ROI roi1 = shape1.createROI();
+					for (int j = 1; j < shapesJson.size(); j++) {
+						var shape2 = gson.fromJson(shapesJson.get(j), OmeroShape.class);
+						ROI roi2 = shape2.createROI();
+						roi1 = linkShapes(roi2, roi1);
+					}
+					list.add(PathObjects.createAnnotationObject(roi1));
+				} catch (Exception e) {
+					logger.error("Error parsing shape: " + e.getLocalizedMessage(), e);
+				}
+
+			} else if (shapesJson.size() > 0) {
+				try {
+					var shape = gson.fromJson(shapesJson.get(0), OmeroShape.class);
 					if (shape != null)
 						list.add(shape.createAnnotation());
 				} catch (Exception e) {
@@ -331,7 +353,29 @@ public class OmeroWebImageServer extends AbstractTileableImageServer implements 
 			}
 		}
 		return list;
-	}	
+	}
+
+	public ROI linkShapes(ROI roi1, ROI roi2){
+		// get the area of the first roi
+		AffineTransform at = new AffineTransform();
+		at.translate(0, 0);
+		Area a1 = new Area(at.createTransformedShape(roi1.getShape()));
+
+		// get the area of the second roi
+		at = new AffineTransform();
+		at.translate(0, 0);
+		Area a2 = new Area(at.createTransformedShape(roi2.getShape()));
+
+		// Apply a xor operation on both area to combine them (ex. make a hole)
+		a1.exclusiveOr(a2);
+
+		// get the area of the newly created area
+		Rectangle r = a1.getBounds();
+		at = new AffineTransform();
+		at.translate(0, 0);
+
+		return (GeometryROI) ROIs.createAreaROI(at.createTransformedShape(a1), ImagePlane.getDefaultPlane());
+	}
 	
 	@Override
 	public String getServerType() {
