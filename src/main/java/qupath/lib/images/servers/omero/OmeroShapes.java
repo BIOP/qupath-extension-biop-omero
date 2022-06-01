@@ -27,16 +27,11 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.gson.*;
+import org.locationtech.jts.geom.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.google.gson.annotations.SerializedName;
 
 import qupath.lib.geom.Point2;
@@ -45,15 +40,7 @@ import qupath.lib.objects.PathObject;
 import qupath.lib.objects.PathObjects;
 import qupath.lib.objects.classes.PathClass;
 import qupath.lib.regions.ImagePlane;
-import qupath.lib.roi.EllipseROI;
-import qupath.lib.roi.GeometryROI;
-import qupath.lib.roi.LineROI;
-import qupath.lib.roi.PointsROI;
-import qupath.lib.roi.PolygonROI;
-import qupath.lib.roi.PolylineROI;
-import qupath.lib.roi.ROIs;
-import qupath.lib.roi.RectangleROI;
-import qupath.lib.roi.RoiTools;
+import qupath.lib.roi.*;
 import qupath.lib.roi.interfaces.ROI;
 
 class OmeroShapes {
@@ -65,7 +52,7 @@ class OmeroShapes {
 		@Override
 		public OmeroShape deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
 				throws JsonParseException {
-			
+
 			var type = ((JsonObject)json).get("@type").getAsString().toLowerCase();
 
 			if (type.endsWith("#rectangle"))
@@ -150,19 +137,27 @@ class OmeroShapes {
 				logger.info("OMERO shapes do not support holes.");
 				logger.warn("MultiPolygon will be split for OMERO compatibility.");
 
-				roi = RoiTools.fillHoles(roi);
+				//roi = RoiTools.fillHoles(roi);
 				PathClass pathClass = src.getPathClass();
-				
 				List<ROI> rois = RoiTools.splitROI(roi);
+
+				/* TODO try to find a way to recongnize shapes (rectangle, ellipse) instead of instancing by default polygon
+				TODO find a way to write complex roi in OMERo => May be review the polygonROI deserializer to take into account internal shapes
+				rois.forEach(e->System.out.println("ROIname : "+e.getRoiName()));
+				*/
+
+				rois = splitHolesAndShape(rois);
+
 				JsonElement[] polygons = new JsonElement[rois.size()];
-				
-				for (int i = 0; i < polygons.length; i++) {
+
+				for (int i = 0; i < rois.size(); i++) {
 					shape = new Polygon(pointsToString(rois.get(i).getAllPoints()));
 					shape.setType("Polygon");
 					shape.setText(src.getName() != null ? src.getName() : "");
 					shape.setFillColor(pathClass != null ? ARGBToRGBA(pathClass.getColor()) : -256);
 					polygons[i] = context.serialize(shape, Polygon.class);
 				}
+
 				return context.serialize(polygons);
 				
 			} else {
@@ -184,7 +179,49 @@ class OmeroShapes {
 			return context.serialize(shape, type);
 		}
 	}
-	
+
+	/**
+	 * Split holes and envelop of the same polygon into independent ROIs.
+	 *
+	 * @param rois List of split ROIs
+	 * @return list of ROIs of decoupling external and internal rings
+	 */
+	private static List<ROI> splitHolesAndShape(List<ROI> rois) {
+		List<ROI> polygonROIs = new ArrayList<>();
+		for (int i = 0; i < rois.size(); i++){
+			// Only process shapes that are polygons
+			if (rois.get(i).getGeometry() instanceof org.locationtech.jts.geom.Polygon) {
+				// get the external shape of the polygon
+				org.locationtech.jts.geom.Polygon polygon = (org.locationtech.jts.geom.Polygon) rois.get(i).getGeometry();
+				Coordinate[] polygonCoordinates = polygon.getExteriorRing().getCoordinates();
+				List<Point2> polygonROICoordinates = new ArrayList<>();
+
+				for (int j = 0; j < polygonCoordinates.length; j++){
+					polygonROICoordinates.add(new Point2(polygonCoordinates[j].x, polygonCoordinates[j].y));
+				}
+
+				polygonROIs.add(ROIs.createPolygonROI(polygonROICoordinates, rois.get(i).getImagePlane()));
+
+				// get the internal shapes of the polygon (i.e. holes)
+				for (int j = 0; j < polygon.getNumInteriorRing(); j++) {
+					polygonCoordinates = polygon.getInteriorRingN(j).getCoordinates();
+					polygonROICoordinates = new ArrayList<>();
+
+					for (int k = 0; k < polygonCoordinates.length; k++) {
+						polygonROICoordinates.add(new Point2(polygonCoordinates[k].x, polygonCoordinates[k].y));
+					}
+
+					polygonROIs.add(ROIs.createPolygonROI(polygonROICoordinates, rois.get(i).getImagePlane()));
+				}
+			}
+			else{
+				polygonROIs.add(rois.get(i));
+			}
+		}
+
+		return polygonROIs;
+	}
+
 	/**
 	 * Return the packed RGBA representation of the specified ARGB (packed) value.
 	 * <p>

@@ -374,7 +374,7 @@ public class OmeroWebImageServer extends AbstractTileableImageServer implements 
 		at = new AffineTransform();
 		at.translate(0, 0);
 
-		return (GeometryROI) ROIs.createAreaROI(at.createTransformedShape(a1), ImagePlane.getDefaultPlane());
+		return (GeometryROI) ROIs.createAreaROI(at.createTransformedShape(a1), roi1.getImagePlane());
 	}
 	
 	@Override
