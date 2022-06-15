@@ -134,7 +134,7 @@ class OmeroShapes {
 				
 			} else if (roi instanceof GeometryROI) {
 				// MultiPolygon
-				logger.info("OMERO shapes do not support holes.");
+				//logger.info("OMERO shapes do not support holes.");
 				logger.warn("MultiPolygon will be split for OMERO compatibility.");
 
 				//roi = RoiTools.fillHoles(roi);

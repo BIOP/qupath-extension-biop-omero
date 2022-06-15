@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
@@ -62,6 +63,7 @@ import qupath.lib.objects.PathObjects;
 import qupath.lib.regions.ImagePlane;
 import qupath.lib.roi.GeometryROI;
 import qupath.lib.roi.ROIs;
+import qupath.lib.roi.RoiTools;
 import qupath.lib.roi.interfaces.ROI;
 
 /**
@@ -306,11 +308,17 @@ public class OmeroWebImageServer extends AbstractTileableImageServer implements 
 	
 	/**
 	 * Retrieve any ROIs stored with this image as annotation objects.
+	 * ROIs can be made of single or multiple rois. rois can be contained inside ROIs (ex. holes) but should not intersect.
+	 * It is also possible to import a set of physically separated ROIs as one geometry ROI.
+	 *
+	 * 	*********************** BE CAREFUL for multiple shapes ROI *****************************
+	 * 	For the z and t in the ImagePlane, if z < 0 and t < 0 (meaning that roi should be present on all the slices/frames),
+	 * 	only the first slice/frame is taken into account (meaning that roi are only visible on the first slice/frame)
+	 * 	****************************************************************
 	 * <p>
 	 * Warning: This method is subject to change in the future.
 	 * 
 	 * @return list of path objects
-	 * @throws IOException
 	 */
 	@Override
 	public Collection<PathObject> readPathObjects() throws IOException {
@@ -323,26 +331,74 @@ public class OmeroWebImageServer extends AbstractTileableImageServer implements 
 		List<JsonElement> data = OmeroRequests.requestROIs(scheme, host, port, id);
 		List<PathObject> list = new ArrayList<>();
 		var gson = new GsonBuilder().registerTypeAdapter(OmeroShape.class, new OmeroShapes.GsonShapeDeserializer()).setLenient().create();
-			
-		for (int i = 0; i < data.size(); i++) {
-			JsonObject roiJson = data.get(i).getAsJsonObject();
+
+		for (JsonElement datum : data) {
+			JsonObject roiJson = datum.getAsJsonObject();
+			// get the rois contained inside the parent ROI
 			JsonArray shapesJson = roiJson.getAsJsonArray("shapes");
 
+			// Process ROIs with multiple shapes
 			if (shapesJson.size() > 1) {
+				long nbPoints = 0;
+				List<ROI> rois = new ArrayList<>();
+
+				// get each sub-roi separately
+				// get the number of ROI "Point" in all shapes attached the current ROI
+				// Points are not supported during the XOR operation ; they are processed differently.
+				for(JsonElement jsonElement:shapesJson){
+					ROI roi = gson.fromJson(jsonElement, OmeroShape.class).createROI();
+					rois.add(roi);
+					nbPoints += roi.getRoiName().equals("Points") ? 1 : 0;
+				}
+
+				ROI finalROI;
 				try {
-					var shape1 = gson.fromJson(shapesJson.get(0), OmeroShape.class);
-					ROI roi1 = shape1.createROI();
-					for (int j = 1; j < shapesJson.size(); j++) {
-						var shape2 = gson.fromJson(shapesJson.get(j), OmeroShape.class);
-						ROI roi2 = shape2.createROI();
-						roi1 = linkShapes(roi2, roi1);
+					// process ROIs with multiple points only
+					if(nbPoints == shapesJson.size()){
+						// create a pointsROI instance with multiple points
+						finalROI = ROIs.createPointsROI(rois.stream().mapToDouble(ROI::getCentroidX).toArray(),
+								rois.stream().mapToDouble(ROI::getCentroidY).toArray(),
+								ImagePlane.getPlaneWithChannel(rois.get(0).getC(), Math.max(rois.get(0).getZ(), 0), Math.max(rois.get(0).getT(), 0)));
+
 					}
-					list.add(PathObjects.createAnnotationObject(roi1));
+					// Process ROIs with multiple shapes, containing one or more points
+					else if (nbPoints > 0) {
+						List<ROI> pointsList = rois.stream().filter(e -> e.getRoiName().equals("Points")).collect(Collectors.toList());
+						List<ROI> notPointsList = rois.stream().filter(e -> !e.getRoiName().equals("Points")).collect(Collectors.toList());
+
+						// create a pointsROI instance with multiple points
+						ROI pointsROI = ROIs.createPointsROI(pointsList.stream().mapToDouble(ROI::getCentroidX).toArray(),
+								pointsList.stream().mapToDouble(ROI::getCentroidY).toArray(),
+								ImagePlane.getPlaneWithChannel(pointsList.get(0).getC(), Math.max(pointsList.get(0).getZ(), 0), Math.max(pointsList.get(0).getT(), 0)));
+
+						// make a complex roi by applying XOR operation between shapes
+						finalROI = notPointsList.get(0);
+						for (int k = 1; k < notPointsList.size(); k++) {
+							finalROI = linkShapes(finalROI, notPointsList.get(k));
+						}
+
+						// make the union between points and complex ROI
+						finalROI = RoiTools.combineROIs(finalROI, pointsROI, RoiTools.CombineOp.ADD);
+
+					}
+					// Process ROIs with multiple shapes that do not contain points
+					else{
+						finalROI = rois.get(0);
+						for (int k = 1; k < rois.size(); k++) {
+							// make a complex roi by applying XOR operation between shapes
+							finalROI = linkShapes(finalROI, rois.get(k));
+						}
+					}
+
+					list.add(PathObjects.createAnnotationObject(finalROI));
+
 				} catch (Exception e) {
 					logger.error("Error parsing shape: " + e.getLocalizedMessage(), e);
 				}
 
-			} else if (shapesJson.size() > 0) {
+			}
+			// Process ROIs with single shape
+			else if (shapesJson.size() > 0) {
 				try {
 					var shape = gson.fromJson(shapesJson.get(0), OmeroShape.class);
 					if (shape != null)
@@ -355,26 +411,30 @@ public class OmeroWebImageServer extends AbstractTileableImageServer implements 
 		return list;
 	}
 
+	/**
+	 * convert Omero ROIs To QuPath ROIs.
+	 *
+	 *  *********************** BE CAREFUL *****************************
+	 * 	For the z and t in the ImagePlane, if z < 0 and t < 0 (meaning that roi should be present on all the slices/frames),
+	 * 	only the first slice/frame is taken into account (meaning that roi are only visible on the first slice/frame)
+	 * 	****************************************************************
+	 * @param roi1
+	 * @param roi2
+	 * @return composite ROI
+	 */
 	public ROI linkShapes(ROI roi1, ROI roi2){
 		// get the area of the first roi
-		AffineTransform at = new AffineTransform();
-		at.translate(0, 0);
-		Area a1 = new Area(at.createTransformedShape(roi1.getShape()));
+		Area a1 = new Area(roi1.getShape());
 
 		// get the area of the second roi
-		at = new AffineTransform();
-		at.translate(0, 0);
-		Area a2 = new Area(at.createTransformedShape(roi2.getShape()));
+		Area a2 = new Area(roi2.getShape());
 
 		// Apply a xor operation on both area to combine them (ex. make a hole)
 		a1.exclusiveOr(a2);
 
-		// get the area of the newly created area
-		Rectangle r = a1.getBounds();
-		at = new AffineTransform();
-		at.translate(0, 0);
-
-		return (GeometryROI) ROIs.createAreaROI(at.createTransformedShape(a1), roi1.getImagePlane());
+		return ROIs.createAreaROI(a1, ImagePlane.getPlaneWithChannel(Math.min(roi1.getC(), roi2.getC()),
+																	 Math.min(roi1.getZ(), roi2.getZ()),
+																	 Math.min(roi1.getT(), roi2.getT())));
 	}
 	
 	@Override
