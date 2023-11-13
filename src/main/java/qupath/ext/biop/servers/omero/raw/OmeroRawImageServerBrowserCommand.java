@@ -401,8 +401,13 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             if (e.getClickCount() == 2) {
                 var selectedItem = tree.getSelectionModel().getSelectedItem().getValue();
                 if (selectedItem != null && selectedItem.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE && isSupported(selectedItem)) {
-                    if (qupath.getProject() == null)
-                        qupath.openImage(createObjectURI(selectedItem), true, true);
+                    if (qupath.getProject() == null) {
+                        try {
+                            qupath.openImage(QuPathGUI.getInstance().getViewer(), createObjectURI(selectedItem),  true, true);
+                        } catch (IOException ex) {
+                            Dialogs.showErrorMessage("Open image", ex);
+                        }
+                    }
                     else {
                         HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
                         promptToImportOmeroImages(createObjectURI(selectedItem));
@@ -438,7 +443,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     Dialogs.showPlainMessage("Requesting orphaned folder", "Link to orphaned folder does not exist!");
                     return;
                 }
-                QuPathGUI.launchBrowserWindow(createObjectURI(selected.get(0).getValue()).replace("-server",""));
+                QuPathGUI.openInBrowser(createObjectURI(selected.get(0).getValue()).replace("-server",""));
             }
         });
         openBrowserItem.disableProperty().bind(tree.getSelectionModel().selectedItemProperty().isNull()
@@ -659,8 +664,13 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 return;
             }
             if (qupath.getProject() == null) {
-                if (validUris.length == 1)
-                    qupath.openImage(validUris[0], true, true);
+                if (validUris.length == 1) {
+                    try {
+                        qupath.openImage(QuPathGUI.getInstance().getViewer(), validUris[0], true, true);
+                    } catch (IOException ex) {
+                        Dialogs.showErrorMessage("Open image", ex);
+                    }
+                }
                 else
                     Dialogs.showErrorMessage("Open OMERO images", "If you want to handle multiple images, you need to create a project first."); // Same as D&D for images
                 return;
@@ -1960,7 +1970,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         return;
                     }
 
-                    button.setOnAction(e -> QuPathGUI.launchBrowserWindow(item.link.toString()));
+                    button.setOnAction(e -> QuPathGUI.openInBrowser(item.link.toString()));
                     setGraphic(button);
                 }
             });

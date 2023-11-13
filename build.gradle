@@ -1,9 +1,12 @@
 plugins {
-  id 'java-library'
-  // To create a shadow/fat jar, including dependencies
-  //id 'com.github.johnrengelman.shadow' version '7.0.0'
-  // Reduce JavaCPP dependencies
-  id 'maven-publish'
+    // To create a shadow/fat jar, including dependencies
+    //id 'com.github.johnrengelman.shadow' version '7.0.0'
+    // Reduce JavaCPP dependencies
+    id 'maven-publish'
+//    id 'qupath.common-conventions'
+   // id 'qupath.extension-conventions'
+    id 'java-library'
+    id "org.openjfx.javafxplugin" version "0.1.0"
 }
 
 ext.moduleName = 'qupath.extension.biop.omero'
@@ -37,23 +40,18 @@ configurations {
 }
 
 dependencies {
-    def qupathVersion = "0.4.4"
-
-    implementation "org.apache.commons:commons-text:1.9"
-
+    def qupathVersion = "0.5.0-SNAPSHOT"
+    implementation "io.github.qupath:qupath-fxtras:0.1.0"
     implementation "io.github.qupath:qupath-core:$qupathVersion"
     implementation "io.github.qupath:qupath-gui-fx:$qupathVersion"
 
-    //shadow "org.slf4j:slf4j-api:1.7.30"
+    implementation "org.apache.commons:commons-text:1.9"
     implementation "commons-io:commons-io:2.11.0"
 
-    testImplementation "io.github.qupath:qupath-gui-fx:$qupathVersion"
     testImplementation "org.junit.jupiter:junit-jupiter-api:5.7.2"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
 
     implementation "org.openmicroscopy:omero-gateway:5.8.1"
-    implementation "info.picocli:picocli:4.3.2"
-
     implementation "fr.igred:simple-omero-client:5.15.0"
 }
 
@@ -74,7 +72,7 @@ tasks.register("copyDependencies", Copy) {
 java {
     def version = project.findProperty('toolchain')
     if (!version)
-        version = 11
+        version = 17
     else if (version.strip() == 'skip')
         version = null
     if (version != null) {

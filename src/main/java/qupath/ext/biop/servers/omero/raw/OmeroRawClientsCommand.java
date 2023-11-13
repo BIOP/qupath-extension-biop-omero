@@ -281,7 +281,7 @@ public class OmeroRawClientsCommand implements Runnable {
 
             removeBtn.setOnMouseClicked(e -> {
                 // Check if the webclient to delete is currently used in any viewer
-                if (qupath.getViewers().stream().anyMatch(viewer -> {
+                if (qupath.getAllViewers().stream().anyMatch(viewer -> {
                     if (viewer.getServer() == null)
                         return false;
                     URI viewerURI = viewer.getServer().getURIs().iterator().next();

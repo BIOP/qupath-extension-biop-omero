@@ -44,7 +44,8 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import qupath.lib.common.Version;
-import qupath.lib.gui.ActionTools;
+import qupath.lib.gui.UserDirectoryManager;
+import qupath.lib.gui.actions.ActionTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.dialogs.Dialogs;
 import qupath.lib.gui.extensions.GitHubProject;
@@ -223,7 +224,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 	 * @return
 	 */
 	private static String getDefaultOmeroServer(){
-		String extensionPath = PathPrefs.getExtensionsPath();
+		String extensionPath = UserDirectoryManager.getInstance().getExtensionsPath().toString();
 		if(extensionPath == null)
 			return null;
 
@@ -260,7 +261,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 	 * @param omeroDefaultServer
 	 */
 	private static void createOmeroDefaultServerFile(String omeroDefaultServer) {
-		String extensionPath = PathPrefs.getExtensionsPath();
+		String extensionPath = UserDirectoryManager.getInstance().getExtensionsPath().toString();
 		if(extensionPath == null || !new File(extensionPath).exists()) return;
 
 		try (FileWriter myWriter = new FileWriter(extensionPath + File.separator + defaultOmeroServerFilename)){
