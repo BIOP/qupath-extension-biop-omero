@@ -187,9 +187,7 @@ public class OmeroRawClient {
         ExperimenterData exp = gateway.getLoggedInUser();
         long groupID = exp.getGroupId();
 
-        SecurityContext ctx = new SecurityContext(groupID);
-
-        this.securityContext = ctx;
+        this.securityContext = new SecurityContext(groupID);
         this.gateway = gateway;
 
         this.isAdminUser = !this.gateway.getAdminService(this.securityContext).getCurrentAdminPrivileges().isEmpty();
@@ -208,7 +206,7 @@ public class OmeroRawClient {
         // check if the user is member of the group
         boolean canUserAccessGroup = OmeroRawTools.getUserOmeroGroups(this, this.loggedInUser.getId().getValue()).stream()
                 .map(ExperimenterGroup::getId)
-                .collect(Collectors.toList())
+                .toList()
                 .stream()
                 .anyMatch(e -> e.getValue() == groupId);
 

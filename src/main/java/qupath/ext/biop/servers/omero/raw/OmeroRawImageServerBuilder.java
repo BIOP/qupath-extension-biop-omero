@@ -78,9 +78,7 @@ public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedIm
             // Add the client to the list (but not URI yet!)
             OmeroRawClients.addClient(client);
             return true;
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
+        } catch (MalformedURLException | URISyntaxException e) {
             e.printStackTrace();
         }
 
@@ -196,8 +194,8 @@ public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedIm
         Pattern[] similarPatterns = new Pattern[]{patternOldViewer, patternNewViewer, patternWebViewer};
 
         // Check for simpler patterns first
-        for (int i = 0; i < similarPatterns.length; i++) {
-            var matcher = similarPatterns[i].matcher(shortPath);
+        for (Pattern similarPattern : similarPatterns) {
+            var matcher = similarPattern.matcher(shortPath);
             if (matcher.find()) {
                 elemId += matcher.group(1);
                 list.add(URI.create(uri.getScheme() + "://" + uri.getHost() + "/webclient/?show" + equalSign + elemId));

@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import omero.gateway.model.FileAnnotationData;
 import omero.gateway.model.MapAnnotationData;
@@ -113,35 +112,35 @@ final class OmeroRawAnnotations {
 
         switch(annotationType){
             case TAG:
-                List<TagAnnotationData> tags = (List<TagAnnotationData>)annotations.stream().filter(tag-> tag instanceof TagAnnotationData).collect(Collectors.toList());
+                List<TagAnnotationData> tags = (List<TagAnnotationData>)annotations.stream().filter(tag-> tag instanceof TagAnnotationData).toList();
                 tags.forEach(tag-> {
                     omeroAnnotations.add(new TagAnnotation(client, tag));
                     experimenters.add(new OmeroRawObjects.Experimenter(tag.getOwner().asExperimenter()));
                 });
                 break;
             case MAP:
-                List<MapAnnotationData> kvps = (List<MapAnnotationData>)annotations.stream().filter(map-> map instanceof MapAnnotationData).collect(Collectors.toList());
+                List<MapAnnotationData> kvps = (List<MapAnnotationData>)annotations.stream().filter(map-> map instanceof MapAnnotationData).toList();
                 kvps.forEach(kvp-> {
                     omeroAnnotations.add(new MapAnnotation(client, kvp));
                     experimenters.add(new OmeroRawObjects.Experimenter(kvp.getOwner().asExperimenter()));
                 });
                 break;
             case ATTACHMENT:
-                List<FileAnnotationData> files = (List<FileAnnotationData>)annotations.stream().filter(file-> file instanceof FileAnnotationData).collect(Collectors.toList());
+                List<FileAnnotationData> files = (List<FileAnnotationData>)annotations.stream().filter(file-> file instanceof FileAnnotationData).toList();
                 files.forEach(file-> {
                     omeroAnnotations.add(new FileAnnotation(client, file));
                     experimenters.add(new OmeroRawObjects.Experimenter(file.getOwner().asExperimenter()));
                 });
                 break;
             case RATING:
-                List<RatingAnnotationData> ratings = (List<RatingAnnotationData>)annotations.stream().filter(rating-> rating instanceof RatingAnnotationData).collect(Collectors.toList());
+                List<RatingAnnotationData> ratings = (List<RatingAnnotationData>)annotations.stream().filter(rating-> rating instanceof RatingAnnotationData).toList();
                 ratings.forEach(rating-> {
                     omeroAnnotations.add(new LongAnnotation(client, rating));
                     experimenters.add(new OmeroRawObjects.Experimenter(rating.getOwner().asExperimenter()));
                 });
                 break;
             case COMMENT:
-                List<TextualAnnotationData> comments = (List<TextualAnnotationData>)annotations.stream().filter(comment-> comment instanceof TextualAnnotationData).collect(Collectors.toList());
+                List<TextualAnnotationData> comments = (List<TextualAnnotationData>)annotations.stream().filter(comment-> comment instanceof TextualAnnotationData).toList();
                 comments.forEach(comment-> {
                     omeroAnnotations.add(new CommentAnnotation(client, comment));
                     experimenters.add(new OmeroRawObjects.Experimenter(comment.getOwner().asExperimenter()));

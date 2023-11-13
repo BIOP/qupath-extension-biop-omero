@@ -283,7 +283,7 @@ class UtilityTools {
                     parentTable.get(col).add(NUMERIC_FIELD_ID +
                             ob.getNumericValue(pathObject, col.replace(NUMERIC_FIELD_ID,"")));
                 } else {
-                    parentTable.get(col).add(""+ob.getStringValue(pathObject, col)); // need to keep the empty space because of null values
+                    parentTable.get(col).add(String.valueOf(ob.getStringValue(pathObject, col))); // need to keep the empty space because of null values
                 }
             }
         }
@@ -311,7 +311,7 @@ class UtilityTools {
 
         } catch (IOException e) {
             Dialogs.showErrorNotification("Write CSV file", "An error has occurred when trying to save the csv file");
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
         }
         return file;

@@ -119,7 +119,7 @@ public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
             objs = selectedObjects;
 
             // Get annotations among the selection
-            var annotations = objs.stream().filter(e -> e.isAnnotation()).collect(Collectors.toList());
+            var annotations = objs.stream().filter(PathObject::isAnnotation).toList();
 
             // Give warning and filter out annotation objects
             if (annotations.size() > 0) {
@@ -150,7 +150,7 @@ public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
 
         // Write path object(s)
         // give to each pathObject a unique name
-        objs.forEach(pathObject -> pathObject.setName(""+ (new Date()).getTime() + pathObject.hashCode()));
+        objs.forEach(pathObject -> pathObject.setName(String.valueOf((new Date()).getTime()) + pathObject.hashCode()));
 
         // send detections to OMERO
         boolean hasBeenSaved = OmeroRawScripting.sendPathObjectsToOmero(omeroServer, objs, deleteRois, null);

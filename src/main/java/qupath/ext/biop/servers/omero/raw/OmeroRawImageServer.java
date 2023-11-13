@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 import qupath.lib.color.ColorModelFactory;
 import qupath.lib.common.ColorTools;
 import qupath.lib.common.GeneralTools;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 
 import qupath.lib.images.servers.AbstractTileableImageServer;
 import qupath.lib.images.servers.ImageChannel;
@@ -102,12 +102,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * ImageServer that reads pixels using the OMERO-JAVA gateway
@@ -191,8 +189,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		// Args are stored in the JSON - passwords and usernames must not be included!
 		// Do an extra check to ensure someone hasn't accidentally passed one
 		var invalid = Arrays.asList("--password", "-p", "-u", "--username", "-password");
-		for (int i = 0; i < args.length; i++) {
-			String arg = args[i].toLowerCase().strip();
+		for (String s : args) {
+			String arg = s.toLowerCase().strip();
 			if (invalid.contains(arg)) {
 				throw new IllegalArgumentException("Cannot build server with arg " + arg);
 			}
@@ -1043,7 +1041,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				// if image unreadable, check all other open clients
 				if(image == null){
 					// get opened clients
-					List<OmeroRawClient> otherClients = OmeroRawClients.getAllClients().stream().filter(c -> !c.equals(client)).collect(Collectors.toList());
+					List<OmeroRawClient> otherClients = OmeroRawClients.getAllClients().stream().filter(c -> !c.equals(client)).toList();
 					for (OmeroRawClient cli : otherClients) {
 						// read the image
 						image = OmeroRawTools.readOmeroImage(cli, imageID);

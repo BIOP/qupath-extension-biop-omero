@@ -49,7 +49,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import javafx.event.EventHandler;
 import javafx.geometry.Rectangle2D;
@@ -653,7 +652,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             comboGroup.getSelectionModel().getSelectedItem(),
                             comboOwner.getSelectionModel().getSelectedItem()).parallelStream())
                     .filter(OmeroRawImageServerBrowserCommand::isSupported)
-                    .collect(Collectors.toList());
+                    .toList();
 
             var validUris = validObjs.stream()
                     .map(this::createObjectURI)
@@ -905,10 +904,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         for (OmeroRawObjects.OmeroRawObject obj: list) {
             if (obj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER) {
                 var filteredList = filterList(((OmeroRawObjects.OrphanedFolder)obj).getImageList(), comboGroup.getSelectionModel().getSelectedItem(), comboOwner.getSelectionModel().getSelectedItem(), null);
-                URIs.addAll(filteredList.stream().map(sub -> createObjectURI(sub)).collect(Collectors.toList()));
+                URIs.addAll(filteredList.stream().map(this::createObjectURI).toList());
             } else {
                 try {
-                    URIs.addAll(OmeroRawTools.getURIs(URI.create(createObjectURI(obj)), client).stream().map(e -> e.toString()).collect(Collectors.toList()));
+                    URIs.addAll(OmeroRawTools.getURIs(URI.create(createObjectURI(obj)), client).stream().map(URI::toString).toList());
                 } catch (IOException ex) {
                     logger.error("Could not get URI for " + obj.getName() + ": {}", ex.getLocalizedMessage());
                 } catch (DSOutOfServiceException | ExecutionException | DSAccessException e) {
@@ -945,7 +944,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     return owner == OmeroRawObjects.Owner.getAllMembersOwner() || e.getOwner().equals(owner);
                 })
                 .filter(e -> matchesSearch(e, filter))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static boolean matchesSearch(OmeroRawObjects.OmeroRawObject obj, String filter) {
@@ -973,7 +972,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             return new ReadOnlyObjectWrapper<>();
         String[] outString = new String[0];
         String name = omeroObject.getName();
-        String id = omeroObject.getId() + "";
+        String id = String.valueOf(omeroObject.getId());
         String owner = omeroObject.getOwner() == null ? null : omeroObject.getOwner().getName();
         String group = omeroObject.getGroup() == null ? null : omeroObject.getGroup().getName();
         if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER)
@@ -982,35 +981,35 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             String description = ((OmeroRawObjects.Project)omeroObject).getDescription();
             if (description == null || description.isEmpty())
                 description = "-";
-            String nChildren = omeroObject.getNChildren() + "";
+            String nChildren = String.valueOf(omeroObject.getNChildren());
             outString = new String[] {name, id, description, owner, group, nChildren};
 
         } else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.DATASET) {
             String description = ((OmeroRawObjects.Dataset) omeroObject).getDescription();
             if (description == null || description.isEmpty())
                 description = "-";
-            String nChildren = omeroObject.getNChildren() + "";
+            String nChildren = String.valueOf(omeroObject.getNChildren());
             outString = new String[]{name, id, description, owner, group, nChildren};}
 
         else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.SCREEN) {
             String description = ((OmeroRawObjects.Screen)omeroObject).getDescription();
             if (description == null || description.isEmpty())
                 description = "-";
-            String nChildren = omeroObject.getNChildren() + "";
+            String nChildren = String.valueOf(omeroObject.getNChildren());
             outString = new String[] {name, id, description, owner, group, nChildren};}
 
         else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.PLATE) {
             String description = ((OmeroRawObjects.Plate)omeroObject).getDescription();
             if (description == null || description.isEmpty())
                 description = "-";
-            String nChildren = omeroObject.getNChildren() + "";
+            String nChildren = String.valueOf(omeroObject.getNChildren());
             outString = new String[] {name, id, description, owner, group, nChildren};}
 
         else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.WELL) {
             String description = ((OmeroRawObjects.Well)omeroObject).getDescription();
             if (description == null || description.isEmpty())
                 description = "-";
-            String nChildren = omeroObject.getNChildren() + "";
+            String nChildren = String.valueOf(omeroObject.getNChildren());
             outString = new String[] {name, id, description, owner, group, nChildren};
 
         } else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE) {
@@ -1018,9 +1017,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             String acquisitionDate = obj.getAcquisitionDate() == -1 ? "-" : new Date(obj.getAcquisitionDate()).toString();
             String width = obj.getImageDimensions()[0] + " px";
             String height = obj.getImageDimensions()[1] + " px";
-            String c = obj.getImageDimensions()[2] + "";
-            String z = obj.getImageDimensions()[3] + "";
-            String t = obj.getImageDimensions()[4] + "";
+            String c = String.valueOf(obj.getImageDimensions()[2]);
+            String z = String.valueOf(obj.getImageDimensions()[3]);
+            String t = String.valueOf(obj.getImageDimensions()[4]);
             String pixelSizeX = obj.getPhysicalSizes()[0] == null ? "-" : obj.getPhysicalSizes()[0].getValue() + " " + obj.getPhysicalSizes()[0].getSymbol();
             String pixelSizeY = obj.getPhysicalSizes()[1] == null ? "-" : obj.getPhysicalSizes()[1].getValue() + " " + obj.getPhysicalSizes()[1].getSymbol();
             String pixelSizeZ = obj.getPhysicalSizes()[2] == null ? "-" : obj.getPhysicalSizes()[2].getValue() + obj.getPhysicalSizes()[2].getSymbol();
@@ -1369,7 +1368,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             // get all available owners
                             ObservableList<OmeroRawObjects.Owner> allUsers = comboOwner.getItems();
                             // remove "all members" owner and get data from others
-                            for(OmeroRawObjects.Owner owner : allUsers.stream().filter(e->!e.equals(currentOwner)).collect(Collectors.toList()))
+                            for(OmeroRawObjects.Owner owner : allUsers.stream().filter(e->!e.equals(currentOwner)).toList())
                                 children.addAll(OmeroRawImageServerBrowserCommand.this.getChildren(parentOmeroObj, currentGroup, owner));
                         }else
                             // get data from the selected owner
@@ -1399,7 +1398,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     // convert children into Java Tree items
                     var items = filterList(children, comboGroup.getSelectionModel().getSelectedItem(), comboOwner.getSelectionModel().getSelectedItem(), filterTemp).stream()
                             .map(OmeroRawObjectTreeItem::new)
-                            .collect(Collectors.toList());
+                            .toList();
 
                     // Add an 'Orphaned Images' tree item to the server's children
                     if (parentOmeroObj.getType() == OmeroRawObjects.OmeroRawObjectType.SERVER && (filter == null || filterTemp.isEmpty()))
@@ -1556,11 +1555,11 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         var ann2 = (TagAnnotation)ann;
                         var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         var creator = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.getOwner().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         tooltip = String.format("Added by: %s%sCreated by: %s", addedBy, System.lineSeparator(), creator);
                         GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getValue()));
@@ -1571,11 +1570,11 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         var ann2 = (MapAnnotation)ann;
                         var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         var creator = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.getOwner().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         for (var value: ann2.getValues().entrySet())
                             addKeyValueToGrid(gp, true, "Added by: " + addedBy + System.lineSeparator() + "Created by: " + creator, value.getKey(), value.getValue().isEmpty() ? "-" : value.getValue());
@@ -1586,11 +1585,11 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         var ann2 = (FileAnnotation)ann;
                         var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         var creator = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.getOwner().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         tooltip = String.format("Added by: %s%sCreated by: %s%sType: %s", addedBy, System.lineSeparator(), creator, System.lineSeparator(), ann2.getMimeType());
                         GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getFilename() + " (" + ann2.getFileSize() + " bytes)"));
@@ -1601,7 +1600,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         var ann2 = (CommentAnnotation)ann;
                         var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, "Added by " + addedBy, new Label(ann2.getValue()));
                     }
@@ -1634,7 +1633,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         private Node createObjectDetailsPane(OmeroRawObjects.OmeroRawObject obj) {
             GridPane gp = new GridPane();
 
-            addKeyValueToGrid(gp, true, "Id", "Id", obj.getId() + "");
+            addKeyValueToGrid(gp, true, "Id", "Id", String.valueOf(obj.getId()));
             addKeyValueToGrid(gp, true, "Owner", "Owner", obj.getOwner().getName());
             addKeyValueToGrid(gp, false, "Group", "Group", obj.getGroup().getName());
 
@@ -1650,9 +1649,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 addKeyValueToGrid(gp, true, "Acquisition date", "Acquisition date", acquisitionDate);
                 addKeyValueToGrid(gp, true, "Image width", "Image width", temp.getImageDimensions()[0] + " px");
                 addKeyValueToGrid(gp, true, "Image height", "Image height", temp.getImageDimensions()[1] + " px");
-                addKeyValueToGrid(gp, true, "Num. channels", "Num. channels", temp.getImageDimensions()[2] + "");
-                addKeyValueToGrid(gp, true, "Num. z-slices", "Num. z-slices", temp.getImageDimensions()[3] + "");
-                addKeyValueToGrid(gp, true, "Num. timepoints", "Num. timepoints", temp.getImageDimensions()[4] + "");
+                addKeyValueToGrid(gp, true, "Num. channels", "Num. channels", String.valueOf(temp.getImageDimensions()[2]));
+                addKeyValueToGrid(gp, true, "Num. z-slices", "Num. z-slices", String.valueOf(temp.getImageDimensions()[3]));
+                addKeyValueToGrid(gp, true, "Num. timepoints", "Num. timepoints", String.valueOf(temp.getImageDimensions()[4]));
                 addKeyValueToGrid(gp, true, "Pixel size X", "Pixel size X", pixelSizeX);
                 addKeyValueToGrid(gp, true, "Pixel size Y", "Pixel size Y", pixelSizeY);
                 addKeyValueToGrid(gp, true, "Pixel size Z", "Pixel size Z", pixelSizeZ);
@@ -1851,7 +1850,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             }
                             return null;
                         })
-                        .map(item -> item.toString())
+                        .map(URI::toString)
                         .toArray(String[]::new);
                 if (URIs.length > 0) {
                     HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
@@ -1990,7 +1989,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     if (selectedItem != null) {
                         try {
                             List<URI> URIs = OmeroRawTools.getURIs(selectedItem.link.toURI(), client);
-                            var uriStrings = URIs.parallelStream().map(uriTemp -> uriTemp.toString()).toArray(String[]::new);
+                            var uriStrings = URIs.parallelStream().map(URI::toString).toArray(String[]::new);
                             if (URIs.size() > 0) {
                                 HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
                                 promptToImportOmeroImages(uriStrings);
@@ -2137,7 +2136,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         }
                         return true;
                     })
-                    .collect(Collectors.toList());
+                    .toList();
 
             if (thumbnailsToQuery.isEmpty())
                 return;

@@ -244,7 +244,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 						omeroServer = st;
 				}catch (IOException e){
 					Dialogs.showWarningNotification("Load OMERO User preferences","Unable to find your default OMERO server");
-					logger.error("" + e);
+					logger.error(String.valueOf(e));
 					logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
 				}
 				break;
@@ -268,7 +268,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 			myWriter.write(omeroDefaultServer);
 		} catch (IOException e) {
 			Dialogs.showWarningNotification("Create default Omero server file","An error occurred during File creation");
-			logger.error("" + e);
+			logger.error(String.valueOf(e));
 			logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
 		}
 	}

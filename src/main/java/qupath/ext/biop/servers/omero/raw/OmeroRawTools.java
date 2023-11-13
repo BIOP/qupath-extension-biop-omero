@@ -182,7 +182,7 @@ public final class OmeroRawTools {
             return client.getGateway().getAdminService(client.getContext()).getExperimenter(userId);
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO user "+username +" ; id: "+userId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             throw new RuntimeException(e);
         }
@@ -201,7 +201,7 @@ public final class OmeroRawTools {
             return client.getGateway().getAdminService(client.getContext()).containedExperimenters(groupId);
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO users in group "+groupId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             throw new RuntimeException(e);
         }
@@ -221,7 +221,7 @@ public final class OmeroRawTools {
             return client.getGateway().getAdminService(client.getContext()).getGroup(groupId);
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO group "+groupName +" ; id: "+groupId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             throw new RuntimeException(e);
         }
@@ -240,7 +240,7 @@ public final class OmeroRawTools {
             return client.getGateway().getAdminService(client.getContext()).containedGroups(userId);
         }catch(DSOutOfServiceException | ServerError e){
             Dialogs.showErrorMessage("OMERO admin","Cannot retrieve OMERO groups for user "+userId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             throw new RuntimeException(e);
         }
@@ -264,7 +264,7 @@ public final class OmeroRawTools {
             }
         }catch(DSOutOfServiceException | ServerError e){
             Dialogs.showErrorMessage("OMERO admin", "Cannot retrieve all OMERO groups");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             throw new RuntimeException(e);
         }
@@ -283,7 +283,7 @@ public final class OmeroRawTools {
             return client.getGateway().getAdminService(client.getContext()).getDefaultGroup(userId);
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorMessage("OMERO admin","Cannot read the default OMERO group for the user "+userId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             throw new RuntimeException(e);
         }
@@ -306,7 +306,7 @@ public final class OmeroRawTools {
 
         } catch (DSOutOfServiceException | NoSuchElementException | ExecutionException | DSAccessException e) {
             Dialogs.showErrorNotification("Get group id","Cannot retrieved group id from image "+imageId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return -1;
         }
@@ -340,12 +340,12 @@ public final class OmeroRawTools {
 
         } catch (DSOutOfServiceException | ExecutionException | ServerError e) {
             Dialogs.showErrorMessage("Orphaned datasets","Cannot retrieved orphaned datasets for user "+userId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         } catch (DSAccessException e){
             Dialogs.showErrorMessage("Orphaned datasets","You don't have the right to access to orphaned dataset of the user "+userId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -379,12 +379,12 @@ public final class OmeroRawTools {
 
         } catch (DSOutOfServiceException | ExecutionException | ServerError e) {
             Dialogs.showErrorMessage("Orphaned datasets","Cannot retrieved orphaned datasets");
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         } catch (DSAccessException e){
             Dialogs.showErrorMessage("Orphaned datasets","You don't have the right to access to orphaned dataset");
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -405,7 +405,7 @@ public final class OmeroRawTools {
             return client.getGateway().getFacility(BrowseFacility.class).getOrphanedImages(client.getContext(), userId);
         } catch (ExecutionException e) {
             Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+userId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -522,11 +522,11 @@ public final class OmeroRawTools {
             }
         } catch (ServerError | DSOutOfServiceException | ExecutionException e) {
             Dialogs.showErrorNotification("Getting parent","Cannot retrieved the parent of "+dataType+" id "+id);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         } catch (DSAccessException e) {
             Dialogs.showErrorNotification("Getting parent","You do not have access to "+dataType+" id "+id);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
 
@@ -565,12 +565,12 @@ public final class OmeroRawTools {
 
         } catch(ExecutionException | DSOutOfServiceException | ServerError | NullPointerException e){
             Dialogs.showErrorNotification("Rendering def reading","Could not read rendering settings on OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         } catch(DSAccessException e){
             Dialogs.showErrorNotification("Rendering def reading","You don't have the right to access to the Rendering setting of the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         }
@@ -589,12 +589,12 @@ public final class OmeroRawTools {
             return client.getGateway().getFacility(BrowseFacility.class).getProjects(client.getContext(), projectIds);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading projects","An error occurs when reading OMERO projects "+projectIds);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }catch (DSAccessException | NoSuchElementException e){
             Dialogs.showErrorNotification("Reading projects","You don't have the right to access OMERO projects "+projectIds);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -613,12 +613,12 @@ public final class OmeroRawTools {
             return client.getGateway().getFacility(BrowseFacility.class).getProjects(client.getContext(), userId);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading projects by user","An error occurs when reading OMERO projects for the user "+userId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }catch (DSAccessException | NoSuchElementException e){
             Dialogs.showErrorNotification("Reading projects by user","You don't have the right to access OMERO projects for the user "+userId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -636,12 +636,12 @@ public final class OmeroRawTools {
             return client.getGateway().getFacility(BrowseFacility.class).getScreens(client.getContext(), userId);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading projects by user","An error occurs when reading OMERO projects for the user "+userId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }catch (DSAccessException | NoSuchElementException e){
             Dialogs.showErrorNotification("Reading projects by user","You don't have the right to access OMERO projects for the user "+userId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -674,12 +674,12 @@ public final class OmeroRawTools {
             return client.getGateway().getFacility(BrowseFacility.class).getDatasets(client.getContext(), datasetIds);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading datasets","An error occurs when reading OMERO datasets "+datasetIds);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }catch (DSAccessException | NoSuchElementException e){
             Dialogs.showErrorNotification("Reading datasets","You don't have the right to access OMERO datasets "+datasetIds);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -710,12 +710,12 @@ public final class OmeroRawTools {
 
         }catch(DSOutOfServiceException | ServerError e){
             Dialogs.showErrorNotification("Reading plates","An error occurs when reading OMERO plates "+plateIds);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }catch (NoSuchElementException e){
             Dialogs.showErrorNotification("Reading plates","You don't have the right to access OMERO plates "+plateIds);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -733,12 +733,12 @@ public final class OmeroRawTools {
             return client.getGateway().getFacility(BrowseFacility.class).getWells(client.getContext(), plateId);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading datasets","An error occurs when reading wells in plate "+plateId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }catch (DSAccessException | NoSuchElementException e){
             Dialogs.showErrorNotification("Reading wells","You don't have the right to access wells in plate "+plateId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -757,11 +757,11 @@ public final class OmeroRawTools {
             return client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading image","An error occurs when reading OMERO image "+imageId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         }catch (DSAccessException | NoSuchElementException e){
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         }
@@ -781,12 +781,12 @@ public final class OmeroRawTools {
             return client.getGateway().getFacility(MetadataFacility.class).getChannelData(client.getContext(), imageId);
         } catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Channel reading","Could not read image channel on OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Channel reading","You don't have the right to read channels on OMERO for the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -807,12 +807,12 @@ public final class OmeroRawTools {
 
         } catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO annotations", "Cannot get annotations from OMERO for the object "+obj);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Reading OMERO annotations","You don't have the right to read annotations on OMERO for the object "+obj);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -832,12 +832,12 @@ public final class OmeroRawTools {
             return imageData.asImage().getFormat().getValue().getValue();
         } catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO annotations", "Cannot get annotations from OMERO for the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return "";
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Reading OMERO annotations","You don't have the right to read annotations on OMERO for the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return "";
         }
@@ -855,11 +855,11 @@ public final class OmeroRawTools {
             return  client.getGateway().getFacility(BrowseFacility.class).findObject(client.getContext(), objectClassData, id, true);
         } catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO object", "Cannot get "+objectClassData+" from OMERO with id "+id);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Reading OMERO object","You don't have the right to read "+objectClassData+" on OMERO with id "+id);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
         return null;
@@ -878,11 +878,11 @@ public final class OmeroRawTools {
             return  client.getGateway().getFacility(BrowseFacility.class).findIObject(client.getContext(), objectClass, id, true);
         } catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO object", "Cannot get "+objectClass+" from OMERO with id "+id);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Reading OMERO object","You don't have the right to read "+objectClass+" on OMERO with id "+id);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
         return null;
@@ -922,12 +922,12 @@ public final class OmeroRawTools {
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Table Saving","Error during saving table on OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Table Saving","You don't have the right to add a table on OMERO for the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         }
@@ -950,12 +950,12 @@ public final class OmeroRawTools {
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Table Saving","Error during saving table on OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Table Saving","You don't have the right to add a table on OMERO for "
                     + container.getClass().getName()+" id " +container.getId());
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
         return null;
@@ -1009,12 +1009,12 @@ public final class OmeroRawTools {
 
         } catch (ExecutionException | DSOutOfServiceException | InterruptedException e){
             Dialogs.showErrorNotification("File Saving","Error during saving file on OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("File Saving","You don't have the right to save a file on OMERO for the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         }
@@ -1066,7 +1066,7 @@ public final class OmeroRawTools {
 
         } catch (ExecutionException | InterruptedException e){
             Dialogs.showErrorNotification("File Saving","Error during saving file on OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         }
@@ -1087,12 +1087,12 @@ public final class OmeroRawTools {
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Link Annotation","Error during linking the annotation on OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         } catch (DSAccessException e) {
             Dialogs.showErrorNotification("Link Annotation","You don't have the right to link objects on OMERO ");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         }
@@ -1113,12 +1113,12 @@ public final class OmeroRawTools {
             client.getGateway().getFacility(DataManagerFacility.class).updateObjects(client.getContext(), objects, null);
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Update objects","Error during updating objects on OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Update objects","You don't have the right to update objects on OMERO ");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         }
@@ -1140,12 +1140,12 @@ public final class OmeroRawTools {
             client.getGateway().getFacility(DataManagerFacility.class).updateObject(client.getContext(), object, null);
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Update object","Error during updating object on OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Update object","You don't have the right to update object on OMERO ");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         }
@@ -1174,7 +1174,7 @@ public final class OmeroRawTools {
         try {
             store = client.getGateway().getThumbnailService(client.getContext());
         } catch(DSOutOfServiceException e){
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
            return false;
         }
@@ -1197,13 +1197,13 @@ public final class OmeroRawTools {
                 store.createThumbnails();
             } catch (ServerError e) {
                 logger.error("Error during thumbnail creation but thumbnail is updated ");
-                logger.error("" + e);
+                logger.error(String.valueOf(e));
                 logger.error(getErrorStackTraceAsString(e));
             }
 
         } catch (NullPointerException | ServerError e) {
             Dialogs.showErrorNotification("Update OMERO Thumbnail", "Thumbnail cannot be updated for image " + imageId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         }
@@ -1213,7 +1213,7 @@ public final class OmeroRawTools {
             store.close();
         } catch (ServerError e) {
             Dialogs.showErrorNotification("Update OMERO Thumbnail", "Cannot close the ThumbnailStore");
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
 
@@ -1239,12 +1239,12 @@ public final class OmeroRawTools {
             }
         } catch(DSOutOfServiceException | ExecutionException e){
             Dialogs.showErrorNotification("Download object","Error during downloading image "+imageId+" from OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasDownloaded = false;
         } catch(DSAccessException e){
             Dialogs.showErrorNotification("Download object","You don't have the right to download image "+imageId+" from OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasDownloaded = false;
         }
@@ -1318,7 +1318,7 @@ public final class OmeroRawTools {
             uploadThreadPool.shutdown();
         } catch (Throwable e) {
             Dialogs.showErrorNotification("Upload image","Error during uploading image "+path+" to OMERO.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
         } finally {
             if(store != null)
                 store.logout();
@@ -1362,11 +1362,11 @@ public final class OmeroRawTools {
 
         } catch (DSOutOfServiceException |  ExecutionException e){
             Dialogs.showErrorNotification("ROI deletion","Could not delete existing ROIs on OMERO.");
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         } catch (DSAccessException e) {
             Dialogs.showErrorNotification("ROI deletion", "You don't have the right to delete ROIs on OMERO on the image  " + imageId);
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
     }
@@ -1388,11 +1388,11 @@ public final class OmeroRawTools {
 
         } catch (DSOutOfServiceException |  ExecutionException e){
             Dialogs.showErrorNotification("ROI deletion","Could not delete existing ROIs on OMERO.");
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         } catch (DSAccessException e) {
             Dialogs.showErrorNotification("ROI deletion", "You don't have the right to delete those ROIs on OMERO");
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
     }
@@ -1417,11 +1417,11 @@ public final class OmeroRawTools {
                 roiSaved = true;
             } catch (ExecutionException | DSOutOfServiceException e){
                 Dialogs.showErrorNotification("ROI Saving","Error during saving ROIs on OMERO.");
-                logger.error(""+e);
+                logger.error(String.valueOf(e));
                 logger.error(getErrorStackTraceAsString(e));
             } catch (DSAccessException e){
                 Dialogs.showErrorNotification("ROI Saving","You don't have the right to write ROIs from OMERO on the image "+imageId);
-                logger.error(""+e);
+                logger.error(String.valueOf(e));
                 logger.error(getErrorStackTraceAsString(e));
             }
         } else {
@@ -1446,12 +1446,12 @@ public final class OmeroRawTools {
             roiList = client.getGateway().getFacility(ROIFacility.class).loadROIs(client.getContext(), imageId);
         } catch (DSOutOfServiceException | ExecutionException e) {
             Dialogs.showErrorNotification("ROI reading","Error during reading ROIs from OMERO.");
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return new ArrayList<>();
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("ROI reading","You don't have the right to read ROIs from OMERO on the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return new ArrayList<>();
          }
@@ -1568,7 +1568,7 @@ public final class OmeroRawTools {
 
         }catch(ExecutionException | DSOutOfServiceException | DSAccessException e) {
             Dialogs.showErrorNotification("Reading OMERO key value pairs", "Cannot get key values from OMERO");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -1600,12 +1600,12 @@ public final class OmeroRawTools {
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Attachment reading","Cannot read attachment from image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Attachment reading","You don't have the right to read attachments on OMERO for the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -1634,13 +1634,13 @@ public final class OmeroRawTools {
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Attachment reading",
                     "Cannot read attachment from "+parent.getClass().getName()+" id "+parent.getId());
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Attachment reading",
                     "You don't have the right to read attachments on OMERO for "+parent.getClass().getName()+" id "+parent.getId());
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -1669,11 +1669,11 @@ public final class OmeroRawTools {
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Attachment reading","Cannot read attachment from image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         } catch (DSAccessException e){
             Dialogs.showErrorNotification("Attachment reading","You don't have the right to read attachments on OMERO for the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
         return Collections.emptyList();
@@ -1694,11 +1694,11 @@ public final class OmeroRawTools {
             hasBeenDeleted = true;
         } catch (DSOutOfServiceException |  ExecutionException e){
             Dialogs.showErrorNotification("File deletion","Could not delete files on OMERO.");
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         } catch (DSAccessException e) {
             Dialogs.showErrorNotification("File deletion", "You don't have the right to delete those files on OMERO");
-            logger.error("" + e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
         return hasBeenDeleted;
@@ -1747,12 +1747,12 @@ public final class OmeroRawTools {
             return readOmeroDataset(client,r.getId().getValue());
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         }catch(DSAccessException e) {
             Dialogs.showErrorNotification("Create New dataset", "You don't have the right to create a dataset on OMERO");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         }
@@ -1784,12 +1784,12 @@ public final class OmeroRawTools {
             return readOmeroDataset(client,r.getId().getValue());
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName+" in the project "+projectId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         }catch(DSAccessException e) {
             Dialogs.showErrorNotification("Create New dataset", "You don't have the right to create a dataset on OMERO in the project "+projectId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return null;
         }
@@ -1827,11 +1827,11 @@ public final class OmeroRawTools {
 
         }catch(ExecutionException | DSOutOfServiceException | ServerError | InterruptedException e) {
             Dialogs.showErrorNotification("Unlink tags", "Cannot unlink tags for the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }catch(DSAccessException e) {
             Dialogs.showErrorNotification("Unlink tags", "You don't have the right to unlink tags for image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
     }
@@ -1855,12 +1855,12 @@ public final class OmeroRawTools {
 
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Adding OMERO KeyValues", "Cannot add new key values on OMERO");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         }catch(DSAccessException e) {
             Dialogs.showErrorNotification("Adding OMERO KeyValues", "You don't have the right to add some key value pairs on OMERO on the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         }
@@ -1881,12 +1881,12 @@ public final class OmeroRawTools {
             client.getGateway().getFacility(DataManagerFacility.class).updateObjects(client.getContext(), keyValuePairs.stream().map(MapAnnotationData::asIObject).collect(Collectors.toList()),null);
         }catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("OMERO KeyValues update", "Cannot update existing key values on OMERO");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasUpdated = false;
         }catch(DSAccessException e) {
             Dialogs.showErrorNotification("Adding OMERO KeyValues", "You don't have the right to update key value pairs on OMERO");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasUpdated = false;
         }
@@ -1907,7 +1907,7 @@ public final class OmeroRawTools {
             client.getGateway().getFacility(DataManagerFacility.class).delete(client.getContext(), keyValuePairs.stream().map(MapAnnotationData::asIObject).collect(Collectors.toList()));
         } catch(ExecutionException | DSOutOfServiceException | DSAccessException e) {
             Dialogs.showErrorNotification("OMERO KeyValues deletion", "Cannot delete existing key values on OMERO");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasDeleted = false;
         }
@@ -1960,12 +1960,12 @@ public final class OmeroRawTools {
 
         }catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO Tags", "Cannot get tags from OMERO");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }catch(DSAccessException e) {
             Dialogs.showErrorNotification("Reading OMERO tags", "You don't have the right to read tags from OMERO on the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -1993,7 +1993,7 @@ public final class OmeroRawTools {
             
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO tags", "Error getting all available tags");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
@@ -2024,12 +2024,12 @@ public final class OmeroRawTools {
 
         }catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Adding OMERO tags", "Cannot add new tags on OMERO");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         }catch(DSAccessException e) {
             Dialogs.showErrorNotification("Adding OMERO tags", "You don't have the right to add tags on OMERO on the image "+imageId);
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             wasAdded = false;
         }
@@ -2055,7 +2055,7 @@ public final class OmeroRawTools {
             pixel = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId).getDefaultPixels();
         }catch(ExecutionException | DSOutOfServiceException | DSAccessException | NullPointerException e){
             Dialogs.showErrorNotification( "Thumbnail reading","The thumbnail of image "+imageId+" cannot be read.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return readLocalImage(noImageThumbnail);
         }
@@ -2088,7 +2088,7 @@ public final class OmeroRawTools {
             array = store.getThumbnail(rint(width), rint(height));
         } catch (DSOutOfServiceException | ServerError | NullPointerException e) {
             Dialogs.showErrorNotification( "Thumbnail reading","The thumbnail of image "+imageId+" cannot be read.");
-            logger.error(""+e);
+            logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return readLocalImage(noImageThumbnail);
         } finally {
@@ -2111,7 +2111,7 @@ public final class OmeroRawTools {
                 else return thumbnail;
             }catch(IOException e){
                 Dialogs.showErrorNotification( "Thumbnail reading","The thumbnail of image "+imageId+" cannot be converted to buffered image.");
-                logger.error(""+e);
+                logger.error(String.valueOf(e));
                 logger.error(getErrorStackTraceAsString(e));
                 return readLocalImage(noImageThumbnail);
             }
@@ -2446,7 +2446,7 @@ public final class OmeroRawTools {
         LocalDateTime localDateTime = LocalDateTime.now();
         LocalTime localTime = localDateTime.toLocalTime();
         LocalDate localDate = localDateTime.toLocalDate();
-        return ""+localDate.getYear()+
+        return String.valueOf(localDate.getYear())+
                 (localDate.getMonthValue() < 10 ? "0"+localDate.getMonthValue():localDate.getMonthValue()) +
                 (localDate.getDayOfMonth() < 10 ? "0"+localDate.getDayOfMonth():localDate.getDayOfMonth())+"-"+
                 (localTime.getHour() < 10 ? "0"+localTime.getHour():localTime.getHour())+"h"+
