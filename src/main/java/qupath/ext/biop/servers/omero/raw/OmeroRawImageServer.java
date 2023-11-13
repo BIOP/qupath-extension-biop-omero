@@ -110,12 +110,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * ImageServer that reads pixels using the OMERO web API.
+ * ImageServer that reads pixels using the OMERO-JAVA gateway
  * <p>
- * Note that this does not provide access to the raw data, but rather RGB tiles only in the manner of a web viewer. 
- * Consequently, only RGB images are supported and some small changes in pixel values can be expected due to compression.
+ * Note that this ImageServer provides access to the raw data (not JPEG rendered).
+ * Fluorescence and bright-field images from OMERO can be open with it.
  * 
- * @author Pete Bankhead
+ * @author Olivier Burri & Rémy Dornier
  *
  */
 public class OmeroRawImageServer extends AbstractTileableImageServer implements PathObjectReader {
