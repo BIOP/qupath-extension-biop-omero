@@ -359,7 +359,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				if (channelColor == null) {
 					// Select next available default color, or white (for grayscale) if only one channel
 					if (nChannels == 1)
-						channelColor = ColorTools.makeRGB(255, 255, 255);
+						channelColor = ColorTools.packRGB(255, 255, 255);
 					else
 						channelColor = ImageChannel.getDefaultChannelColor(c);
 				}
