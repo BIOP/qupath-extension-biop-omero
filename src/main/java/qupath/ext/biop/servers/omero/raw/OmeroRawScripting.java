@@ -678,7 +678,7 @@ public class OmeroRawScripting {
         List<TagAnnotationData> omeroTagAnnotations = OmeroRawTools.readTags(imageServer.getClient(), imageServer.getId());
 
         // collect and convert to list
-        List<String> omeroTagValues = omeroTagAnnotations.stream().map(TagAnnotationData::getTagValue).toList();
+        List<String> omeroTagValues = omeroTagAnnotations.stream().map(TagAnnotationData::getTagValue).collect(Collectors.toList());
 
         // create a map with equals key and values
         Map<String,String> omeroTagMap =  omeroTagValues.stream().collect(Collectors.toMap(e->e, e->e));
@@ -700,7 +700,7 @@ public class OmeroRawScripting {
     public static boolean sendTagsToOmero(List<String> tags, OmeroRawImageServer imageServer){
         // get current OMERO tags
         List<TagAnnotationData> omeroTagAnnotations = OmeroRawTools.readTags(imageServer.getClient(), imageServer.getId());
-        List<String> currentTags = omeroTagAnnotations.stream().map(TagAnnotationData::getTagValue).toList();
+        List<String> currentTags = omeroTagAnnotations.stream().map(TagAnnotationData::getTagValue).collect(Collectors.toList());
 
         // remove all existing tags
         tags.removeAll(currentTags);
@@ -717,7 +717,7 @@ public class OmeroRawScripting {
         for(String tag:tags) {
             if(tagsToAdd.stream().noneMatch(e-> e.getTagValue().equalsIgnoreCase(tag))){
                 TagAnnotationData newOmeroTagAnnotation;
-                List<TagAnnotationData> matchedTags = groupTags.stream().filter(e -> e.getTagValue().equalsIgnoreCase(tag)).toList();
+                List<TagAnnotationData> matchedTags = groupTags.stream().filter(e -> e.getTagValue().equalsIgnoreCase(tag)).collect(Collectors.toList());
                 if(matchedTags.isEmpty()){
                     newOmeroTagAnnotation = new TagAnnotationData(tag);
                 } else {
@@ -1316,7 +1316,7 @@ public class OmeroRawScripting {
             List<FileAnnotationData> previousTables = files.stream()
                     .filter(e -> e.getFileName().contains(name) &&
                             (format == null || format.isEmpty() || e.getFileFormat().equals(format) || e.getOriginalMimetype().equals(format)))
-                    .toList();
+                    .collect(Collectors.toList());
 
             List<FileAnnotationData> filteredTables = new ArrayList<>();
             Map<Long, String> ownerMap = new HashMap<>();
@@ -1604,7 +1604,7 @@ public class OmeroRawScripting {
         }
 
         // update the image on OMERO first
-        return OmeroRawTools.updateObjectsOnOmero(imageServer.getClient(), omeroChannels.stream().map(ChannelData::asIObject).toList());
+        return OmeroRawTools.updateObjectsOnOmero(imageServer.getClient(), omeroChannels.stream().map(ChannelData::asIObject).collect(Collectors.toList()));
     }
 
 
@@ -1717,7 +1717,7 @@ public class OmeroRawScripting {
         List<TagAnnotationData> omeroTagAnnotations = OmeroRawTools.readTags(imageServer.getClient(), imageServer.getId());
 
         // collect and convert to list
-        return omeroTagAnnotations.stream().map(TagAnnotationData::getTagValue).toList();
+        return omeroTagAnnotations.stream().map(TagAnnotationData::getTagValue).collect(Collectors.toList());
     }
 
     /**

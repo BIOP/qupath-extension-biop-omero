@@ -49,6 +49,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javafx.event.EventHandler;
 import javafx.geometry.Rectangle2D;
@@ -652,7 +653,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             comboGroup.getSelectionModel().getSelectedItem(),
                             comboOwner.getSelectionModel().getSelectedItem()).parallelStream())
                     .filter(OmeroRawImageServerBrowserCommand::isSupported)
-                    .toList();
+                    .collect(Collectors.toList());
 
             var validUris = validObjs.stream()
                     .map(this::createObjectURI)
@@ -904,10 +905,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         for (OmeroRawObjects.OmeroRawObject obj: list) {
             if (obj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER) {
                 var filteredList = filterList(((OmeroRawObjects.OrphanedFolder)obj).getImageList(), comboGroup.getSelectionModel().getSelectedItem(), comboOwner.getSelectionModel().getSelectedItem(), null);
-                URIs.addAll(filteredList.stream().map(this::createObjectURI).toList());
+                URIs.addAll(filteredList.stream().map(this::createObjectURI).collect(Collectors.toList()));
             } else {
                 try {
-                    URIs.addAll(OmeroRawTools.getURIs(URI.create(createObjectURI(obj)), client).stream().map(URI::toString).toList());
+                    URIs.addAll(OmeroRawTools.getURIs(URI.create(createObjectURI(obj)), client).stream().map(URI::toString).collect(Collectors.toList()));
                 } catch (IOException ex) {
                     logger.error("Could not get URI for " + obj.getName() + ": {}", ex.getLocalizedMessage());
                 } catch (DSOutOfServiceException | ExecutionException | DSAccessException e) {
@@ -944,7 +945,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     return owner == OmeroRawObjects.Owner.getAllMembersOwner() || e.getOwner().equals(owner);
                 })
                 .filter(e -> matchesSearch(e, filter))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     private static boolean matchesSearch(OmeroRawObjects.OmeroRawObject obj, String filter) {
@@ -1368,7 +1369,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             // get all available owners
                             ObservableList<OmeroRawObjects.Owner> allUsers = comboOwner.getItems();
                             // remove "all members" owner and get data from others
-                            for(OmeroRawObjects.Owner owner : allUsers.stream().filter(e->!e.equals(currentOwner)).toList())
+                            for(OmeroRawObjects.Owner owner : allUsers.stream().filter(e->!e.equals(currentOwner)).collect(Collectors.toList()))
                                 children.addAll(OmeroRawImageServerBrowserCommand.this.getChildren(parentOmeroObj, currentGroup, owner));
                         }else
                             // get data from the selected owner
@@ -1398,7 +1399,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     // convert children into Java Tree items
                     var items = filterList(children, comboGroup.getSelectionModel().getSelectedItem(), comboOwner.getSelectionModel().getSelectedItem(), filterTemp).stream()
                             .map(OmeroRawObjectTreeItem::new)
-                            .toList();
+                            .collect(Collectors.toList());
 
                     // Add an 'Orphaned Images' tree item to the server's children
                     if (parentOmeroObj.getType() == OmeroRawObjects.OmeroRawObjectType.SERVER && (filter == null || filterTemp.isEmpty()))
@@ -2136,7 +2137,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         }
                         return true;
                     })
-                    .toList();
+                    .collect(Collectors.toList());
 
             if (thumbnailsToQuery.isEmpty())
                 return;

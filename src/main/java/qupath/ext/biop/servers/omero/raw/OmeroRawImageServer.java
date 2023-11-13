@@ -106,6 +106,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * ImageServer that reads pixels using the OMERO-JAVA gateway
@@ -1041,7 +1042,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				// if image unreadable, check all other open clients
 				if(image == null){
 					// get opened clients
-					List<OmeroRawClient> otherClients = OmeroRawClients.getAllClients().stream().filter(c -> !c.equals(client)).toList();
+					List<OmeroRawClient> otherClients = OmeroRawClients.getAllClients().stream().filter(c -> !c.equals(client)).collect(Collectors.toList());
 					for (OmeroRawClient cli : otherClients) {
 						// read the image
 						image = OmeroRawTools.readOmeroImage(cli, imageID);

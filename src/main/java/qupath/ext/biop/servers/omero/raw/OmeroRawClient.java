@@ -42,7 +42,7 @@ import omero.model.Experimenter;
 import omero.model.ExperimenterGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import qupath.fx.dialogs.Dialogs;
+import qupath.lib.gui.dialogs.Dialogs;
 
 import javax.naming.OperationNotSupportedException;
 import java.io.IOException;
@@ -206,7 +206,7 @@ public class OmeroRawClient {
         // check if the user is member of the group
         boolean canUserAccessGroup = OmeroRawTools.getUserOmeroGroups(this, this.loggedInUser.getId().getValue()).stream()
                 .map(ExperimenterGroup::getId)
-                .toList()
+                .collect(Collectors.toList())
                 .stream()
                 .anyMatch(e -> e.getValue() == groupId);
 

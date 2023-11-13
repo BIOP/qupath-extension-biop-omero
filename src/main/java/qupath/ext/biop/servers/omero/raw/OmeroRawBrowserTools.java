@@ -10,6 +10,8 @@ import omero.gateway.model.WellSampleData;
 import omero.model.Experimenter;
 import omero.model.ExperimenterGroup;
 import omero.model.DatasetImageLink;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.lib.projects.ProjectImageEntry;
 
 import java.awt.image.BufferedImage;
@@ -24,14 +26,17 @@ import java.util.stream.Collectors;
 
 public class OmeroRawBrowserTools {
 
+
+    final private static Logger logger = LoggerFactory.getLogger(OmeroRawBrowserTools.class);
+
     /**
      * Get all the child OMERO objects present in the OMERO server with the specified parent.
      *
-     * @param client OmeroRawClient that handles the connection
-     * @param parent parent OMERO container object
-     * @param group current group from which the image is coming from
-     * @param owner parent's owner
-     * @return list of child OmeroRawObjects listed from the parent
+     * @param client
+     * @param parent
+     * @param group
+     * @param owner
+     * @return list of OmeroRawObjects
      */
     public static List<OmeroRawObjects.OmeroRawObject> readOmeroObjectsItems(OmeroRawObjects.OmeroRawObject parent, OmeroRawClient client,
                                                                              OmeroRawObjects.Group group, OmeroRawObjects.Owner owner) {
@@ -156,8 +161,10 @@ public class OmeroRawBrowserTools {
 
 
     /**
-     * @param user OMERO object
-     * @return an {@link OmeroRawObjects.Owner} object based on the OMERO {@link Experimenter} user
+     * Build an {@link OmeroRawObjects.Owner} object based on the OMERO {@link Experimenter} user
+     *
+     * @param user
+     * @return
      */
     public static OmeroRawObjects.Owner getOwnerItem(Experimenter user){
         return new OmeroRawObjects.Owner(user.getId()==null ? 0 : user.getId().getValue(),
@@ -172,7 +179,7 @@ public class OmeroRawBrowserTools {
     /**
      * Return the {@link OmeroRawObjects.Owner} object corresponding to the logged-in user on the current OMERO session
      *
-     * @param client OmeroRawClient that handles the connection
+     * @param client
      * @return
      */
     public static OmeroRawObjects.Owner getDefaultOwnerItem(OmeroRawClient client)  {
@@ -182,7 +189,7 @@ public class OmeroRawBrowserTools {
 
     /**
      * Return the group object corresponding to the default group attributed to the logged in user
-     * @param client OmeroRawClient that handles the connection
+     * @param client
      * @return
      */
     public static OmeroRawObjects.Group getDefaultGroupItem(OmeroRawClient client) {
@@ -193,7 +200,7 @@ public class OmeroRawBrowserTools {
     /**
      * Return a map of available groups with its attached users.
      *
-     * @param client OmeroRawClient that handles the connection
+     * @param client
      * @return available groups for the current user
      */
     public static Map<OmeroRawObjects.Group,List<OmeroRawObjects.Owner>> getGroupUsersMapAvailableForCurrentUser(OmeroRawClient client) {
@@ -210,7 +217,7 @@ public class OmeroRawBrowserTools {
         // remove "system" and "user" groups
         groups.stream()
                 .filter(group->group.getId().getValue() != 0 && group.getId().getValue() != 1)
-                .toList()
+                .collect(Collectors.toList())
                 .forEach(group-> {
                     // initialize lists
                     List<OmeroRawObjects.Owner> owners = new ArrayList<>();

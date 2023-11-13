@@ -119,7 +119,7 @@ public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
             objs = selectedObjects;
 
             // Get annotations among the selection
-            var annotations = objs.stream().filter(PathObject::isAnnotation).toList();
+            var annotations = objs.stream().filter(PathObject::isAnnotation).collect(Collectors.toList());
 
             // Give warning and filter out annotation objects
             if (annotations.size() > 0) {

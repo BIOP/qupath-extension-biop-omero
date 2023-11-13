@@ -144,7 +144,7 @@ class OmeroRawShapes {
         // get all potential classes of a ROI
         List<String> classes = new ArrayList<>();
         if(isValidClass)
-            classes.addAll(Arrays.stream(roiClass.split("&")).toList());
+            classes.addAll(Arrays.stream(roiClass.split("&")).collect(Collectors.toList()));
 
         // create new PathClasses if they are not already created
         ObservableList<PathClass> availablePathClasses = QPEx.getQuPath().getAvailablePathClasses();
@@ -213,8 +213,8 @@ class OmeroRawShapes {
 
             // Process ROIs with multiple shapes, containing one or more points
             else if (nbPoints > 0 && roi.size() > 1) {
-                List<ROI> pointsList = roi.stream().filter(e -> e.getRoiName().equals("Points")).toList();
-                List<ROI> notPointsList = roi.stream().filter(e -> !e.getRoiName().equals("Points")).toList();
+                List<ROI> pointsList = roi.stream().filter(e -> e.getRoiName().equals("Points")).collect(Collectors.toList());
+                List<ROI> notPointsList = roi.stream().filter(e -> !e.getRoiName().equals("Points")).collect(Collectors.toList());
 
                 // create a pointsROI instance with multiple points
                 ROI pointsROI = ROIs.createPointsROI(pointsList.stream().mapToDouble(ROI::getCentroidX).toArray(),
@@ -729,10 +729,10 @@ class OmeroRawShapes {
                polygonROICoordinates.get(1).getY()==polygonROICoordinates.get(2).getY() &&
                polygonROICoordinates.get(2).getX()==polygonROICoordinates.get(3).getX() &&
                polygonROICoordinates.get(3).getY()==polygonROICoordinates.get(4).getY()){
-                double maxX = Collections.max(polygonROICoordinates.stream().map(Point2::getX).toList());
-                double minX = Collections.min(polygonROICoordinates.stream().map(Point2::getX).toList());
-                double maxY = Collections.max(polygonROICoordinates.stream().map(Point2::getY).toList());
-                double minY = Collections.min(polygonROICoordinates.stream().map(Point2::getY).toList());
+                double maxX = Collections.max(polygonROICoordinates.stream().map(Point2::getX).collect(Collectors.toList()));
+                double minX = Collections.min(polygonROICoordinates.stream().map(Point2::getX).collect(Collectors.toList()));
+                double maxY = Collections.max(polygonROICoordinates.stream().map(Point2::getY).collect(Collectors.toList()));
+                double minY = Collections.min(polygonROICoordinates.stream().map(Point2::getY).collect(Collectors.toList()));
 
                 return ROIs.createRectangleROI(minX, minY, maxX-minX, maxY-minY,
                         roi.getImagePlane());
