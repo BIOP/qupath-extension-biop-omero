@@ -1,4 +1,4 @@
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.command;
 
 import javafx.collections.FXCollections;
 import javafx.scene.control.CheckBox;
@@ -9,6 +9,8 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import omero.RString;
 import omero.model.Experimenter;
+import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
+import qupath.ext.biop.servers.omero.raw.OmeroRawTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
@@ -21,18 +23,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Command to import ROIs from OMERO server where the
- * current image is hosted.
+ * Import ROIs from OMERO for the current open image. ROIs can be filtered by owner to import only those from
+ * a certain collaborator.
+ * There is also an option to clean current annotations in QuPath.
  *
  * @author Rémy Dornier
  *
  */
 public class OmeroRawImportAnnotationObjectsCommand implements Runnable{
-
     private final String title = "Import objects from OMERO";
     private final QuPathGUI qupath;
     private final double MAX_FONT_SIZE = 16.0;
     private final String ALL_USER_CHOICE = "All";
+
     public OmeroRawImportAnnotationObjectsCommand(QuPathGUI qupath)  {
         this.qupath = qupath;
     }

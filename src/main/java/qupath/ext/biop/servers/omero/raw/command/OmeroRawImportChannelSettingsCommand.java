@@ -1,18 +1,27 @@
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.command;
 
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
+import qupath.ext.biop.servers.omero.raw.OmeroRawScripting;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
 
 import java.awt.image.BufferedImage;
 
+/**
+ * Import channel rendering settings from OMERO.
+ * The channel's name, color and brightness & contrast can be separately retrieved
+ *
+ * @author Rémy Dornier
+ *
+ */
 public class OmeroRawImportChannelSettingsCommand implements Runnable {
-
     private final String title = "Import channel settings from OMERO";
     private final QuPathGUI qupath;
+
     public OmeroRawImportChannelSettingsCommand(QuPathGUI qupath)  {
         this.qupath = qupath;
     }
@@ -68,5 +77,4 @@ public class OmeroRawImportChannelSettingsCommand implements Runnable {
 
         Dialogs.showInfoNotification("Channel settings import","Channel settings successfully set the current image");
     }
-
 }

@@ -1,10 +1,12 @@
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.command;
 
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 
+import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
+import qupath.ext.biop.servers.omero.raw.OmeroRawScripting;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
@@ -12,11 +14,19 @@ import qupath.lib.projects.ProjectImageEntry;
 
 import java.awt.image.BufferedImage;
 
-
+/**
+ * Import key-values and tags from OMERO with a certain rule
+ * - Keep existing and add new => only add in QuPath the new keys (if the key already exists, it is not imported)
+ * - Replace existing and add new => add news keys and update those which already exist (i.e.replace the old value)
+ * - Delete all and add new => delete all keys in QuPath and all those coming from OMERO.
+ *
+ * @author Rémy Dornier
+ *
+ */
 public class OmeroRawImportMetadataCommand implements Runnable{
-
     private final String title = "Import KeyValues / Tags from OMERO";
     private final QuPathGUI qupath;
+
     public OmeroRawImportMetadataCommand(QuPathGUI qupath)  {
         this.qupath = qupath;
     }
@@ -115,5 +125,4 @@ public class OmeroRawImportMetadataCommand implements Runnable{
                     (nNewKV <= 1 ? "KVP/tag" : "KVPs/tags")));
         }
     }
-
 }
