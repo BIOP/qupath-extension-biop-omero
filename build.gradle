@@ -28,19 +28,17 @@ configurations {
 }
 
 dependencies {
-
+    //implementation libs.commons.text
+   // implementation "commons-io:commons-io:2.11.0"
     implementation "io.github.qupath:qupath-fxtras:0.1.0"
     implementation "io.github.qupath:qupath-core:${qupathVersion}"
     implementation "io.github.qupath:qupath-gui-fx:${qupathVersion}"
 
-    implementation "commons-io:commons-io:2.11.0"
-    implementation libs.commons.text
-
-    testImplementation libs.junit
-    testRuntimeOnly libs.junit.engine
-
     implementation "org.openmicroscopy:omero-gateway:5.8.1"
     implementation "fr.igred:simple-omero-client:5.15.0"
+
+    //testImplementation libs.junit
+    //testRuntimeOnly libs.junit.engine
 }
 
 processResources {
@@ -60,7 +58,7 @@ tasks.register("copyDependencies", Copy) {
 java {
     def version = project.findProperty('toolchain')
     if (!version)
-        version = 17
+        version = libs.versions.jdk.get()
     else if (version.strip() == 'skip')
         version = null
     if (version != null) {
