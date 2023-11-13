@@ -6,7 +6,7 @@ import omero.gateway.model.TableDataColumn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.lib.common.GeneralTools;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
 import qupath.lib.objects.PathObject;
 import qupath.lib.scripting.QP;

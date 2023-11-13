@@ -113,10 +113,10 @@ import javafx.util.StringConverter;
 import qupath.lib.common.ThreadTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.commands.ProjectCommands;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.prefs.PathPrefs;
 import qupath.lib.gui.tools.GuiTools;
-import qupath.lib.gui.tools.PaneTools;
+import qupath.fx.utils.GridPaneUtils;
 import qupath.lib.images.servers.ImageServerProvider;
 import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.CommentAnnotation;
 import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.FileAnnotation;
@@ -304,9 +304,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         loadingOrphanedLabel = new Label();
         loadingOrphanedLabel.setGraphic(progressOrphaned);
 
-        PaneTools.addGridRow(loadingInfoPane, 0, 0, "OMERO objects are loaded in the background", loadingChildrenLabel);
-        PaneTools.addGridRow(loadingInfoPane, 1, 0, "OMERO objects are loaded in the background", loadingOrphanedLabel);
-        PaneTools.addGridRow(loadingInfoPane, 2, 0, "Thumbnails are loaded in the background", loadingThumbnailLabel);
+        GridPaneUtils.addGridRow(loadingInfoPane, 0, 0, "OMERO objects are loaded in the background", loadingChildrenLabel);
+        GridPaneUtils.addGridRow(loadingInfoPane, 1, 0, "OMERO objects are loaded in the background", loadingOrphanedLabel);
+        GridPaneUtils.addGridRow(loadingInfoPane, 2, 0, "Thumbnails are loaded in the background", loadingThumbnailLabel);
 
         // Info about the server to display at the top
         var hostLabel = new Label(serverURI.getHost());
@@ -622,7 +622,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         Button advancedSearchBtn = new Button("Advanced...");
         advancedSearchBtn.setOnAction(e -> new AdvancedSearch());
         GridPane searchAndAdvancedPane = new GridPane();
-        PaneTools.addGridRow(searchAndAdvancedPane, 0, 0, null, filter, advancedSearchBtn);
+        GridPaneUtils.addGridRow(searchAndAdvancedPane, 0, 0, null, filter, advancedSearchBtn);
 
         importBtn = new Button("Import image");
 
@@ -694,18 +694,18 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             }
         });
 
-        PaneTools.addGridRow(browseLeftPane, 0, 0, "Filter by", comboGroup, comboOwner);
-        PaneTools.addGridRow(browseLeftPane, 1, 0, null, tree, tree);
-        PaneTools.addGridRow(browseLeftPane, 2, 0, null, searchAndAdvancedPane, searchAndAdvancedPane);
-        PaneTools.addGridRow(browseLeftPane, 3, 0, null, importBtn, importBtn);
+        GridPaneUtils.addGridRow(browseLeftPane, 0, 0, "Filter by", comboGroup, comboOwner);
+        GridPaneUtils.addGridRow(browseLeftPane, 1, 0, null, tree, tree);
+        GridPaneUtils.addGridRow(browseLeftPane, 2, 0, null, searchAndAdvancedPane, searchAndAdvancedPane);
+        GridPaneUtils.addGridRow(browseLeftPane, 3, 0, null, importBtn, importBtn);
 
         canvas = new Canvas();
         canvas.setStyle("-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 4, 0, 1, 1);");
         description.getColumns().add(attributeCol);
         description.getColumns().add(valueCol);
 
-        PaneTools.addGridRow(browseRightPane, 0, 0, null, canvas);
-        PaneTools.addGridRow(browseRightPane, 1, 0, null, description);
+        GridPaneUtils.addGridRow(browseRightPane, 0, 0, null, canvas);
+        GridPaneUtils.addGridRow(browseRightPane, 1, 0, null, description);
 
         // Set alignment of canvas (with thumbnail)
         GridPane.setHalignment(canvas, HPos.CENTER);
@@ -1475,14 +1475,14 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             nameLabel.setStyle(BOLD);
 
             int row = 0;
-            PaneTools.addGridRow(gp, row++, 0, null, new TitledPane(obj.getType().toString() + " Details", createObjectDetailsPane(obj)));
-            PaneTools.addGridRow(gp, row++, 0, null, createAnnotationsPane("Tags (" + tags.getSize() + ")", tags));
-            PaneTools.addGridRow(gp, row++, 0, null, createAnnotationsPane("Key-Value Pairs (" + keyValuePairs.getSize() + ")", keyValuePairs));
-//			PaneTools.addGridRow(gp, row++, 0, "Tables", new TitledPane("Tables", createAnnotationsPane(tables)));
-            PaneTools.addGridRow(gp, row++, 0, null, createAnnotationsPane("Attachments (" + attachments.getSize() + ")", attachments));
-            PaneTools.addGridRow(gp, row++, 0, null, createAnnotationsPane("Comments (" + comments.getSize() + ")", comments));
-            PaneTools.addGridRow(gp, row++, 0, "Ratings", createAnnotationsPane("Ratings (" + ratings.getSize() + ")", ratings));
-//			PaneTools.addGridRow(gp, row++, 0, "Others", new TitledPane("Others (" + others.getSize() + ")", createAnnotationsPane(others)));
+            GridPaneUtils.addGridRow(gp, row++, 0, null, new TitledPane(obj.getType().toString() + " Details", createObjectDetailsPane(obj)));
+            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Tags (" + tags.getSize() + ")", tags));
+            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Key-Value Pairs (" + keyValuePairs.getSize() + ")", keyValuePairs));
+//			GridPaneUtils.addGridRow(gp, row++, 0, "Tables", new TitledPane("Tables", createAnnotationsPane(tables)));
+            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Attachments (" + attachments.getSize() + ")", attachments));
+            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Comments (" + comments.getSize() + ")", comments));
+            GridPaneUtils.addGridRow(gp, row++, 0, "Ratings", createAnnotationsPane("Ratings (" + ratings.getSize() + ")", ratings));
+//			GridPaneUtils.addGridRow(gp, row++, 0, "Others", new TitledPane("Others (" + others.getSize() + ")", createAnnotationsPane(others)));
 
             // Top: object name
             bp.setTop(nameLabel);
@@ -1563,7 +1563,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                                 .map(e -> e.getFullName())
                                 .findAny().get();
                         tooltip = String.format("Added by: %s%sCreated by: %s", addedBy, System.lineSeparator(), creator);
-                        PaneTools.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getValue()));
+                        GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getValue()));
                     }
                     break;
                 case MAP:
@@ -1593,7 +1593,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                                 .map(e -> e.getFullName())
                                 .findAny().get();
                         tooltip = String.format("Added by: %s%sCreated by: %s%sType: %s", addedBy, System.lineSeparator(), creator, System.lineSeparator(), ann2.getMimeType());
-                        PaneTools.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getFilename() + " (" + ann2.getFileSize() + " bytes)"));
+                        GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getFilename() + " (" + ann2.getFileSize() + " bytes)"));
                     }
                     break;
                 case COMMENT:
@@ -1603,7 +1603,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                                 .filter(e -> e .getId() == ann2.addedBy().getId())
                                 .map(e -> e.getFullName())
                                 .findAny().get();
-                        PaneTools.addGridRow(gp, gp.getRowCount(), 0, "Added by " + addedBy, new Label(ann2.getValue()));
+                        GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, "Added by " + addedBy, new Label(ann2.getValue()));
                     }
                     break;
                 case RATING:
@@ -1677,7 +1677,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             keyLabel.setStyle(BOLD);
             int row = gp.getRowCount();
 
-            PaneTools.addGridRow(gp, row, 0, tooltip, keyLabel, new Label(value));
+            GridPaneUtils.addGridRow(gp, row, 0, tooltip, keyLabel, new Label(value));
             if (addSeparator)
                 gp.add(new Separator(), 0, row + 1, gp.getColumnCount(), 1);
         }
@@ -1789,8 +1789,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 //    owners = new HashSet<>(tempOwners);
             });
 
-            PaneTools.addGridRow(comboPane, 0, 0, "Data owned by", new Label("Owned by:"),  ownedByCombo);
-            PaneTools.addGridRow(comboPane, 1, 0, "Data from group", new Label("Group:"), groupCombo);
+            GridPaneUtils.addGridRow(comboPane, 0, 0, "Data owned by", new Label("Owned by:"),  ownedByCombo);
+            GridPaneUtils.addGridRow(comboPane, 1, 0, "Data from group", new Label("Group:"), groupCombo);
 
             // Button pane
             GridPane buttonPane = new GridPane();
@@ -1882,17 +1882,17 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
 
             int row = 0;
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "The query to search", queryPane);
-            PaneTools.addGridRow(searchOptionPane, row++, 0, null, new Separator());
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "Restrict by", new Label("Restrict by:"));
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "Restrict by", restrictByPane);
-            PaneTools.addGridRow(searchOptionPane, row++, 0, null, new Separator());
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "Search for", new Label("Search for:"));
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "Search for", searchForPane);
-            PaneTools.addGridRow(searchOptionPane, row++, 0, null, new Separator());
-            PaneTools.addGridRow(searchOptionPane, row++, 0, null, comboPane);
-            PaneTools.addGridRow(searchOptionPane, row++, 0, null, buttonPane);
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "Import selected image", importBtn);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "The query to search", queryPane);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, new Separator());
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Restrict by", new Label("Restrict by:"));
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Restrict by", restrictByPane);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, new Separator());
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Search for", new Label("Search for:"));
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Search for", searchForPane);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, new Separator());
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, comboPane);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, buttonPane);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Import selected image", importBtn);
 
             TableColumn<SearchResult, SearchResult> typeCol = new TableColumn<>("Type");
             TableColumn<SearchResult, String> nameCol = new TableColumn<>("Name");

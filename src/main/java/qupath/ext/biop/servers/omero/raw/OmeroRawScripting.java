@@ -19,7 +19,7 @@ import omero.rtypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.lib.display.ChannelDisplayInfo;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
 import qupath.lib.gui.scripting.QPEx;
 import qupath.lib.images.ImageData;
@@ -51,11 +51,11 @@ public class OmeroRawScripting {
 
     /**
      * This method creates an instance of simple-omero-client object to get access to the full simple-omero-client API,
-     * developed by Pierre Pouchin (https://github.com/GReD-Clermont/simple-omero-client).
+     * developed by Pierre Pouchin (<a href="https://github.com/GReD-Clermont/simple-omero-client">...</a>).
      *
      * @param imageServer : ImageServer of an image loaded from OMERO
      *
-     * @return  fr.igred.omero.Client object
+     * @return fr.igred.omero.Client object
      */
     public static Client getSimpleOmeroClientInstance(OmeroRawImageServer imageServer) throws DSOutOfServiceException {
         // get the current OmeroRawClient
@@ -295,7 +295,7 @@ public class OmeroRawScripting {
             }else{
                 qpMetadataKVP.put(key, qpMetadata.get(key));
             }
-        };
+        }
 
         // split QuPath metadata into those that already exist on OMERO and those that need to be added
         List<Map<String,String> > splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(omeroKeyValuePairs, qpMetadataKVP);
@@ -359,7 +359,7 @@ public class OmeroRawScripting {
             }else{
                 qpMetadataKVP.put(key, qpMetadata.get(key));
             }
-        };
+        }
 
         // convert key value pairs to omero-compatible object NamedValue
         List<NamedValue> newNV = new ArrayList<>();
@@ -424,7 +424,7 @@ public class OmeroRawScripting {
             }else{
                 qpMetadataKVP.put(key, qpMetadata.get(key));
             }
-        };
+        }
 
         // split QuPath metadata into those that already exist on OMERO and those that need to be added
         List<Map<String,String> > splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(omeroKeyValuePairs, qpMetadataKVP);

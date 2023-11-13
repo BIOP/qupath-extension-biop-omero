@@ -117,7 +117,7 @@ import com.google.gson.JsonObject;
 import javafx.scene.Node;
 import qupath.lib.common.GeneralTools;
 import qupath.lib.gui.QuPathGUI;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
 import qupath.lib.gui.tools.IconFactory;
 import qupath.lib.io.GsonTools;

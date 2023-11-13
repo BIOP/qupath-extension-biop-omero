@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,12 +48,11 @@ import qupath.lib.common.Version;
 import qupath.lib.gui.UserDirectoryManager;
 import qupath.lib.gui.actions.ActionTools;
 import qupath.lib.gui.QuPathGUI;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.extensions.GitHubProject;
 import qupath.lib.gui.extensions.QuPathExtension;
-import qupath.lib.gui.prefs.PathPrefs;
 import qupath.lib.gui.tools.MenuTools;
-import qupath.lib.gui.tools.PaneTools;
+import qupath.fx.utils.GridPaneUtils;
 
 /**
  * Extension to access images hosted on OMERO.
@@ -159,8 +159,8 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 				gp.setVgap(5.0);
 				TextField tf = new TextField(defaultOmeroServer==null ? "": defaultOmeroServer);
 				tf.setPrefWidth(400);
-				PaneTools.addGridRow(gp, 0, 0, "Enter OMERO URL", new Label("Enter an OMERO server URL to browse (e.g. http://idr.openmicroscopy.org/):"));
-				PaneTools.addGridRow(gp, 1, 0, "Enter OMERO URL", tf, tf);
+				GridPaneUtils.addGridRow(gp, 0, 0, "Enter OMERO URL", new Label("Enter an OMERO server URL to browse (e.g. http://idr.openmicroscopy.org/):"));
+				GridPaneUtils.addGridRow(gp, 1, 0, "Enter OMERO URL", tf, tf);
 				var confirm = Dialogs.showConfirmDialog("Enter OMERO URL", gp);
 				if (!confirm)
 					return;
@@ -224,11 +224,11 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 	 * @return
 	 */
 	private static String getDefaultOmeroServer(){
-		String extensionPath = UserDirectoryManager.getInstance().getExtensionsPath().toString();
+		Path extensionPath = UserDirectoryManager.getInstance().getExtensionsPath();
 		if(extensionPath == null)
 			return null;
 
-		File dir  = new File(extensionPath);
+		File dir  = extensionPath.toFile();
 		File[] fileList = dir.listFiles();
 
 		if(fileList == null)
@@ -261,8 +261,8 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 	 * @param omeroDefaultServer
 	 */
 	private static void createOmeroDefaultServerFile(String omeroDefaultServer) {
-		String extensionPath = UserDirectoryManager.getInstance().getExtensionsPath().toString();
-		if(extensionPath == null || !new File(extensionPath).exists()) return;
+		Path extensionPath = UserDirectoryManager.getInstance().getExtensionsPath();
+		if(extensionPath == null || !extensionPath.toFile().exists()) return;
 
 		try (FileWriter myWriter = new FileWriter(extensionPath + File.separator + defaultOmeroServerFilename)){
 			myWriter.write(omeroDefaultServer);

@@ -183,7 +183,7 @@ final class OmeroRawAnnotations {
      * @return size
      */
     public int getSize() {
-        return annotations.stream().mapToInt(e -> e.getNInfo()).sum();
+        return annotations.stream().mapToInt(OmeroAnnotation::getNInfo).sum();
     }
 
 

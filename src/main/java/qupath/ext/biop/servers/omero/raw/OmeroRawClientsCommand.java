@@ -52,8 +52,8 @@ import javafx.scene.layout.Priority;
 import javafx.stage.Stage;
 import qupath.lib.common.ThreadTools;
 import qupath.lib.gui.QuPathGUI;
-import qupath.lib.gui.dialogs.Dialogs;
-import qupath.lib.gui.tools.PaneTools;
+import qupath.fx.dialogs.Dialogs;
+import qupath.fx.utils.GridPaneUtils;
 
 /**
  * Command to manually manage OMERO web clients. This offers the possibility to log in/off
@@ -256,7 +256,7 @@ public class OmeroRawClientsCommand implements Runnable {
             },  client.logProperty(), client.usernameProperty()));
 
             Button removeBtn = new Button("Remove");
-            PaneTools.addGridRow(actionPane, 0, 0, null, connectionBtn, removeBtn);
+            GridPaneUtils.addGridRow(actionPane, 0, 0, null, connectionBtn, removeBtn);
             infoPane.setLeft(userLabel);
             infoPane.setRight(actionPane);
 
@@ -301,8 +301,8 @@ public class OmeroRawClientsCommand implements Runnable {
             });
             removeBtn.disableProperty().bind(client.logProperty().and(client.usernameProperty().isNotEmpty()));
 
-            PaneTools.addGridRow(gridPane, 0, 0, null, infoPane);
-            PaneTools.addGridRow(gridPane, 1, 0, null, tp);
+            GridPaneUtils.addGridRow(gridPane, 0, 0, null, infoPane);
+            GridPaneUtils.addGridRow(gridPane, 1, 0, null, tp);
 
             GridPane.setHgrow(gridPane, Priority.ALWAYS);
             GridPane.setHgrow(tp, Priority.ALWAYS);
@@ -322,7 +322,7 @@ public class OmeroRawClientsCommand implements Runnable {
                 pi.setPrefSize(15, 15);
                 Label imageServerName = new Label("../" + imageUri.getQuery(), pi);
                 imageServerName.setContentDisplay(ContentDisplay.RIGHT);
-                PaneTools.addGridRow(gp, gp.getRowCount(), 0, null, imageServerName);
+                GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, null, imageServerName);
 
                 executor.submit(() -> {
                     try {

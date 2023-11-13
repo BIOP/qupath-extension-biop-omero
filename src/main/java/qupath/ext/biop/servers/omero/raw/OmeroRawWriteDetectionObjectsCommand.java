@@ -34,9 +34,9 @@ import org.apache.commons.lang3.StringUtils;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import qupath.lib.gui.QuPathGUI;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
-import qupath.lib.gui.tools.PaneTools;
+import qupath.fx.utils.GridPaneUtils;
 import qupath.lib.objects.PathObject;
 
 /**
@@ -142,8 +142,8 @@ public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
         URI uri = server.getURIs().iterator().next();
         String objectString = "object" + (objs.size() == 1 ? "" : "s");
         pane = new GridPane();
-        PaneTools.addGridRow(pane, 0, 0, null, new Label(String.format("%d %s will be sent to:", objs.size(), objectString)));
-        PaneTools.addGridRow(pane, 1, 0, null, new Label(uri.toString()));
+        GridPaneUtils.addGridRow(pane, 0, 0, null, new Label(String.format("%d %s will be sent to:", objs.size(), objectString)));
+        GridPaneUtils.addGridRow(pane, 1, 0, null, new Label(uri.toString()));
         var confirm = Dialogs.showConfirmDialog("Send " + (selectedObjects.size() == 0 ? "all " : "") + objectString, pane);
         if (!confirm)
             return;
