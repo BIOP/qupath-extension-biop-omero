@@ -920,10 +920,10 @@ final class OmeroRawObjects {
             this.isWorldRead = permissions.isWorldRead();
             this.isWorldWrite = permissions.isWorldWrite();
 
-            this.canAnnotate = client.getGateway().getLoggedInUser().canAnnotate();
-            this.canDelete = client.getGateway().getLoggedInUser().canDelete();
-            this.canEdit = client.getGateway().getLoggedInUser().canEdit();
-            this.canLink = client.getGateway().getLoggedInUser().canLink();
+            this.canAnnotate = client.getLoggedInUser().canAnnotate();
+            this.canDelete = client.getLoggedInUser().canDelete();
+            this.canEdit = client.getLoggedInUser().canEdit();
+            this.canLink = client.getLoggedInUser().canLink();
         }
     }
 

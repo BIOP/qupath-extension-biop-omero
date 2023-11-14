@@ -50,6 +50,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import fr.igred.omero.meta.ExperimenterWrapper;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataLevel;
 import ome.formats.OMEROMetadataStoreClient;
@@ -179,7 +180,7 @@ public final class OmeroRawTools {
      */
     public static Experimenter getOmeroUser(OmeroRawClient client, long userId, String username){
         try {
-            return client.getGateway().getAdminService(client.getContext()).getExperimenter(userId);
+            return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).getExperimenter(userId);
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO user "+username +" ; id: "+userId);
             logger.error(String.valueOf(e));
@@ -196,9 +197,9 @@ public final class OmeroRawTools {
      * @param groupId
      * @return A list of all OMERO user within the specified group
      */
-    public static List<Experimenter> getOmeroUsersInGroup(OmeroRawClient client, long groupId){
+    public static List<ExperimenterWrapper> getOmeroUsersInGroup(OmeroRawClient client, long groupId){
         try {
-            return client.getGateway().getAdminService(client.getContext()).containedExperimenters(groupId);
+            return client.getSimpleClient().getGroup(groupId).getExperimenters();
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO users in group "+groupId);
             logger.error(String.valueOf(e));
@@ -218,7 +219,7 @@ public final class OmeroRawTools {
      */
     public static ExperimenterGroup getOmeroGroup(OmeroRawClient client, long groupId, String groupName){
         try {
-            return client.getGateway().getAdminService(client.getContext()).getGroup(groupId);
+            return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).getGroup(groupId);
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO group "+groupName +" ; id: "+groupId);
             logger.error(String.valueOf(e));
@@ -237,7 +238,7 @@ public final class OmeroRawTools {
      */
     public static List<ExperimenterGroup> getUserOmeroGroups(OmeroRawClient client, long userId) {
         try {
-            return client.getGateway().getAdminService(client.getContext()).containedGroups(userId);
+            return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).containedGroups(userId);
         }catch(DSOutOfServiceException | ServerError e){
             Dialogs.showErrorMessage("OMERO admin","Cannot retrieve OMERO groups for user "+userId);
             logger.error(String.valueOf(e));
@@ -256,11 +257,11 @@ public final class OmeroRawTools {
      */
     public static List<ExperimenterGroup> getAllOmeroGroups(OmeroRawClient client) {
         try {
-            if(client.getIsAdmin())
-                return client.getGateway().getAdminService(client.getContext()).lookupGroups();
+            if(client.isAdmin())
+                return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).lookupGroups();
             else {
                 Dialogs.showWarningNotification("OMERO admin", "You are not allowed to see all OMERO groups. Only available groups for you are loaded");
-                return getUserOmeroGroups(client, client.getLoggedInUser().getId().getValue());
+                return getUserOmeroGroups(client, client.getLoggedInUser().getId());
             }
         }catch(DSOutOfServiceException | ServerError e){
             Dialogs.showErrorMessage("OMERO admin", "Cannot retrieve all OMERO groups");
@@ -280,7 +281,7 @@ public final class OmeroRawTools {
      */
     public static ExperimenterGroup getDefaultOmeroGroup(OmeroRawClient client, long userId) {
         try {
-            return client.getGateway().getAdminService(client.getContext()).getDefaultGroup(userId);
+            return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).getDefaultGroup(userId);
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorMessage("OMERO admin","Cannot read the default OMERO group for the user "+userId);
             logger.error(String.valueOf(e));
@@ -301,7 +302,7 @@ public final class OmeroRawTools {
         try {
             // request an imageData object for the image id by searching in all groups on OMERO
             // take care if the user is admin or not
-            ImageData img = (ImageData) client.getGateway().getFacility(BrowseFacility.class).findObject(client.getContext(), "ImageData", imageId, true);
+            ImageData img = (ImageData) client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).findObject(client.getSimpleClient().getCtx(), "ImageData", imageId, true);
             return img.getGroupId();
 
         } catch (DSOutOfServiceException | NoSuchElementException | ExecutionException | DSAccessException e) {
@@ -323,7 +324,7 @@ public final class OmeroRawTools {
     public static Collection<DatasetData> readOmeroOrphanedDatasetsPerOwner(OmeroRawClient client, long userId) {
         try {
             // query orphaned dataset
-            List<IObject> datasetObjects = client.getGateway().getQueryService(client.getContext()).findAllByQuery("select dataset from Dataset as dataset " +
+            List<IObject> datasetObjects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select dataset from Dataset as dataset " +
                     "join fetch dataset.details.owner as o " +
                     "where o.id = "+ userId +
                     "and not exists (select obl from " +
@@ -336,7 +337,7 @@ public final class OmeroRawTools {
                     .collect(Collectors.toList());
 
             // get orphaned datasets
-            return client.getGateway().getFacility(BrowseFacility.class).getDatasets(client.getContext(), datasetIds);
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
 
         } catch (DSOutOfServiceException | ExecutionException | ServerError e) {
             Dialogs.showErrorMessage("Orphaned datasets","Cannot retrieved orphaned datasets for user "+userId);
@@ -363,7 +364,7 @@ public final class OmeroRawTools {
 
         try {
             // query orphaned dataset
-            List<IObject> datasetObjects = client.getGateway().getQueryService(client.getContext()).findAllByQuery("select dataset from Dataset as dataset " +
+            List<IObject> datasetObjects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select dataset from Dataset as dataset " +
                             "left outer join fetch dataset.details.owner " +
                             "where not exists (select obl from " +
                             "ProjectDatasetLink as obl where obl.child = dataset.id) ", null);
@@ -375,7 +376,7 @@ public final class OmeroRawTools {
                     .collect(Collectors.toList());
 
             // get orphaned datasets
-            orphanedDatasets = client.getGateway().getFacility(BrowseFacility.class).getDatasets(client.getContext(), datasetIds);
+            orphanedDatasets = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
 
         } catch (DSOutOfServiceException | ExecutionException | ServerError e) {
             Dialogs.showErrorMessage("Orphaned datasets","Cannot retrieved orphaned datasets");
@@ -402,7 +403,7 @@ public final class OmeroRawTools {
      */
     public static Collection<ImageData> readOmeroOrphanedImagesPerUser(OmeroRawClient client, long userId) {
         try {
-            return client.getGateway().getFacility(BrowseFacility.class).getOrphanedImages(client.getContext(), userId);
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getOrphanedImages(client.getSimpleClient().getCtx(), userId);
         } catch (ExecutionException e) {
             Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+userId);
             logger.error(String.valueOf(e));
@@ -425,11 +426,11 @@ public final class OmeroRawTools {
             switch(dataType.toLowerCase()) {
                 case "image":
                     // get the image
-                    Image image = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), id).asImage();
+                    Image image = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), id).asImage();
 
                     // get the parent datasets
-                    List<IObject> datasetObjects = client.getGateway()
-                            .getQueryService(client.getContext())
+                    List<IObject> datasetObjects = client.getSimpleClient().getGateway()
+                            .getQueryService(client.getSimpleClient().getCtx())
                             .findAllByQuery("select link.parent from DatasetImageLink as link " +
                                     "where link.child=" + id, null);
 
@@ -442,14 +443,14 @@ public final class OmeroRawTools {
                                 .distinct()
                                 .collect(Collectors.toList());
 
-                        return client.getGateway()
+                        return client.getSimpleClient().getGateway()
                                 .getFacility(BrowseFacility.class)
-                                .getDatasets(client.getContext(), ids);
+                                .getDatasets(client.getSimpleClient().getCtx(), ids);
                     }else{
                         logger.info("The current image " + id + " has a well as parent");
 
-                        List<IObject> wellSamplesObjects = client.getGateway()
-                                .getQueryService(client.getContext())
+                        List<IObject> wellSamplesObjects = client.getSimpleClient().getGateway()
+                                .getQueryService(client.getSimpleClient().getCtx())
                                 .findAllByQuery("select ws from WellSample ws where image=" + id, null);
 
                         List<Long> ids = wellSamplesObjects.stream()
@@ -460,9 +461,9 @@ public final class OmeroRawTools {
                                 .collect(Collectors.toList());
 
                         if(!ids.isEmpty())
-                            return client.getGateway()
+                            return client.getSimpleClient().getGateway()
                                     .getFacility(BrowseFacility.class)
-                                    .getWells(client.getContext(), ids);
+                                    .getWells(client.getSimpleClient().getCtx(), ids);
                         else {
                             Dialogs.showErrorNotification("Getting parent of image", "The current image " + id + " has no parent.");
                             break;
@@ -471,8 +472,8 @@ public final class OmeroRawTools {
 
                 case "dataset":
                     // get the parent projects
-                    List<IObject> projectObjects = client.getGateway()
-                            .getQueryService(client.getContext())
+                    List<IObject> projectObjects = client.getSimpleClient().getGateway()
+                            .getQueryService(client.getSimpleClient().getCtx())
                             .findAllByQuery("select link.parent from ProjectDatasetLink as link " +
                                     "where link.child=" + id, null);
 
@@ -483,22 +484,22 @@ public final class OmeroRawTools {
                             .distinct()
                             .collect(Collectors.toList());
 
-                    return client.getGateway()
+                    return client.getSimpleClient().getGateway()
                             .getFacility(BrowseFacility.class)
-                            .getProjects(client.getContext(), projectIds);
+                            .getProjects(client.getSimpleClient().getCtx(), projectIds);
 
                 case "well":
-                    return Collections.singletonList(client.getGateway()
+                    return Collections.singletonList(client.getSimpleClient().getGateway()
                                     .getFacility(BrowseFacility.class)
-                                    .getWells(client.getContext(), Collections.singletonList(id))
+                                    .getWells(client.getSimpleClient().getCtx(), Collections.singletonList(id))
                                     .iterator()
                                     .next()
                                     .getPlate());
 
                 case "plate":
                     // get parent screen
-                    List<IObject> screenObjects = client.getGateway()
-                            .getQueryService(client.getContext())
+                    List<IObject> screenObjects = client.getSimpleClient().getGateway()
+                            .getQueryService(client.getSimpleClient().getCtx())
                             .findAllByQuery("select link.parent from ScreenPlateLink as link " +
                                     "where link.child=" + id, null);
 
@@ -509,9 +510,9 @@ public final class OmeroRawTools {
                             .distinct()
                             .collect(Collectors.toList());
 
-                    return client.getGateway()
+                    return client.getSimpleClient().getGateway()
                             .getFacility(BrowseFacility.class)
-                            .getScreens(client.getContext(), screenIds);
+                            .getScreens(client.getSimpleClient().getCtx(), screenIds);
 
                 case "project":
                 case "screen":
@@ -545,13 +546,13 @@ public final class OmeroRawTools {
     public static RenderingDef readOmeroRenderingSettings(OmeroRawClient client, long imageId){
         try {
             // get pixel id
-            long pixelsId = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId).getDefaultPixels().getId();
+            long pixelsId = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId).getDefaultPixels().getId();
             // get rendering settings
-            RenderingDef renderingDef = client.getGateway().getRenderingSettingsService(client.getContext()).getRenderingSettings(pixelsId);
+            RenderingDef renderingDef = client.getSimpleClient().getGateway().getRenderingSettingsService(client.getSimpleClient().getCtx()).getRenderingSettings(pixelsId);
 
             if(renderingDef == null) {
                 // load rendering settings if they were not automatically loaded
-                RenderingEnginePrx re = client.getGateway().getRenderingService(client.getContext(), pixelsId);
+                RenderingEnginePrx re = client.getSimpleClient().getGateway().getRenderingService(client.getSimpleClient().getCtx(), pixelsId);
                 re.lookupPixels(pixelsId);
                 if (!(re.lookupRenderingDef(pixelsId))) {
                     re.resetDefaultSettings(true);
@@ -559,7 +560,7 @@ public final class OmeroRawTools {
                 }
                 re.load();
                 re.close();
-                return client.getGateway().getRenderingSettingsService(client.getContext()).getRenderingSettings(pixelsId);
+                return client.getSimpleClient().getGateway().getRenderingSettingsService(client.getSimpleClient().getCtx()).getRenderingSettings(pixelsId);
             }
             return renderingDef;
 
@@ -586,7 +587,7 @@ public final class OmeroRawTools {
      */
     public static Collection<ProjectData> readOmeroProjects(OmeroRawClient client, List<Long> projectIds){
         try {
-            return client.getGateway().getFacility(BrowseFacility.class).getProjects(client.getContext(), projectIds);
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), projectIds);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading projects","An error occurs when reading OMERO projects "+projectIds);
             logger.error(String.valueOf(e));
@@ -610,7 +611,7 @@ public final class OmeroRawTools {
      */
     public static Collection<ProjectData> readOmeroProjectsByUser(OmeroRawClient client, long userId){
         try {
-            return client.getGateway().getFacility(BrowseFacility.class).getProjects(client.getContext(), userId);
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), userId);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading projects by user","An error occurs when reading OMERO projects for the user "+userId);
             logger.error(String.valueOf(e));
@@ -633,7 +634,7 @@ public final class OmeroRawTools {
      */
     public static Collection<ScreenData> readOmeroScreensByUser(OmeroRawClient client, long userId){
         try {
-            return client.getGateway().getFacility(BrowseFacility.class).getScreens(client.getContext(), userId);
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getScreens(client.getSimpleClient().getCtx(), userId);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading projects by user","An error occurs when reading OMERO projects for the user "+userId);
             logger.error(String.valueOf(e));
@@ -671,7 +672,7 @@ public final class OmeroRawTools {
      */
     public static Collection<DatasetData> readOmeroDatasets(OmeroRawClient client, List<Long> datasetIds){
         try {
-            return client.getGateway().getFacility(BrowseFacility.class).getDatasets(client.getContext(), datasetIds);
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading datasets","An error occurs when reading OMERO datasets "+datasetIds);
             logger.error(String.valueOf(e));
@@ -699,7 +700,7 @@ public final class OmeroRawTools {
                 "left join fetch p.plateAcquisitions as pa " +
                 "where p.id in (:ids)";
         try {
-            IQueryPrx qs = client.getGateway().getQueryService(client.getContext());
+            IQueryPrx qs = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx());
             ParametersI param = new ParametersI();
 
             param.addIds(plateIds);
@@ -730,7 +731,7 @@ public final class OmeroRawTools {
      */
     public static Collection<WellData> readOmeroWells(OmeroRawClient client, long plateId){
         try {
-            return client.getGateway().getFacility(BrowseFacility.class).getWells(client.getContext(), plateId);
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getWells(client.getSimpleClient().getCtx(), plateId);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading datasets","An error occurs when reading wells in plate "+plateId);
             logger.error(String.valueOf(e));
@@ -754,7 +755,7 @@ public final class OmeroRawTools {
      */
     public static ImageData readOmeroImage(OmeroRawClient client, long imageId){
         try {
-            return client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId);
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
         }catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Reading image","An error occurs when reading OMERO image "+imageId);
             logger.error(String.valueOf(e));
@@ -778,7 +779,7 @@ public final class OmeroRawTools {
     public static List<ChannelData> readOmeroChannels(OmeroRawClient client, long imageId){
         try {
             // get channels
-            return client.getGateway().getFacility(MetadataFacility.class).getChannelData(client.getContext(), imageId);
+            return client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getChannelData(client.getSimpleClient().getCtx(), imageId);
         } catch(ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Channel reading","Could not read image channel on OMERO.");
             logger.error(String.valueOf(e));
@@ -803,7 +804,7 @@ public final class OmeroRawTools {
     public static List<AnnotationData> readOmeroAnnotations(OmeroRawClient client, DataObject obj){
         try {
              // read annotations linked to the image
-            return client.getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getContext(), obj);
+            return client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), obj);
 
         } catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO annotations", "Cannot get annotations from OMERO for the object "+obj);
@@ -828,7 +829,7 @@ public final class OmeroRawTools {
      */
     public static String readImageFileType(OmeroRawClient client, long imageId){
         try {
-            ImageData imageData = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId);
+            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
             return imageData.asImage().getFormat().getValue().getValue();
         } catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO annotations", "Cannot get annotations from OMERO for the image "+imageId);
@@ -852,7 +853,7 @@ public final class OmeroRawTools {
      */
     private static DataObject readObject(OmeroRawClient client, String objectClassData, long id){
         try {
-            return  client.getGateway().getFacility(BrowseFacility.class).findObject(client.getContext(), objectClassData, id, true);
+            return  client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).findObject(client.getSimpleClient().getCtx(), objectClassData, id, true);
         } catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO object", "Cannot get "+objectClassData+" from OMERO with id "+id);
             logger.error(String.valueOf(e));
@@ -875,7 +876,7 @@ public final class OmeroRawTools {
      */
     private static IObject readIObject(OmeroRawClient client, String objectClass, long id){
         try {
-            return  client.getGateway().getFacility(BrowseFacility.class).findIObject(client.getContext(), objectClass, id, true);
+            return  client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).findIObject(client.getSimpleClient().getCtx(), objectClass, id, true);
         } catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO object", "Cannot get "+objectClass+" from OMERO with id "+id);
             logger.error(String.valueOf(e));
@@ -915,10 +916,10 @@ public final class OmeroRawTools {
         boolean wasAdded = true;
         try{
             // get the current image to attach the omero.table to
-            ImageData image = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId);
+            ImageData image = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
 
             // attach the omero.table to the image
-            client.getGateway().getFacility(TablesFacility.class).addTable(client.getContext(), image, name, table);
+            client.getSimpleClient().getGateway().getFacility(TablesFacility.class).addTable(client.getSimpleClient().getCtx(), image, name, table);
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Table Saving","Error during saving table on OMERO.");
@@ -946,7 +947,7 @@ public final class OmeroRawTools {
     public static TableData addTableToOmero(TableData table, String name, OmeroRawClient client, DataObject container) {
         try{
             // attach the omero.table to the image
-            return client.getGateway().getFacility(TablesFacility.class).addTable(client.getContext(), container, name, table);
+            return client.getSimpleClient().getGateway().getFacility(TablesFacility.class).addTable(client.getSimpleClient().getCtx(), container, name, table);
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Table Saving","Error during saving table on OMERO.");
@@ -1002,10 +1003,10 @@ public final class OmeroRawTools {
         boolean wasAdded = true;
         try{
             // get the current image to attach the omero.table to
-            ImageData image = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId);
+            ImageData image = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
 
             // attach the omero.table to the image
-            client.getGateway().getFacility(DataManagerFacility.class).attachFile(client.getContext(), file, miemtype, description, file.getName(), image).get();
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).attachFile(client.getSimpleClient().getCtx(), file, miemtype, description, file.getName(), image).get();
 
         } catch (ExecutionException | DSOutOfServiceException | InterruptedException e){
             Dialogs.showErrorNotification("File Saving","Error during saving file on OMERO.");
@@ -1062,7 +1063,7 @@ public final class OmeroRawTools {
     public static FileAnnotationData addAttachmentToOmero(File file, OmeroRawClient client, DataObject obj, String miemtype, String description) {
         try{
             // attach the omero.table to the image
-            return client.getGateway().getFacility(DataManagerFacility.class).attachFile(client.getContext(), file, miemtype, description, file.getName(), obj).get();
+            return client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).attachFile(client.getSimpleClient().getCtx(), file, miemtype, description, file.getName(), obj).get();
 
         } catch (ExecutionException | InterruptedException e){
             Dialogs.showErrorNotification("File Saving","Error during saving file on OMERO.");
@@ -1083,7 +1084,7 @@ public final class OmeroRawTools {
     static AnnotationData linkAnnotationToOmero(OmeroRawClient client, AnnotationData annotationData, DataObject obj) {
         try{
             // attach the omero.table to the image
-            return client.getGateway().getFacility(DataManagerFacility.class).attachAnnotation(client.getContext(), annotationData, obj);
+            return client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).attachAnnotation(client.getSimpleClient().getCtx(), annotationData, obj);
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Link Annotation","Error during linking the annotation on OMERO.");
@@ -1110,7 +1111,7 @@ public final class OmeroRawTools {
        boolean wasAdded = true;
         try{
             // update the object on OMERO
-            client.getGateway().getFacility(DataManagerFacility.class).updateObjects(client.getContext(), objects, null);
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).updateObjects(client.getSimpleClient().getCtx(), objects, null);
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Update objects","Error during updating objects on OMERO.");
             logger.error(String.valueOf(e));
@@ -1137,7 +1138,7 @@ public final class OmeroRawTools {
         boolean wasAdded = true;
         try{
             // update the object on OMERO
-            client.getGateway().getFacility(DataManagerFacility.class).updateObject(client.getContext(), object, null);
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).updateObject(client.getSimpleClient().getCtx(), object, null);
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Update object","Error during updating object on OMERO.");
             logger.error(String.valueOf(e));
@@ -1172,7 +1173,7 @@ public final class OmeroRawTools {
         // get OMERO thumbnail store
         ThumbnailStorePrx store = null;
         try {
-            store = client.getGateway().getThumbnailService(client.getContext());
+            store = client.getSimpleClient().getGateway().getThumbnailService(client.getSimpleClient().getCtx());
         } catch(DSOutOfServiceException e){
             logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
@@ -1232,7 +1233,7 @@ public final class OmeroRawTools {
         boolean wasDownloaded = true;
         try {
             if(new File(path).exists())
-                client.getGateway().getFacility(TransferFacility.class).downloadImage(client.getContext(), path, imageId);
+                client.getSimpleClient().getGateway().getFacility(TransferFacility.class).downloadImage(client.getSimpleClient().getCtx(), path, imageId);
             else {
                 Dialogs.showErrorNotification("Download object","The following path does not exists : "+path);
                 wasDownloaded = false;
@@ -1289,12 +1290,12 @@ public final class OmeroRawTools {
         ImportConfig config = new ImportConfig();
         config.target.set("Dataset:" + dataset.getId()); // can also import an image into a well or wellsample => to check
         config.username.set(client.getUsername());
-        config.email.set(client.getLoggedInUser().getEmail().getValue());
+        config.email.set(client.getLoggedInUser().getEmail());
 
         Collection<Pixels> pixels = new ArrayList<>(1);
         OMEROMetadataStoreClient store = null;
         try (OMEROWrapper reader = new OMEROWrapper(config)) {
-            store = client.getGateway().getImportStore(client.getContext());
+            store = client.getSimpleClient().getGateway().getImportStore(client.getSimpleClient().getCtx());
             store.logVersionInfo(config.getIniVersionNumber());
             reader.setMetadataOptions(new DefaultMetadataOptions(MetadataLevel.ALL));
 
@@ -1357,7 +1358,7 @@ public final class OmeroRawTools {
             List<IObject> roiData = readOmeroROIs(client, imageId).stream().map(ROIData::asIObject).collect(Collectors.toList());
 
             // delete ROis
-            if(client.getGateway().getFacility(DataManagerFacility.class).delete(client.getContext(), roiData) == null)
+            if(client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), roiData) == null)
                 Dialogs.showInfoNotification("ROI deletion","No ROIs to delete of cannot delete them");
 
         } catch (DSOutOfServiceException |  ExecutionException e){
@@ -1383,7 +1384,7 @@ public final class OmeroRawTools {
             List<IObject> roiData = roisToDelete.stream().map(ROIData::asIObject).collect(Collectors.toList());
 
             // delete ROis
-            if(client.getGateway().getFacility(DataManagerFacility.class).delete(client.getContext(), roiData) == null)
+            if(client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), roiData) == null)
                 Dialogs.showInfoNotification("ROI deletion","No ROIs to delete");
 
         } catch (DSOutOfServiceException |  ExecutionException e){
@@ -1413,7 +1414,7 @@ public final class OmeroRawTools {
         if (!(omeroRois.isEmpty())) {
             try {
                 // save ROIs
-                client.getGateway().getFacility(ROIFacility.class).saveROIs(client.getContext(), imageId, client.getGateway().getLoggedInUser().getId(), omeroRois);
+                client.getSimpleClient().getGateway().getFacility(ROIFacility.class).saveROIs(client.getSimpleClient().getCtx(), imageId, client.getSimpleClient().getGateway().getLoggedInUser().getId(), omeroRois);
                 roiSaved = true;
             } catch (ExecutionException | DSOutOfServiceException e){
                 Dialogs.showErrorNotification("ROI Saving","Error during saving ROIs on OMERO.");
@@ -1443,7 +1444,7 @@ public final class OmeroRawTools {
 
         // get ROIs from OMERO
         try {
-            roiList = client.getGateway().getFacility(ROIFacility.class).loadROIs(client.getContext(), imageId);
+            roiList = client.getSimpleClient().getGateway().getFacility(ROIFacility.class).loadROIs(client.getSimpleClient().getCtx(), imageId);
         } catch (DSOutOfServiceException | ExecutionException e) {
             Dialogs.showErrorNotification("ROI reading","Error during reading ROIs from OMERO.");
             logger.error(String.valueOf(e));
@@ -1561,10 +1562,10 @@ public final class OmeroRawTools {
 
         try {
             // get current image from OMERO
-            ImageData imageData = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId);
+            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
 
             // read annotations linked to the image
-            annotations = client.getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getContext(), imageData);
+            annotations = client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), imageData);
 
         }catch(ExecutionException | DSOutOfServiceException | DSAccessException e) {
             Dialogs.showErrorNotification("Reading OMERO key value pairs", "Cannot get key values from OMERO");
@@ -1596,7 +1597,7 @@ public final class OmeroRawTools {
 
             // get annotations
             List<Class<? extends AnnotationData>> types = Collections.singletonList(FileAnnotationData.class);
-            annotations = client.getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getContext(), image, types, null);
+            annotations = client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), image, types, null);
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Attachment reading","Cannot read attachment from image "+imageId);
@@ -1629,7 +1630,7 @@ public final class OmeroRawTools {
         try{
             // get annotations
             List<Class<? extends AnnotationData>> types = Collections.singletonList(FileAnnotationData.class);
-            annotations = client.getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getContext(), parent, types, null);
+            annotations = client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), parent, types, null);
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Attachment reading",
@@ -1665,7 +1666,7 @@ public final class OmeroRawTools {
             ImageData image = readOmeroImage(client, imageId);
 
             // get annotations
-            return client.getGateway().getFacility(TablesFacility.class).getAvailableTables(client.getContext(), image);
+            return client.getSimpleClient().getGateway().getFacility(TablesFacility.class).getAvailableTables(client.getSimpleClient().getCtx(), image);
 
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Attachment reading","Cannot read attachment from image "+imageId);
@@ -1690,7 +1691,7 @@ public final class OmeroRawTools {
 
         try{
             List<IObject> IObjectData = data.stream().map(FileAnnotationData::asIObject).collect(Collectors.toList());
-            client.getGateway().getFacility(DataManagerFacility.class).delete(client.getContext(), IObjectData);
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), IObjectData);
             hasBeenDeleted = true;
         } catch (DSOutOfServiceException |  ExecutionException e){
             Dialogs.showErrorNotification("File deletion","Could not delete files on OMERO.");
@@ -1743,7 +1744,7 @@ public final class OmeroRawTools {
 
         try {
             // send the new dataset to OMERO
-            IObject r = client.getGateway().getFacility(DataManagerFacility.class).saveAndReturnObject(client.getContext(), dataset);
+            IObject r = client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).saveAndReturnObject(client.getSimpleClient().getCtx(), dataset);
             return readOmeroDataset(client,r.getId().getValue());
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName);
@@ -1780,7 +1781,7 @@ public final class OmeroRawTools {
 
         try {
             // send the new dataset to OMERO
-            IObject r = client.getGateway().getFacility(DataManagerFacility.class).saveAndReturnObject(client.getContext(), link);
+            IObject r = client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).saveAndReturnObject(client.getSimpleClient().getCtx(), link);
             return readOmeroDataset(client,r.getId().getValue());
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName+" in the project "+projectId);
@@ -1819,11 +1820,11 @@ public final class OmeroRawTools {
             List<TagAnnotationData> tags = readTags(client, imageId);
             List<IObject> oss = new ArrayList<>();
             for(TagAnnotationData tag : tags) {
-                oss.addAll(client.getGateway().getQueryService(client.getContext()).findAllByQuery("select link from ImageAnnotationLink" +
+                oss.addAll(client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select link from ImageAnnotationLink" +
                         " link where link.parent = " + imageId +
                         " and link.child = " + tag.getId(), null));
             }
-            client.getGateway().getFacility(DataManagerFacility.class).delete(client.getContext(), oss).block(500);
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), oss).block(500);
 
         }catch(ExecutionException | DSOutOfServiceException | ServerError | InterruptedException e) {
             Dialogs.showErrorNotification("Unlink tags", "Cannot unlink tags for the image "+imageId);
@@ -1848,10 +1849,10 @@ public final class OmeroRawTools {
         boolean wasAdded = true;
         try {
             // get current image from OMERO
-            ImageData imageData = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId);
+            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
 
             // send key-values to OMERO
-            client.getGateway().getFacility(DataManagerFacility.class).attachAnnotation(client.getContext(), keyValuePairs, imageData);
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).attachAnnotation(client.getSimpleClient().getCtx(), keyValuePairs, imageData);
 
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Adding OMERO KeyValues", "Cannot add new key values on OMERO");
@@ -1878,7 +1879,7 @@ public final class OmeroRawTools {
         boolean wasUpdated = true;
         try {
             // update key-values to OMERO
-            client.getGateway().getFacility(DataManagerFacility.class).updateObjects(client.getContext(), keyValuePairs.stream().map(MapAnnotationData::asIObject).collect(Collectors.toList()),null);
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).updateObjects(client.getSimpleClient().getCtx(), keyValuePairs.stream().map(MapAnnotationData::asIObject).collect(Collectors.toList()),null);
         }catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("OMERO KeyValues update", "Cannot update existing key values on OMERO");
             logger.error(String.valueOf(e));
@@ -1904,7 +1905,7 @@ public final class OmeroRawTools {
         boolean wasDeleted = true;
         try {
             // remove current key-values
-            client.getGateway().getFacility(DataManagerFacility.class).delete(client.getContext(), keyValuePairs.stream().map(MapAnnotationData::asIObject).collect(Collectors.toList()));
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), keyValuePairs.stream().map(MapAnnotationData::asIObject).collect(Collectors.toList()));
         } catch(ExecutionException | DSOutOfServiceException | DSAccessException e) {
             Dialogs.showErrorNotification("OMERO KeyValues deletion", "Cannot delete existing key values on OMERO");
             logger.error(String.valueOf(e));
@@ -1953,10 +1954,10 @@ public final class OmeroRawTools {
 
         try {
             // get current image from OMERO
-            ImageData imageData = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId);
+            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
 
             // read annotations linked to the image
-            annotations = client.getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getContext(), imageData);
+            annotations = client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), imageData);
 
         }catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO Tags", "Cannot get tags from OMERO");
@@ -1989,7 +1990,7 @@ public final class OmeroRawTools {
 
         try {
             // get current image from OMERO
-            objects = client.getGateway().getQueryService(client.getContext()).findAll(TagAnnotation.class.getSimpleName(),null);
+            objects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAll(TagAnnotation.class.getSimpleName(),null);
             
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO tags", "Error getting all available tags");
@@ -2017,10 +2018,10 @@ public final class OmeroRawTools {
         boolean wasAdded = true;
         try {
             // get current image from OMERO
-            ImageData imageData = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId);
+            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
 
             // send key-values to OMERO
-            client.getGateway().getFacility(DataManagerFacility.class).attachAnnotation(client.getContext(), tags, imageData);
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).attachAnnotation(client.getSimpleClient().getCtx(), tags, imageData);
 
         }catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Adding OMERO tags", "Cannot add new tags on OMERO");
@@ -2052,7 +2053,7 @@ public final class OmeroRawTools {
         // get the current defaultPixel
         PixelsData pixel;
         try {
-            pixel = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), imageId).getDefaultPixels();
+            pixel = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId).getDefaultPixels();
         }catch(ExecutionException | DSOutOfServiceException | DSAccessException | NullPointerException e){
             Dialogs.showErrorNotification( "Thumbnail reading","The thumbnail of image "+imageId+" cannot be read.");
             logger.error(String.valueOf(e));
@@ -2082,7 +2083,7 @@ public final class OmeroRawTools {
         byte[] array;
         ThumbnailStorePrx store = null;
         try {
-            store = client.getGateway().getThumbnailService(client.getContext());
+            store = client.getSimpleClient().getGateway().getThumbnailService(client.getSimpleClient().getCtx());
             store.setPixelsId(pixel.getId());
             store.setRenderingDefId(renderingSettings.getId().getValue());
             array = store.getThumbnail(rint(width), rint(height));
@@ -2326,7 +2327,7 @@ public final class OmeroRawTools {
                 break;
             case PROJECT:
                 for (String id: ids) {
-                    tempIds.add(client.getGateway().getFacility(BrowseFacility.class).getProjects(client.getContext(),Collections.singletonList(Long.parseLong(id))).iterator().next().getDatasets()
+                    tempIds.add(client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(),Collections.singletonList(Long.parseLong(id))).iterator().next().getDatasets()
                                     .stream()
                                     .map(DatasetData::asDataset)
                                     .map(Dataset::getId)
@@ -2339,7 +2340,7 @@ public final class OmeroRawTools {
 
             case DATASET:
                 for (String id: ids) {
-                    tempIds.add(client.getGateway().getFacility(BrowseFacility.class).getImagesForDatasets(client.getContext(),Collections.singletonList(Long.parseLong(id)))
+                    tempIds.add(client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImagesForDatasets(client.getSimpleClient().getCtx(),Collections.singletonList(Long.parseLong(id)))
                             .stream()
                             .map(ImageData::asImage)
                             .map(Image::getId)

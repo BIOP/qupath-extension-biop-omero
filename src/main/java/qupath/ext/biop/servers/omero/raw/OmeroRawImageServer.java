@@ -258,9 +258,9 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			// Need the context here for now TODO: Make it cleaner to get data
 			// Try getting the magnification
 			try {
-				MetadataFacility metaFacility = client.getGateway().getFacility(MetadataFacility.class);
+				MetadataFacility metaFacility = this.client.getSimpleClient().getMetadata();
 
-				Double magnificationObject = metaFacility.getImageAcquisitionData(client.getContext(), imageID).getObjective().getNominalMagnification();
+				Double magnificationObject = metaFacility.getImageAcquisitionData(client.getSimpleClient().getCtx(), imageID).getObjective().getNominalMagnification();
 
 				if (magnificationObject == null) {
 					logger.warn("Nominal objective magnification missing for {}", imageID);
@@ -337,8 +337,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			}
 
 			// Try to read the default display colors for each channel from the file
-			List<ChannelData> channelMetadata = client.getGateway().getFacility(MetadataFacility.class).getChannelData(client.getContext(), imageID);
-			RenderingDef renderingSettings = client.getGateway().getRenderingSettingsService(client.getContext()).getRenderingSettings(reader.getPixelsId());
+			List<ChannelData> channelMetadata = client.getSimpleClient().getMetadata().getChannelData(client.getSimpleClient().getCtx(), imageID);
+			RenderingDef renderingSettings = client.getSimpleClient().getGateway().getRenderingSettingsService(client.getSimpleClient().getCtx()).getRenderingSettings(reader.getPixelsId());
 			short nNullChannelName = 0;
 			for (int c = 0; c < nChannels; c++) {
 				ome.xml.model.primitives.Color color = null;
@@ -1027,7 +1027,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 				// if image unreadable, check all groups the current user is part of
 				if(image == null){
-					List<ExperimenterGroup> availableGroups = OmeroRawTools.getUserOmeroGroups(currentClient, currentClient.getLoggedInUser().getId().getValue());
+					List<ExperimenterGroup> availableGroups = OmeroRawTools.getUserOmeroGroups(currentClient, currentClient.getLoggedInUser().getId());
 					for(ExperimenterGroup group:availableGroups){
 						// switch the user to another group
 						currentClient.switchGroup(group.getId().getValue());
@@ -1054,7 +1054,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				}
 
 				// if image still unreadable and current user is admin, check all OMERO groups
-				if(image == null && currentClient.getIsAdmin()){
+				if(image == null && currentClient.isAdmin()){
 					long groupId = OmeroRawTools.getGroupIdFromImageId(client, imageID);
 					if(groupId > 0) {
 						currentClient.switchGroup(groupId);
@@ -1065,7 +1065,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				// read the imported image
 				if(!(image == null)) {
 					PixelsData pixelData = image.getDefaultPixels();
-					RawPixelsStorePrx rawPixStore = currentClient.getGateway().getPixelsStore(currentClient.getContext());
+					RawPixelsStorePrx rawPixStore = currentClient.getSimpleClient().getGateway().getPixelsStore(currentClient.getSimpleClient().getCtx());
 					rawPixStore.setPixelsId(pixelData.getId(), false);
 					return new LocalReaderWrapper(rawPixStore, pixelData, currentClient);
 				}

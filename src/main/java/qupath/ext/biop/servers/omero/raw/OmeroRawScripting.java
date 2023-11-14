@@ -57,15 +57,8 @@ public class OmeroRawScripting {
      *
      * @return fr.igred.omero.Client object
      */
-    public static Client getSimpleOmeroClientInstance(OmeroRawImageServer imageServer) throws DSOutOfServiceException {
-        // get the current OmeroRawClient
-        OmeroRawClient omerorawclient = imageServer.getClient();
-
-        // build the simple-omero-client using the ID of the current session
-        Client simpleClient = new Client();
-        simpleClient.connect(omerorawclient.getServerURI().getHost(), omerorawclient.getServerURI().getPort(), omerorawclient.getGateway().getSessionId(omerorawclient.getGateway().getLoggedInUser()));
-
-        return simpleClient;
+    public static Client getSimpleOmeroClientInstance(OmeroRawImageServer imageServer) {
+        return imageServer.getClient().getSimpleClient();
     }
 
 

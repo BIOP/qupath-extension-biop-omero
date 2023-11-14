@@ -1,5 +1,6 @@
 package qupath.ext.biop.servers.omero.raw.command;
 
+import fr.igred.omero.meta.ExperimenterWrapper;
 import javafx.collections.FXCollections;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -57,8 +58,7 @@ public class OmeroRawImportAnnotationObjectsCommand implements Runnable{
         long groupID = OmeroRawTools.getGroupIdFromImageId(omeroServer.getClient(), omeroServer.getId());
         List<String> userList = OmeroRawTools.getOmeroUsersInGroup(omeroServer.getClient(), groupID)
                 .stream()
-                .map(Experimenter::getOmeName)
-                .map(RString::getValue)
+                .map(ExperimenterWrapper::getUserName)
                 .collect(Collectors.toList());
 
         userList.add(0, ALL_USER_CHOICE);

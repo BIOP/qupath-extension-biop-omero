@@ -825,7 +825,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             return orphanedImageList;
 
         // switch the client to the current group
-        if(this.client.getContext().getGroupID() != group.getId())
+        if(this.client.getSimpleClient().getCurrentGroupId() != group.getId())
             this.client.switchGroup(group.getId());
 
         // Read children and populate maps

@@ -124,12 +124,14 @@ public class OmeroRawClientsCommand implements Runnable {
     }
 
 
+    //TODO have to look to the issue when mulptiple servers are connected
     private void refreshServerGrid() {
         mainPane.getChildren().clear();
         var allClients = OmeroRawClients.getAllClients();
 
         for (var client: allClients) {
-            clientsDisplayed.removeIf(serverInfo -> serverInfo.client.getGateway().equals(client.getGateway()));
+            //TODO see if it is necessary to evaluate the gateway
+            clientsDisplayed.removeIf(serverInfo -> serverInfo.client.getSimpleClient().getGateway().equals(client.getSimpleClient().getGateway()));
         }
 
         for (var client: allClients) {
@@ -325,20 +327,20 @@ public class OmeroRawClientsCommand implements Runnable {
                 GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, null, imageServerName);
 
                 executor.submit(() -> {
-                    try {
-                        final boolean canAccessImage = OmeroRawClient.canBeAccessed(imageUri, OmeroRawObjects.OmeroRawObjectType.IMAGE);
-                        String tooltip = (client2.isLoggedIn() && !canAccessImage) ? "Unreachable image (access not permitted)" : imageUri.toString();
+                   // try {
+                        //final boolean canAccessImage = OmeroRawClient.canBeAccessed(imageUri, OmeroRawObjects.OmeroRawObjectType.IMAGE);
+                        String tooltip = /*(client2.isLoggedIn() && !canAccessImage) ? "Unreachable image (access not permitted)" : */imageUri.toString();
                         Platform.runLater(() -> {
                             imageServerName.setTooltip(new Tooltip(tooltip));
-                            imageServerName.setGraphic(OmeroRawTools.createStateNode(canAccessImage));
+                            imageServerName.setGraphic(OmeroRawTools.createStateNode(true/*canAccessImage*/));
                         });
-                    } catch (ConnectException ex) {
+                   /* } catch (ConnectException ex) {
                         logger.warn(ex.getLocalizedMessage());
                         Platform.runLater(() -> {
                             imageServerName.setTooltip(new Tooltip("Unreachable image"));
                             imageServerName.setGraphic(OmeroRawTools.createStateNode(false));
                         });
-                    }
+                    }*/
                 });
             }
             gp.setHgap(5.0);

@@ -21,6 +21,9 @@
 
 package qupath.ext.biop.servers.omero.raw;
 
+import fr.igred.omero.Client;
+import fr.igred.omero.meta.ExperimenterWrapper;
+import fr.igred.omero.meta.GroupWrapper;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -38,18 +41,11 @@ import omero.gateway.SecurityContext;
 import omero.gateway.exception.DSOutOfServiceException;
 import omero.gateway.model.ExperimenterData;
 import omero.log.SimpleLogger;
-import omero.model.Experimenter;
-import omero.model.ExperimenterGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.fx.dialogs.Dialogs;
 
-import javax.naming.OperationNotSupportedException;
-import java.io.IOException;
-
 import java.net.Authenticator;
-import java.net.ConnectException;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.PasswordAuthentication;
 import java.net.URI;
@@ -59,23 +55,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+
 
 /**
- * Class representing an OMERO Web Client. This class takes care of
+ * Class representing an OMERO Raw Client. This class takes care of
  * logging in, keeping the connection alive and logging out.
  *
- * @author Melvin Gelbard
+ * @author Olivier Burri & Rémy Dornier
  */
 public class OmeroRawClient {
 
     final private static Logger logger = LoggerFactory.getLogger(OmeroRawClient.class);
-
-    private SecurityContext securityContext;
-    private Gateway gateway;
     private int port = 4064;
     private boolean isAdminUser = false;
-    private Experimenter loggedInUser;
+    private Client simpleClient;
 
     /**
      * List of all URIs supported by this client.
@@ -99,25 +92,21 @@ public class OmeroRawClient {
 
     // TODO check if we need to keep the connection alive
 
-    static OmeroRawClient create(URI serverURI) throws MalformedURLException, URISyntaxException {
-
+   public static OmeroRawClient create(URI serverURI) throws MalformedURLException, URISyntaxException {
         // Clean server URI (filter out wrong URIs and get rid of unnecessary characters)
         var cleanServerURI = new URL(serverURI.getScheme(), serverURI.getHost(), serverURI.getPort(), "").toURI();
 
         // Create OmeroRawClient with the serverURI
-        OmeroRawClient client = new OmeroRawClient(cleanServerURI);
-
-        return client;
+        return new OmeroRawClient(cleanServerURI);
     }
 
     private OmeroRawClient(final URI serverUri) {
         this.serverURI = serverUri;
         this.username = new SimpleStringProperty("");
         this.loggedIn = new SimpleBooleanProperty(false);
-
     }
 
-    /**
+    /*/**
      * Attempt to access the OMERO object given by the provided {@code uri} and {@code type}.
      * <p>
      * N.B. being logged on the server doesn't necessarily mean that the user has
@@ -128,7 +117,7 @@ public class OmeroRawClient {
      * @throws IllegalArgumentException
      * @throws ConnectException
      */
-    static boolean canBeAccessed(URI uri, OmeroRawObjects.OmeroRawObjectType type) throws IllegalArgumentException, ConnectException {
+   /*static boolean canBeAccessed(URI uri, OmeroRawObjects.OmeroRawObjectType type) throws IllegalArgumentException, ConnectException {
         try {
             logger.debug("Attempting to access {}...", type.toString().toLowerCase());
             int id = OmeroRawTools.parseOmeroRawObjectId(uri, type);
@@ -162,9 +151,9 @@ public class OmeroRawClient {
             logger.warn("Error attempting to access OMERO object", ex.getLocalizedMessage());
             return false;
         }
-    }
+    }*/
 
-    boolean authenticate(final PasswordAuthentication authentication) throws Exception {
+    private boolean authenticate(final PasswordAuthentication authentication) throws Exception {
         String userName = authentication.getUserName();
         String password = String.valueOf(authentication.getPassword());
 
@@ -187,11 +176,11 @@ public class OmeroRawClient {
         ExperimenterData exp = gateway.getLoggedInUser();
         long groupID = exp.getGroupId();
 
-        this.securityContext = new SecurityContext(groupID);
-        this.gateway = gateway;
+        SecurityContext securityContext = new SecurityContext(groupID);
+        ExperimenterWrapper loggedInUser = new ExperimenterWrapper(gateway.getLoggedInUser());
+        this.simpleClient = new Client(gateway, securityContext, loggedInUser);
 
-        this.isAdminUser = !this.gateway.getAdminService(this.securityContext).getCurrentAdminPrivileges().isEmpty();
-        this.loggedInUser = this.gateway.getLoggedInUser().asExperimenter();
+        this.isAdminUser = loggedInUser.isAdmin(this.simpleClient);
 
         return gateway.isConnected();
     }
@@ -204,47 +193,41 @@ public class OmeroRawClient {
      */
     public void switchGroup(long groupId)  {
         // check if the user is member of the group
-        boolean canUserAccessGroup = OmeroRawTools.getUserOmeroGroups(this, this.loggedInUser.getId().getValue()).stream()
-                .map(ExperimenterGroup::getId)
-                .collect(Collectors.toList())
-                .stream()
-                .anyMatch(e -> e.getValue() == groupId);
+        boolean canUserAccessGroup = this.simpleClient.getUser().getGroups().stream()
+                .map(GroupWrapper::getId)
+                .anyMatch(e -> e == groupId);
 
         // if member, change the group
         if (canUserAccessGroup || this.isAdminUser)
-            this.securityContext = new SecurityContext(groupId);
+            this.simpleClient.switchGroup(groupId);
     }
 
-
-    Gateway getGateway() {
-        return this.gateway;
-    }
-
-    public Experimenter getLoggedInUser() {
-        return this.loggedInUser;
-    }
-
-    boolean getIsAdmin() {
+    /**
+     * Return whether the client is logged in to its server (<b>not</b> necessarily with access to all its images).
+     *
+     * @return isLoggedIn
+     */
+    public boolean isLoggedIn() { return this.simpleClient.isConnected(); }
+    public ExperimenterWrapper getLoggedInUser() { return this.simpleClient.getUser(); }
+    public boolean isAdmin() {
         return this.isAdminUser;
     }
-
-    SecurityContext getContext() { return this.securityContext; }
-
-    StringProperty usernameProperty() {
+    public StringProperty usernameProperty() {
         return username;
     }
-
-    BooleanProperty logProperty() {
+    public BooleanProperty logProperty() {
         return loggedIn;
     }
-
-    String getUsername() {
+    public String getUsername() {
         return username.get();
     }
+    public Client getSimpleClient(){return this.simpleClient;}
+    public int getPort(){return this.port;}
 
-    void setUsername(String newUsername) {
-        username.set(newUsername);
+    private Gateway getGateway() {
+        return this.simpleClient.getGateway();
     }
+    private SecurityContext getContext() { return this.simpleClient.getCtx(); }
 
     /**
      * Return the server URI ('clean' URI) of this {@code OmeroRawClient}.
@@ -260,7 +243,7 @@ public class OmeroRawClient {
      * @return list of uris
      * @see #addURI(URI)
      */
-    ObservableList<URI> getURIs() {
+    public ObservableList<URI> getURIs() {
         return FXCollections.unmodifiableObservableList(uris);
     }
 
@@ -271,7 +254,7 @@ public class OmeroRawClient {
      * @param uri
      * @see #getURIs()
      */
-    void addURI(URI uri) {
+    public void addURI(URI uri) {
         Platform.runLater(() -> {
             if (!uris.contains(uri))
                 uris.add(uri);
@@ -280,14 +263,6 @@ public class OmeroRawClient {
         });
     }
 
-    /**
-     * Return whether the client is logged in to its server (<b>not</b> necessarily with access to all its images).
-     *
-     * @return isLoggedIn
-     */
-    public boolean isLoggedIn() {
-        return this.gateway.isConnected();
-    }
 
     /**
      * Log in to the client's server with optional args.
@@ -331,9 +306,9 @@ public class OmeroRawClient {
             Arrays.fill(authentication.getPassword(), (char)0);
 
             // If we have previous URIs and the the username was different
-            if (uris.size() > 0 && !usernameOld.isEmpty() && !usernameOld.equals(authentication.getUserName())) {
+            if (uris.size() > 0 && usernameOld != null && !usernameOld.isEmpty() && !usernameOld.equals(authentication.getUserName())) {
                 Dialogs.showInfoNotification("OMERO login", String.format("OMERO account switched from \"%s\" to \"%s\" for %s", usernameOld, authentication.getUserName(), serverURI));
-            } else if (uris.size() == 0 || usernameOld.isEmpty())
+            } else if (uris.size() == 0 || usernameOld == null || usernameOld.isEmpty())
                 Dialogs.showInfoNotification("OMERO login", String.format("Login successful: %s(\"%s\")", serverURI, authentication.getUserName()));
 
             // If a browser was currently opened with this client, close it
@@ -361,9 +336,11 @@ public class OmeroRawClient {
      * Log out this client from the server.
      */
     public void logOut() {
-        this.gateway.closeConnector(this.securityContext);
-        this.gateway.disconnect();
-        boolean isDone = !this.gateway.isConnected();
+        //TODO add this feature to simple-oero-client
+        getGateway().closeConnector(getContext());
+        this.simpleClient.disconnect();
+
+        boolean isDone = !this.simpleClient.isConnected();
 
         logger.info("Disconnection successful: {}", isDone);
 
@@ -397,10 +374,10 @@ public class OmeroRawClient {
      * @return log in status
      */
     public boolean checkIfLoggedIn() {
-        if(this.gateway == null) // if we invoke the method "createClientAndLogin" in OmeroRawExtension->createRawServerListMenu, the gateway is null
+        if(this.simpleClient == null) // if we invoke the method "createClientAndLogin" in OmeroRawExtension->createRawServerListMenu, the gateway is null
             return false;
         try {
-            return this.gateway.isAlive(this.securityContext);
+            return getGateway().isAlive(getContext());
 
         } catch (DSOutOfServiceException e) {
             logger.error( e.getMessage() );

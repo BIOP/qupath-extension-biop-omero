@@ -179,7 +179,7 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
 
         // delete all previous ROIs and related tables (detection and annotations)
         if(deletePreviousExperiments) {
-            String currentLoggedInUser = omeroServer.getClient().getLoggedInUser().getOmeName().getValue();
+            String currentLoggedInUser = omeroServer.getClient().getLoggedInUser().getUserName();
 
             if(!deleteOnlyFilesIOwn)
                 currentLoggedInUser = null;
