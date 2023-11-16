@@ -9,7 +9,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
-import qupath.ext.biop.servers.omero.raw.OmeroRawTools;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;

@@ -1,4 +1,4 @@
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.utils;
 
 /*-
  * #%L

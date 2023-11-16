@@ -50,7 +50,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.stage.Stage;
 import qupath.ext.biop.servers.omero.raw.OmeroRawExtension;
-import qupath.ext.biop.servers.omero.raw.OmeroRawImageServerBrowserCommand;
+import qupath.ext.biop.servers.omero.raw.browser.OmeroRawImageServerBrowserCommand;
 import qupath.lib.common.ThreadTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;

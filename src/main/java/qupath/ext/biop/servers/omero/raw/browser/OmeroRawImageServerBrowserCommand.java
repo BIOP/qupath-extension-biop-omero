@@ -19,7 +19,7 @@
  * #L%
  */
 
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.browser;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -110,6 +110,9 @@ import javafx.scene.layout.Priority;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.StringConverter;
+import qupath.ext.biop.servers.omero.raw.OmeroRawExtension;
+import qupath.ext.biop.servers.omero.raw.OmeroRawImageServerBuilder;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.common.ThreadTools;
 import qupath.lib.gui.QuPathGUI;
@@ -120,12 +123,12 @@ import qupath.lib.gui.tools.GuiTools;
 import qupath.fx.utils.GridPaneUtils;
 import qupath.lib.gui.tools.IconFactory;
 import qupath.lib.images.servers.ImageServerProvider;
-import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.CommentAnnotation;
-import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.FileAnnotation;
-import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.LongAnnotation;
-import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.MapAnnotation;
-import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.OmeroRawAnnotationType;
-import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.TagAnnotation;
+import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.CommentAnnotation;
+import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.FileAnnotation;
+import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.LongAnnotation;
+import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.MapAnnotation;
+import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.OmeroRawAnnotationType;
+import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.TagAnnotation;
 import qupath.lib.projects.ProjectImageEntry;
 
 import javax.imageio.ImageIO;
@@ -242,13 +245,15 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             "Pixel size Z",
             "Pixel type"};
 
-    OmeroRawImageServerBrowserCommand(QuPathGUI qupath, OmeroRawClient client) {
+    //TODO see if we can put it public
+    public OmeroRawImageServerBrowserCommand(QuPathGUI qupath, OmeroRawClient client) {
         this.qupath = qupath;
         this.client = Objects.requireNonNull(client);
         this.serverURI = client.getServerURI();
     }
 
-    Stage getStage() {
+    //TODO see if we can put it public
+    public Stage getStage() {
         return dialog;
     }
 
@@ -896,6 +901,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         return map;
     }
 
+
     /**
      * Return a list of Strings representing the {@code OmeroRawObject}s in the parameter list.
      * The returned Strings are the lower level of OMERO object possible (giving a Dataset 
@@ -904,7 +910,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
      *
      * @param list of OmeroRawObjects
      * @return list of constructed Strings
-     * @see OmeroRawTools#getURIs(URI, OmeroRawClient)
+     * @see OmeroRawBrowserTools#getURIs(URI, OmeroRawClient)
      */
     private List<String> getObjectsURI(OmeroRawObjects.OmeroRawObject... list) {
         List<String> URIs = new ArrayList<>();
@@ -914,7 +920,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 URIs.addAll(filteredList.stream().map(this::createObjectURI).collect(Collectors.toList()));
             } else {
                 try {
-                    URIs.addAll(OmeroRawTools.getURIs(URI.create(createObjectURI(obj)), client).stream().map(URI::toString).collect(Collectors.toList()));
+                    URIs.addAll(OmeroRawBrowserTools.getURIs(URI.create(createObjectURI(obj)), client).stream().map(URI::toString).collect(Collectors.toList()));
                 } catch (IOException ex) {
                     logger.error("Could not get URI for " + obj.getName() + ": {}", ex.getLocalizedMessage());
                 } catch (DSOutOfServiceException | ExecutionException | DSAccessException e) {
@@ -1849,7 +1855,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 String[] URIs = resultsTableView.getSelectionModel().getSelectedItems().stream()
                         .flatMap(item -> {
                             try {
-                                return OmeroRawTools.getURIs(item.link.toURI(), client).stream();
+                                return OmeroRawBrowserTools.getURIs(item.link.toURI(), client).stream();
                             } catch (URISyntaxException | IOException ex) {
                                 logger.error("Error while opening " + item.name + ": {}", ex.getLocalizedMessage());
                             } catch (DSOutOfServiceException | ExecutionException | DSAccessException ex) {
@@ -1995,7 +2001,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     var selectedItem = resultsTableView.getSelectionModel().getSelectedItem();
                     if (selectedItem != null) {
                         try {
-                            List<URI> URIs = OmeroRawTools.getURIs(selectedItem.link.toURI(), client);
+                            List<URI> URIs = OmeroRawBrowserTools.getURIs(selectedItem.link.toURI(), client);
                             var uriStrings = URIs.parallelStream().map(URI::toString).toArray(String[]::new);
                             if (URIs.size() > 0) {
                                 HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());

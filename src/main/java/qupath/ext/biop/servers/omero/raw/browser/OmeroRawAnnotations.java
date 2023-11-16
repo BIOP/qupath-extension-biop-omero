@@ -19,7 +19,7 @@
  * #L%
  */
 
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.browser;
 
 
 import java.util.ArrayList;

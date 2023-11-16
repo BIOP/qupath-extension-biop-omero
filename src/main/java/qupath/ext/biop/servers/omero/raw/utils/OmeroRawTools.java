@@ -19,7 +19,7 @@
  * #L%
  */
 
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.utils;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -46,8 +46,6 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import fr.igred.omero.meta.ExperimenterWrapper;
@@ -115,6 +113,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import qupath.ext.biop.servers.omero.raw.UtilityTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.common.GeneralTools;
 import qupath.fx.dialogs.Dialogs;
@@ -137,27 +136,8 @@ public final class OmeroRawTools {
 
     private final static Logger logger = LoggerFactory.getLogger(OmeroRawTools.class);
 
-    /**
-     * Patterns to parse image URIs (for IDs)
-     */
-    private final static Pattern patternOldViewer = Pattern.compile("/webgateway/img_detail/(\\d+)");
-    private final static Pattern patternNewViewer = Pattern.compile("images=(\\d+)");
-    private final static Pattern patternWebViewer= Pattern.compile("/webclient/img_detail/(\\d+)");
-    private final static Pattern patternLinkImage = Pattern.compile("show=image-(\\d+)");
-    private final static Pattern patternImgDetail = Pattern.compile("img_detail/(\\d+)");
     private final static String noImageThumbnail = "NoImage256.png";
-    private final static Pattern[] imagePatterns = new Pattern[] {patternOldViewer, patternNewViewer, patternWebViewer, patternImgDetail, patternLinkImage};
 
-    /**
-     * Pattern to recognize the OMERO type of an URI (i.e. Project, Dataset, Image, ..)
-     */
-    private final static Pattern patternType = Pattern.compile("show=(\\w+-)");
-
-    /**
-     * Patterns to parse Project and Dataset IDs ('link URI').
-     */
-    private final static Pattern patternLinkProject = Pattern.compile("show=project-(\\d+)");
-    private final static Pattern patternLinkDataset = Pattern.compile("show=dataset-(\\d+)");
 
     private final static String um = GeneralTools.micrometerSymbol();
 
@@ -2225,211 +2205,7 @@ public final class OmeroRawTools {
     }
 
 
-    /**
-     * Return a list of valid URIs from the given URI. If no valid URI can be parsed
-     * from it, an IOException is thrown.
-     * <p>
-     * E.g. "{@code /host/webclient/?show=image=4|image=5}" returns a list containing:
-     * "{@code /host/webclient/?show=image=4}" and "{@code /host/webclient/?show=image=5}".
-     *
-     * @param uri
-     * @param client
-     * @return list
-     * @throws IOException
-     */
 
-    static List<URI> getURIs(URI uri, OmeroRawClient client) throws IOException, DSOutOfServiceException, ExecutionException, DSAccessException {
-        List<URI> list = new ArrayList<>();
-        URI cleanServerUri = URI.create(uri.toString().replace("show%3Dimage-", "show=image-"));
-        String elemId = "image-";
-        String query = cleanServerUri.getQuery() != null ? uri.getQuery() : "";
-        String shortPath = cleanServerUri.getPath() + query;
-
-        Pattern[] similarPatterns = new Pattern[] {patternOldViewer, patternNewViewer, patternWebViewer};
-
-        // Check for simpler patterns first
-        for (int i = 0; i < similarPatterns.length; i++) {
-            var matcher = similarPatterns[i].matcher(shortPath);
-            if (matcher.find()) {
-                elemId += matcher.group(1);
-
-                try {
-                    list.add(new URL(cleanServerUri.getScheme(), cleanServerUri.getHost(), cleanServerUri.getPort(), "/webclient/?show=" + elemId).toURI());
-                } catch (MalformedURLException | URISyntaxException ex) {
-                    logger.warn(ex.getLocalizedMessage());
-                }
-                return list;
-            }
-        }
-
-        // If no simple pattern was matched, check for the last possible one: /webclient/?show=
-        if (shortPath.startsWith("/webclient/show")) {
-            URI newURI = getStandardURI(uri, client);
-            var patternElem = Pattern.compile("image-(\\d+)");
-            var matcherElem = patternElem.matcher(newURI.toString());
-            while (matcherElem.find()) {
-                list.add(URI.create(String.format("%s://%s%s%s%s%s",
-                        uri.getScheme(),
-                        uri.getHost(),
-                        uri.getPort() >= 0 ? ":" + uri.getPort() : "",
-                        uri.getPath(),
-                        "?show=image-",
-                        matcherElem.group(1))));
-            }
-            return list;
-        }
-
-        // At this point, no valid URI pattern was found
-        throw new IOException("URI not recognized: " + uri);
-    }
-
-    static URI getStandardURI(URI uri, OmeroRawClient client) throws IOException, ExecutionException, DSOutOfServiceException, DSAccessException {
-        List<String> ids = new ArrayList<>();
-        String vertBarSign = "%7C";
-
-        // Identify the type of element shown (e.g. dataset)
-        OmeroRawObjects.OmeroRawObjectType type;
-        String query = uri.getQuery() != null ? uri.getQuery() : "";
-
-        // Because of encoding, the equal sign might not be recognized when loading .qpproj file
-        query = query.replace("%3D", "=");
-
-        // Match
-        var matcherType = patternType.matcher(query);
-        if (matcherType.find())
-            type = OmeroRawObjects.OmeroRawObjectType.fromString(matcherType.group(1).replace("-", ""));
-        else
-            throw new IOException("URI not recognized: " + uri);
-
-        var patternId = Pattern.compile(type.toString().toLowerCase() + "-(\\d+)");
-        var matcherId = patternId.matcher(query);
-        while (matcherId.find()) {
-            ids.add(matcherId.group(1));
-        }
-
-        // Cascading the types to get all ('leaf') images
-        StringBuilder sb = new StringBuilder(
-                String.format("%s://%s%s%s%s",
-                        uri.getScheme(),
-                        uri.getHost(),
-                        uri.getPort() >= 0 ? ":" + uri.getPort() : "",
-                        uri.getPath(),
-                        "?show=image-"));
-
-        List<String> tempIds = new ArrayList<>();
-        // TODO: Support screen and plates
-        switch (type) {
-            case SCREEN:
-            case PLATE:
-            case WELL:
-                break;
-            case PROJECT:
-                for (String id: ids) {
-                    tempIds.add(client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(),Collections.singletonList(Long.parseLong(id))).iterator().next().getDatasets()
-                                    .stream()
-                                    .map(DatasetData::asDataset)
-                                    .map(Dataset::getId)
-                                    .map(RLong::getValue)
-                                    .toString());
-                }
-                ids =  new ArrayList<>(tempIds);
-                tempIds.clear();
-                type = OmeroRawObjects.OmeroRawObjectType.DATASET;
-
-            case DATASET:
-                for (String id: ids) {
-                    tempIds.add(client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImagesForDatasets(client.getSimpleClient().getCtx(),Collections.singletonList(Long.parseLong(id)))
-                            .stream()
-                            .map(ImageData::asImage)
-                            .map(Image::getId)
-                            .map(RLong::getValue)
-                            .toString());
-                }
-                ids = new ArrayList<>(tempIds);
-                tempIds.clear();
-                type = OmeroRawObjects.OmeroRawObjectType.IMAGE;
-
-            case IMAGE:
-                if (ids.isEmpty())
-                    logger.info("No image found in URI: " + uri);
-                for (int i = 0; i < ids.size(); i++) {
-                    String imgId = (i == ids.size()-1) ? ids.get(i) : ids.get(i) + vertBarSign + "image-";
-                    sb.append(imgId);
-                }
-                break;
-            default:
-                throw new IOException("No image found in URI: " + uri);
-        }
-
-        return URI.create(sb.toString());
-    }
-
-
-
-
-
-    /**
-     * Return the Id associated with the {@code URI} provided.
-     * If multiple Ids are present, only the first one will be retrieved.
-     * If no Id could be found, return -1.
-     *
-     * @param uri
-     * @param type
-     * @return Id
-     */
-    public static int parseOmeroRawObjectId(URI uri, OmeroRawObjects.OmeroRawObjectType type) {
-        String cleanUri = uri.toString().replace("%3D", "=");
-        Matcher m;
-        switch (type) {
-            case SERVER:
-                logger.error("Cannot parse an ID from OMERO server.");
-                break;
-            case PROJECT:
-                m = patternLinkProject.matcher(cleanUri);
-                if (m.find()) return Integer.parseInt(m.group(1));
-                break;
-            case DATASET:
-                m = patternLinkDataset.matcher(cleanUri);
-                if (m.find()) return Integer.parseInt(m.group(1));
-                break;
-            case IMAGE:
-                for (var p: imagePatterns) {
-                    m = p.matcher(cleanUri);
-                    if (m.find()) return Integer.parseInt(m.group(1));
-                }
-                break;
-            default:
-                throw new UnsupportedOperationException("Type (" + type + ") not supported");
-        }
-        return -1;
-    }
-
-    /**
-     * Return the type associated with the {@code URI} provided.
-     * If multiple types are present, only the first one will be retrieved.
-     * If no type is found, return UNKNOWN.
-     * <p>
-     * Accepts the same formats as the {@code OmeroRawImageServer} constructor.
-     * <br>
-     * E.g., https://{server}/webclient/?show=dataset-{datasetId}
-     *
-     * @param uri
-     * @return omeroRawObjectType
-     */
-    public static OmeroRawObjects.OmeroRawObjectType parseOmeroRawObjectType(URI uri) {
-        var uriString = uri.toString().replace("%3D", "=");
-        if (patternLinkProject.matcher(uriString).find())
-            return OmeroRawObjects.OmeroRawObjectType.PROJECT;
-        else if (patternLinkDataset.matcher(uriString).find())
-            return OmeroRawObjects.OmeroRawObjectType.DATASET;
-        else {
-            for (var p: imagePatterns) {
-                if (p.matcher(uriString).find())
-                    return OmeroRawObjects.OmeroRawObjectType.IMAGE;
-            }
-        }
-        return OmeroRawObjects.OmeroRawObjectType.UNKNOWN;
-    }
 
     public static String getErrorStackTraceAsString(Exception e){
         return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");

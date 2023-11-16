@@ -44,7 +44,7 @@ import omero.log.SimpleLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawExtension;
-import qupath.ext.biop.servers.omero.raw.OmeroRawTools;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.fx.dialogs.Dialogs;
 
 import java.net.Authenticator;

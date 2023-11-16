@@ -1,4 +1,4 @@
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.utils;
 
 import fr.igred.omero.Client;
 import javafx.collections.ObservableList;
@@ -17,6 +17,8 @@ import omero.model.RenderingDef;
 import omero.rtypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
+import qupath.ext.biop.servers.omero.raw.UtilityTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.display.ChannelDisplayInfo;
 import qupath.fx.dialogs.Dialogs;

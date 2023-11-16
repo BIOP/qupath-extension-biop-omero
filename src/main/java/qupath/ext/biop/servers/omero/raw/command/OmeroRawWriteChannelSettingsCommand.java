@@ -5,7 +5,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
-import qupath.ext.biop.servers.omero.raw.OmeroRawScripting;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;

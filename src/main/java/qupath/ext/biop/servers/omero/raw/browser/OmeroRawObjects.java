@@ -19,7 +19,7 @@
  * #L%
  */
 
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.browser;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -47,6 +47,7 @@ import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.ObservableList;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 
 

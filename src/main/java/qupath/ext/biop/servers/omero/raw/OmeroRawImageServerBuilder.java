@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClients;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
 import qupath.lib.images.servers.ImageServerBuilder;

@@ -35,9 +35,9 @@ import org.apache.commons.lang3.StringUtils;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
-import qupath.ext.biop.servers.omero.raw.OmeroRawScripting;
-import qupath.ext.biop.servers.omero.raw.OmeroRawShapes;
-import qupath.ext.biop.servers.omero.raw.OmeroRawTools;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawShapes;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.fx.utils.GridPaneUtils;
@@ -58,7 +58,7 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
     private final double MAX_FONT_SIZE = 16.0;
     private final QuPathGUI qupath;
 
-    OmeroRawWriteAnnotationObjectsCommand(QuPathGUI qupath) {
+   public OmeroRawWriteAnnotationObjectsCommand(QuPathGUI qupath) {
         this.qupath = qupath;
     }
 

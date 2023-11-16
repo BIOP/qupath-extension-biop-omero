@@ -122,7 +122,7 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 <li>java.lang.Object</li>
 <li>
 <ul class="inheritance">
-<li>qupath.ext.biop.servers.omero.raw.OmeroRawBrowserTools</li>
+<li>qupath.ext.biop.servers.omero.raw.browser.OmeroRawBrowserTools</li>
 </ul>
 </li>
 </ul>
@@ -175,65 +175,65 @@ extends java.lang.Object</pre>
 </tr>
 <tr id="i0" class="altColor">
 <td class="colFirst"><code>static void</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#addContainersAsMetadataFields(qupath.lib.projects.ProjectImageEntry,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject)">addContainersAsMetadataFields</a></span>&#8203;(qupath.lib.projects.ProjectImageEntry&lt;java.awt.image.BufferedImage&gt;&nbsp;entry,
-                             qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject&nbsp;obj)</code></th>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#addContainersAsMetadataFields(qupath.lib.projects.ProjectImageEntry,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject)">addContainersAsMetadataFields</a></span>&#8203;(qupath.lib.projects.ProjectImageEntry&lt;java.awt.image.BufferedImage&gt;&nbsp;entry,
+                             qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject&nbsp;obj)</code></th>
 <td class="colLast">
 <div class="block">Adds the OMERO object hierarchy as QuPath metadata fields</div>
 </td>
 </tr>
 <tr id="i1" class="rowColor">
-<td class="colFirst"><code>static qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group</code></td>
+<td class="colFirst"><code>static qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getDefaultGroupItem(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient)">getDefaultGroupItem</a></span>&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client)</code></th>
 <td class="colLast">
 <div class="block">Return the group object corresponding to the default group attributed to the logged in user</div>
 </td>
 </tr>
 <tr id="i2" class="altColor">
-<td class="colFirst"><code>static qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner</code></td>
+<td class="colFirst"><code>static qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getDefaultOwnerItem(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient)">getDefaultOwnerItem</a></span>&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client)</code></th>
 <td class="colLast">
 <div class="block">Return the <code>OmeroRawObjects.Owner</code> object corresponding to the logged-in user on the current OMERO session</div>
 </td>
 </tr>
 <tr id="i3" class="rowColor">
-<td class="colFirst"><code>static java.util.Map&lt;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group,&#8203;java.util.List&lt;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner&gt;&gt;</code></td>
+<td class="colFirst"><code>static java.util.Map&lt;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group,&#8203;java.util.List&lt;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner&gt;&gt;</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getGroupUsersMapAvailableForCurrentUser(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient)">getGroupUsersMapAvailableForCurrentUser</a></span>&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client)</code></th>
 <td class="colLast">
 <div class="block">Return a map of available groups with its attached users.</div>
 </td>
 </tr>
 <tr id="i4" class="altColor">
-<td class="colFirst"><code>static qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner</code></td>
+<td class="colFirst"><code>static qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getOwnerItem(omero.model.Experimenter)">getOwnerItem</a></span>&#8203;(omero.model.Experimenter&nbsp;user)</code></th>
 <td class="colLast">
 <div class="block">Build an <code>OmeroRawObjects.Owner</code> object based on the OMERO <code>Experimenter</code> user</div>
 </td>
 </tr>
 <tr id="i5" class="rowColor">
-<td class="colFirst"><code>static qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#readAnnotationsItems(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject,qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.OmeroRawAnnotationType)">readAnnotationsItems</a></span>&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client,
-                    qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject&nbsp;obj,
-                    qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.OmeroRawAnnotationType&nbsp;category)</code></th>
+<td class="colFirst"><code>static qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#readAnnotationsItems(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject,qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.OmeroRawAnnotationType)">readAnnotationsItems</a></span>&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client,
+                    qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject&nbsp;obj,
+                    qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.OmeroRawAnnotationType&nbsp;category)</code></th>
 <td class="colLast">
 <div class="block">Request the <code>OmeroRawAnnotations</code> object of type <code>category</code> associated with
  the <code>OmeroRawObject</code> specified.</div>
 </td>
 </tr>
 <tr id="i6" class="altColor">
-<td class="colFirst"><code>static java.util.List&lt;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject&gt;</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#readOmeroObjectsItems(qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject,qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner)">readOmeroObjectsItems</a></span>&#8203;(qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject&nbsp;parent,
+<td class="colFirst"><code>static java.util.List&lt;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject&gt;</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#readOmeroObjectsItems(qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject,qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner)">readOmeroObjectsItems</a></span>&#8203;(qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject&nbsp;parent,
                      <a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client,
-                     qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group&nbsp;group,
-                     qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner&nbsp;owner)</code></th>
+                     qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group&nbsp;group,
+                     qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner&nbsp;owner)</code></th>
 <td class="colLast">
 <div class="block">Get all the child OMERO objects present in the OMERO server with the specified parent.</div>
 </td>
 </tr>
 <tr id="i7" class="rowColor">
-<td class="colFirst"><code>static java.util.List&lt;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject&gt;</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#readOrphanedImagesItem(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner)">readOrphanedImagesItem</a></span>&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client,
-                      qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group&nbsp;group,
-                      qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner&nbsp;owner)</code></th>
+<td class="colFirst"><code>static java.util.List&lt;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject&gt;</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#readOrphanedImagesItem(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner)">readOrphanedImagesItem</a></span>&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client,
+                      qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group&nbsp;group,
+                      qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner&nbsp;owner)</code></th>
 <td class="colLast">
 <div class="block">Get all the orphaned images from the server for a certain user as list of <code>OmeroRawObjects.OmeroRawObject</code></div>
 </td>
@@ -281,16 +281,16 @@ extends java.lang.Object</pre>
 <!--   -->
 </a>
 <h3>Method Detail</h3>
-<a id="readOmeroObjectsItems(qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject,qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner)">
+<a id="readOmeroObjectsItems(qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject,qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>readOmeroObjectsItems</h4>
-<pre class="methodSignature">public static&nbsp;java.util.List&lt;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject&gt;&nbsp;readOmeroObjectsItems&#8203;(qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject&nbsp;parent,
+<pre class="methodSignature">public static&nbsp;java.util.List&lt;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject&gt;&nbsp;readOmeroObjectsItems&#8203;(qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject&nbsp;parent,
                                                                                                                      <a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client,
-                                                                                                                     qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group&nbsp;group,
-                                                                                                                     qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner&nbsp;owner)</pre>
+                                                                                                                     qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group&nbsp;group,
+                                                                                                                     qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner&nbsp;owner)</pre>
 <div class="block">Get all the child OMERO objects present in the OMERO server with the specified parent.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -309,7 +309,7 @@ extends java.lang.Object</pre>
 <ul class="blockList">
 <li class="blockList">
 <h4>getOwnerItem</h4>
-<pre class="methodSignature">public static&nbsp;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner&nbsp;getOwnerItem&#8203;(omero.model.Experimenter&nbsp;user)</pre>
+<pre class="methodSignature">public static&nbsp;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner&nbsp;getOwnerItem&#8203;(omero.model.Experimenter&nbsp;user)</pre>
 <div class="block">Build an <code>OmeroRawObjects.Owner</code> object based on the OMERO <code>Experimenter</code> user</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -324,7 +324,7 @@ extends java.lang.Object</pre>
 <ul class="blockList">
 <li class="blockList">
 <h4>getDefaultOwnerItem</h4>
-<pre class="methodSignature">public static&nbsp;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner&nbsp;getDefaultOwnerItem&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client)</pre>
+<pre class="methodSignature">public static&nbsp;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner&nbsp;getDefaultOwnerItem&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client)</pre>
 <div class="block">Return the <code>OmeroRawObjects.Owner</code> object corresponding to the logged-in user on the current OMERO session</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -339,7 +339,7 @@ extends java.lang.Object</pre>
 <ul class="blockList">
 <li class="blockList">
 <h4>getDefaultGroupItem</h4>
-<pre class="methodSignature">public static&nbsp;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group&nbsp;getDefaultGroupItem&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client)</pre>
+<pre class="methodSignature">public static&nbsp;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group&nbsp;getDefaultGroupItem&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client)</pre>
 <div class="block">Return the group object corresponding to the default group attributed to the logged in user</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -354,7 +354,7 @@ extends java.lang.Object</pre>
 <ul class="blockList">
 <li class="blockList">
 <h4>getGroupUsersMapAvailableForCurrentUser</h4>
-<pre class="methodSignature">public static&nbsp;java.util.Map&lt;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group,&#8203;java.util.List&lt;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner&gt;&gt;&nbsp;getGroupUsersMapAvailableForCurrentUser&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client)</pre>
+<pre class="methodSignature">public static&nbsp;java.util.Map&lt;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group,&#8203;java.util.List&lt;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner&gt;&gt;&nbsp;getGroupUsersMapAvailableForCurrentUser&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client)</pre>
 <div class="block">Return a map of available groups with its attached users.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -364,15 +364,15 @@ extends java.lang.Object</pre>
 </dl>
 </li>
 </ul>
-<a id="readOrphanedImagesItem(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner)">
+<a id="readOrphanedImagesItem(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>readOrphanedImagesItem</h4>
-<pre class="methodSignature">public static&nbsp;java.util.List&lt;qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject&gt;&nbsp;readOrphanedImagesItem&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client,
-                                                                                                                      qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Group&nbsp;group,
-                                                                                                                      qupath.ext.biop.servers.omero.raw.OmeroRawObjects.Owner&nbsp;owner)</pre>
+<pre class="methodSignature">public static&nbsp;java.util.List&lt;qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject&gt;&nbsp;readOrphanedImagesItem&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client,
+                                                                                                                      qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Group&nbsp;group,
+                                                                                                                      qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.Owner&nbsp;owner)</pre>
 <div class="block">Get all the orphaned images from the server for a certain user as list of <code>OmeroRawObjects.OmeroRawObject</code></div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -383,15 +383,15 @@ extends java.lang.Object</pre>
 </dl>
 </li>
 </ul>
-<a id="readAnnotationsItems(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject,qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.OmeroRawAnnotationType)">
+<a id="readAnnotationsItems(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject,qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.OmeroRawAnnotationType)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>readAnnotationsItems</h4>
-<pre class="methodSignature">public static&nbsp;qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations&nbsp;readAnnotationsItems&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client,
-                                                                                         qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject&nbsp;obj,
-                                                                                         qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.OmeroRawAnnotationType&nbsp;category)</pre>
+<pre class="methodSignature">public static&nbsp;qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations&nbsp;readAnnotationsItems&#8203;(<a href="OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw">OmeroRawClient</a>&nbsp;client,
+                                                                                         qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject&nbsp;obj,
+                                                                                         qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.OmeroRawAnnotationType&nbsp;category)</pre>
 <div class="block">Request the <code>OmeroRawAnnotations</code> object of type <code>category</code> associated with
  the <code>OmeroRawObject</code> specified.</div>
 <dl>
@@ -404,14 +404,14 @@ extends java.lang.Object</pre>
 </dl>
 </li>
 </ul>
-<a id="addContainersAsMetadataFields(qupath.lib.projects.ProjectImageEntry,qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject)">
+<a id="addContainersAsMetadataFields(qupath.lib.projects.ProjectImageEntry,qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject)">
 <!--   -->
 </a>
 <ul class="blockListLast">
 <li class="blockList">
 <h4>addContainersAsMetadataFields</h4>
 <pre class="methodSignature">public static&nbsp;void&nbsp;addContainersAsMetadataFields&#8203;(qupath.lib.projects.ProjectImageEntry&lt;java.awt.image.BufferedImage&gt;&nbsp;entry,
-                                                 qupath.ext.biop.servers.omero.raw.OmeroRawObjects.OmeroRawObject&nbsp;obj)</pre>
+                                                 qupath.ext.biop.servers.omero.raw.browser.OmeroRawObjects.OmeroRawObject&nbsp;obj)</pre>
 <div class="block">Adds the OMERO object hierarchy as QuPath metadata fields</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>

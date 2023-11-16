@@ -1,4 +1,4 @@
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.utils;
 
 import omero.gateway.model.ImageData;
 import omero.gateway.model.TableData;
