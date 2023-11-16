@@ -14,6 +14,7 @@ import omero.model.ExperimenterGroup;
 import omero.model.DatasetImageLink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.projects.ProjectImageEntry;
 
 import java.awt.image.BufferedImage;

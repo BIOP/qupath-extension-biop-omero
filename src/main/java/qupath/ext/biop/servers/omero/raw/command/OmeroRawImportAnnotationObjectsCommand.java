@@ -8,8 +8,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
-import omero.RString;
-import omero.model.Experimenter;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.OmeroRawTools;
 import qupath.lib.gui.QuPathGUI;

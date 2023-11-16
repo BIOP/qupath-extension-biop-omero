@@ -63,6 +63,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.color.ColorToolsAwt;
 import qupath.lib.geom.Point2;
 import qupath.lib.gui.scripting.QPEx;
@@ -83,7 +84,7 @@ import qupath.lib.roi.RoiTools;
 import qupath.lib.roi.interfaces.ROI;
 
 
-class OmeroRawShapes {
+public class OmeroRawShapes {
 
     private final static Logger logger = LoggerFactory.getLogger(OmeroRawShapes.class);
 
@@ -780,7 +781,7 @@ class OmeroRawShapes {
      * @param owner
      * @return the list of all ROIs created by the specified owner
      */
-    protected static List<ROIData> filterByOwner(OmeroRawClient client, List<ROIData> roiData, String owner){
+    public static List<ROIData> filterByOwner(OmeroRawClient client, List<ROIData> roiData, String owner){
         List<ROIData> filteredROI = new ArrayList<>();
         Map<Long, String> ownerMap = new HashMap<>();
 

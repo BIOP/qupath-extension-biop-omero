@@ -48,6 +48,8 @@ import omero.model.RenderingDef;
 import omero.model.enums.UnitsLength;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
+import qupath.ext.biop.servers.omero.raw.client.OmeroRawClients;
 import qupath.lib.color.ColorModelFactory;
 import qupath.lib.common.ColorTools;
 import qupath.lib.common.GeneralTools;

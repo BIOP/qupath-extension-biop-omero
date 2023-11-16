@@ -19,7 +19,7 @@
  * #L%
  */
 
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.client;
 
 import com.google.gson.JsonSyntaxException;
 import javafx.collections.FXCollections;
@@ -70,7 +70,7 @@ public class OmeroRawClients {
 	 * @param serverURI
 	 * @return client
 	 */
-	static OmeroRawClient getClientFromServerURI(URI serverURI) {
+	public static OmeroRawClient getClientFromServerURI(URI serverURI) {
 		return clients.parallelStream().filter(e -> e.getServerURI().equals(serverURI)).findFirst().orElse(null);
 	}
 	
@@ -80,7 +80,7 @@ public class OmeroRawClients {
 	 * @param imageURI
 	 * @return client
 	 */
-	static OmeroRawClient getClientFromImageURI(URI imageURI) {
+	private static OmeroRawClient getClientFromImageURI(URI imageURI) {
 		return clients.parallelStream().filter(e -> e.getURIs().contains(imageURI)).findFirst().orElse(null);
 	}
 	
@@ -89,7 +89,7 @@ public class OmeroRawClients {
 	 * Nothing happens if the client is already present in the list.
 	 * @param client
 	 */
-	static void addClient(OmeroRawClient client) {
+	public static void addClient(OmeroRawClient client) {
 		// Check if logged in to make sure the log property is updated
 		client.checkIfLoggedIn();
 		
@@ -103,7 +103,7 @@ public class OmeroRawClients {
 	 * Remove the client from the clients list (losing all info about its URIs).
 	 * @param client
 	 */
-	static void removeClient(OmeroRawClient client) {
+	protected static void removeClient(OmeroRawClient client) {
 		clients.remove(client);
 	}
 
@@ -113,7 +113,7 @@ public class OmeroRawClients {
 	 * @param serverURI
 	 * @return hasFailed
 	 */
-	static boolean hasFailed(URI serverURI) {
+	private static boolean hasFailed(URI serverURI) {
 		return failedUris.contains(serverURI);
 	}
 	
@@ -121,7 +121,7 @@ public class OmeroRawClients {
 	 * Add the specified host to the list of failed hosts.
 	 * @param serverURI
 	 */
-	static void addFailedHost(URI serverURI) {
+	private static void addFailedHost(URI serverURI) {
 		if (!failedUris.contains(serverURI))
 			failedUris.add(serverURI);
 		else
@@ -132,7 +132,7 @@ public class OmeroRawClients {
 	 * Return the observable list of all clients.
 	 * @return client list
 	 */
-	static ObservableList<OmeroRawClient> getAllClients() {
+	public static ObservableList<OmeroRawClient> getAllClients() {
 		return clients;
 	}
 	

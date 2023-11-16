@@ -1,7 +1,6 @@
 package qupath.ext.biop.servers.omero.raw;
 
 import fr.igred.omero.Client;
-import omero.gateway.exception.DSOutOfServiceException;
 import javafx.collections.ObservableList;
 import omero.gateway.facility.TablesFacility;
 import omero.gateway.model.ChannelData;
@@ -18,6 +17,7 @@ import omero.model.RenderingDef;
 import omero.rtypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.display.ChannelDisplayInfo;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;

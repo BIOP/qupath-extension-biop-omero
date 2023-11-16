@@ -110,6 +110,7 @@ import javafx.scene.layout.Priority;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.StringConverter;
+import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.common.ThreadTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.commands.ProjectCommands;
@@ -117,6 +118,7 @@ import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.prefs.PathPrefs;
 import qupath.lib.gui.tools.GuiTools;
 import qupath.fx.utils.GridPaneUtils;
+import qupath.lib.gui.tools.IconFactory;
 import qupath.lib.images.servers.ImageServerProvider;
 import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.CommentAnnotation;
 import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.FileAnnotation;
@@ -328,7 +330,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         nOpenImages.setStyle(BOLD);
 
         Label isReachable = new Label();
-        isReachable.graphicProperty().bind(Bindings.createObjectBinding(() -> OmeroRawTools.createStateNode(client.isLoggedIn()), client.logProperty()));
+        isReachable.graphicProperty().bind(Bindings.createObjectBinding(() -> createStateNode(client.isLoggedIn()), client.logProperty()));
 
         serverAttributePane.addRow(0, new Label("Server: "), hostLabel, isReachable);
         serverAttributePane.addRow(1, new Label("Username: "), usernameLabel);
@@ -760,6 +762,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         dialog.showAndWait();
     }
 
+    public static Node createStateNode(boolean loggedIn) {
+        var state = loggedIn ? IconFactory.PathIcons.ACTIVE_SERVER : IconFactory.PathIcons.INACTIVE_SERVER;
+        return IconFactory.createNode(QuPathGUI.TOOLBAR_ICON_SIZE, QuPathGUI.TOOLBAR_ICON_SIZE, state);
+    }
 
     /**
      * If something else than an image is selected in the browser, then it lists all images contained the selected container.
@@ -898,7 +904,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
      *
      * @param list of OmeroRawObjects
      * @return list of constructed Strings
-     * @see OmeroRawTools#getURIs(URI,OmeroRawClient)
+     * @see OmeroRawTools#getURIs(URI, OmeroRawClient)
      */
     private List<String> getObjectsURI(OmeroRawObjects.OmeroRawObject... list) {
         List<String> URIs = new ArrayList<>();
@@ -2183,7 +2189,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     /**
      * Request closure of the dialog
      */
-    void requestClose() {
+    public void requestClose() {
         if (dialog != null)
             dialog.fireEvent(new WindowEvent(dialog, WindowEvent.WINDOW_CLOSE_REQUEST));
     }

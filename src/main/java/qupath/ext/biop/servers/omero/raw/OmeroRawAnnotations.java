@@ -38,6 +38,7 @@ import omero.gateway.model.TextualAnnotationData;
 import omero.model.NamedValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 
 /**
  * Class representing OMERO annotations.

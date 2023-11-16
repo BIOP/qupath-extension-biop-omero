@@ -19,7 +19,7 @@
  * #L%
  */
 
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.client;
 
 import fr.igred.omero.Client;
 import fr.igred.omero.meta.ExperimenterWrapper;
@@ -43,6 +43,8 @@ import omero.gateway.model.ExperimenterData;
 import omero.log.SimpleLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import qupath.ext.biop.servers.omero.raw.OmeroRawExtension;
+import qupath.ext.biop.servers.omero.raw.OmeroRawTools;
 import qupath.fx.dialogs.Dialogs;
 
 import java.net.Authenticator;

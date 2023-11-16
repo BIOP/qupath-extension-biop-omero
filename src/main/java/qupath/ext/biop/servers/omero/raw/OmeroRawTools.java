@@ -115,12 +115,10 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import javafx.scene.Node;
+import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.common.GeneralTools;
-import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
-import qupath.lib.gui.tools.IconFactory;
 import qupath.lib.io.GsonTools;
 import qupath.lib.objects.PathObject;
 
@@ -2366,10 +2364,7 @@ public final class OmeroRawTools {
         return URI.create(sb.toString());
     }
 
-    static Node createStateNode(boolean loggedIn) {
-        var state = loggedIn ? IconFactory.PathIcons.ACTIVE_SERVER : IconFactory.PathIcons.INACTIVE_SERVER;
-        return IconFactory.createNode(QuPathGUI.TOOLBAR_ICON_SIZE, QuPathGUI.TOOLBAR_ICON_SIZE, state);
-    }
+
 
 
 

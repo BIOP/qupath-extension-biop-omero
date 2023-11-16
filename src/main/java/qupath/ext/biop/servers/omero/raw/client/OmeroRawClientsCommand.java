@@ -19,9 +19,8 @@
  * #L%
  */
 
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.client;
 
-import java.net.ConnectException;
 import java.net.URI;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -50,6 +49,8 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.stage.Stage;
+import qupath.ext.biop.servers.omero.raw.OmeroRawExtension;
+import qupath.ext.biop.servers.omero.raw.OmeroRawImageServerBrowserCommand;
 import qupath.lib.common.ThreadTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
@@ -73,7 +74,7 @@ public class OmeroRawClientsCommand implements Runnable {
     // GUI
     private GridPane mainPane;
 
-    OmeroRawClientsCommand(QuPathGUI qupath) {
+    public OmeroRawClientsCommand(QuPathGUI qupath) {
         this.qupath = qupath;
         this.clientsDisplayed = FXCollections.observableSet();
     }
@@ -207,9 +208,9 @@ public class OmeroRawClientsCommand implements Runnable {
             // Bind state node
             userLabel.graphicProperty().bind(Bindings.createObjectBinding(() -> {
                 if (client.getUsername().isEmpty())
-                    return OmeroRawTools.createStateNode(client.checkIfLoggedIn());
+                    return OmeroRawImageServerBrowserCommand.createStateNode(client.checkIfLoggedIn());
                 else
-                    return OmeroRawTools.createStateNode(client.logProperty().get());
+                    return OmeroRawImageServerBrowserCommand.createStateNode(client.logProperty().get());
             }, client.usernameProperty()));
 
             // Make it appear on the right of the server's URI
@@ -327,12 +328,13 @@ public class OmeroRawClientsCommand implements Runnable {
                 GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, null, imageServerName);
 
                 executor.submit(() -> {
+                    //TODO see how to mimic this
                    // try {
                         //final boolean canAccessImage = OmeroRawClient.canBeAccessed(imageUri, OmeroRawObjects.OmeroRawObjectType.IMAGE);
                         String tooltip = /*(client2.isLoggedIn() && !canAccessImage) ? "Unreachable image (access not permitted)" : */imageUri.toString();
                         Platform.runLater(() -> {
                             imageServerName.setTooltip(new Tooltip(tooltip));
-                            imageServerName.setGraphic(OmeroRawTools.createStateNode(true/*canAccessImage*/));
+                            imageServerName.setGraphic(OmeroRawImageServerBrowserCommand.createStateNode(true/*canAccessImage*/));
                         });
                    /* } catch (ConnectException ex) {
                         logger.warn(ex.getLocalizedMessage());

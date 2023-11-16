@@ -19,7 +19,7 @@
  * #L%
  */
 
-package qupath.ext.biop.servers.omero.raw;
+package qupath.ext.biop.servers.omero.raw.command;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -34,6 +34,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
+import qupath.ext.biop.servers.omero.raw.OmeroRawScripting;
+import qupath.ext.biop.servers.omero.raw.OmeroRawShapes;
+import qupath.ext.biop.servers.omero.raw.OmeroRawTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.fx.utils.GridPaneUtils;
@@ -188,6 +192,7 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
             OmeroRawScripting.deleteDetectionFiles(omeroServer, tmpFileList, currentLoggedInUser);
 
             // remove only ROIs owned by the logged in user
+            //TODO donot put OMERO RawShape public
             List<ROIData> filteredTmpRois = OmeroRawShapes.filterByOwner(omeroServer.getClient(), tmpRoiList, currentLoggedInUser);
             OmeroRawTools.deleteOmeroROIs(omeroServer.getClient(), filteredTmpRois);
 
