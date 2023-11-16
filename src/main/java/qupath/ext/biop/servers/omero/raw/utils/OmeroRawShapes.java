@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import fr.igred.omero.meta.ExperimenterWrapper;
 import javafx.collections.ObservableList;
 import omero.gateway.model.EllipseData;
 import omero.gateway.model.LineData;
@@ -48,7 +49,6 @@ import omero.gateway.model.RectangleData;
 import omero.gateway.model.ShapeData;
 
 import omero.model.Ellipse;
-import omero.model.Experimenter;
 import omero.model.Label;
 import omero.model.Line;
 import omero.model.Mask;
@@ -797,8 +797,8 @@ public class OmeroRawShapes {
             if(ownerMap.containsKey(ownerId)){
                 roiOwner = ownerMap.get(ownerId);
             }else{
-                Experimenter ownerObj = OmeroRawTools.getOmeroUser(client, ownerId, "");
-                roiOwner = ownerObj.getOmeName().getValue();
+                ExperimenterWrapper ownerObj = OmeroRawTools.getUser(client, ownerId);
+                roiOwner = ownerObj.getUserName();
                 ownerMap.put(ownerId, roiOwner);
             }
 

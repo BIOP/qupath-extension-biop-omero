@@ -1,6 +1,7 @@
 package qupath.ext.biop.servers.omero.raw.browser;
 
 import fr.igred.omero.meta.ExperimenterWrapper;
+import fr.igred.omero.meta.GroupWrapper;
 import omero.RLong;
 import omero.gateway.exception.DSAccessException;
 import omero.gateway.exception.DSOutOfServiceException;
@@ -14,8 +15,6 @@ import omero.gateway.model.ScreenData;
 import omero.gateway.model.WellData;
 import omero.gateway.model.WellSampleData;
 import omero.model.Dataset;
-import omero.model.Experimenter;
-import omero.model.ExperimenterGroup;
 import omero.model.DatasetImageLink;
 import omero.model.Image;
 import org.slf4j.Logger;
@@ -84,8 +83,8 @@ public class OmeroRawBrowserTools {
             return new ArrayList<>();
 
         // get OMERO owner and group
-        Experimenter user = OmeroRawTools.getOmeroUser(client, owner.getId(), owner.getName());
-        ExperimenterGroup userGroup = OmeroRawTools.getOmeroGroup(client, group.getId(), group.getName());
+        ExperimenterWrapper user = OmeroRawTools.getUser(client, owner.getId());
+        GroupWrapper userGroup = OmeroRawTools.getGroup(client, group.getId());
         List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
 
         switch (parent.getType()){
@@ -203,18 +202,24 @@ public class OmeroRawBrowserTools {
     /**
      * Build an {@link OmeroRawObjects.Owner} object based on the OMERO {@link ExperimenterData} user
      *
-     * @param userData
+     * @param user
      * @return
      */
-    public static OmeroRawObjects.Owner getOwnerItem(ExperimenterWrapper userData){
-        Experimenter user = userData.asDataObject().asExperimenter();
-        return new OmeroRawObjects.Owner(user.getId()==null ? 0 : user.getId().getValue(),
-                user.getFirstName()==null ? "" : user.getFirstName().getValue(),
-                user.getMiddleName()==null ? "" : user.getMiddleName().getValue(),
-                user.getLastName()==null ? "" : user.getLastName().getValue(),
-                user.getEmail()==null ? "" : user.getEmail().getValue(),
-                user.getInstitution()==null ? "" : user.getInstitution().getValue(),
-                user.getOmeName()==null ? "" : user.getOmeName().getValue());
+    public static OmeroRawObjects.Owner getOwnerItem(ExperimenterWrapper user){
+        //TODO see when the issue on Omerogateway will be solved and integrated
+        String middleName = "";
+        try{
+            middleName = user.getMiddleName();
+        }catch (Exception e){
+
+        }
+        return new OmeroRawObjects.Owner(user.getId(),
+                user.getFirstName()==null ? "" : user.getFirstName(),
+                middleName==null ? "" : middleName,
+                user.getLastName()==null ? "" : user.getLastName(),
+                user.getEmail()==null ? "" : user.getEmail(),
+                user.getInstitution()==null ? "" : user.getInstitution(),
+                user.getUserName()==null ? "" : user.getUserName());
     }
 
     /**
@@ -234,8 +239,8 @@ public class OmeroRawBrowserTools {
      * @return
      */
     public static OmeroRawObjects.Group getDefaultGroupItem(OmeroRawClient client) {
-        ExperimenterGroup userGroup = OmeroRawTools.getDefaultOmeroGroup(client, client.getLoggedInUser().getId());
-        return new OmeroRawObjects.Group(userGroup.getId().getValue(), userGroup.getName().getValue());
+        GroupWrapper userGroup = client.getLoggedInUser().getDefaultGroup();
+        return new OmeroRawObjects.Group(userGroup.getId(), userGroup.getName());
     }
 
     /**
@@ -249,23 +254,23 @@ public class OmeroRawBrowserTools {
         Map<OmeroRawObjects.Group,List<OmeroRawObjects.Owner>> map = new HashMap<>();
 
         // get all available groups for the current user according to his admin rights
-        List<ExperimenterGroup> groups;
+        List<GroupWrapper> groups;
         if(client.isAdmin())
-            groups = OmeroRawTools.getAllOmeroGroups(client);
+            groups = OmeroRawTools.getAllGroups(client);
         else
-            groups = OmeroRawTools.getUserOmeroGroups(client,client.getLoggedInUser().getId());
+            groups = OmeroRawTools.getUserGroups(client, client.getLoggedInUser().getId());
 
         // remove "system" and "user" groups
         groups.stream()
-                .filter(group->group.getId().getValue() != 0 && group.getId().getValue() != 1)
+                .filter(group->group.getId() != 0 && group.getId() != 1)
                 .collect(Collectors.toList())
                 .forEach(group-> {
                     // initialize lists
                     List<OmeroRawObjects.Owner> owners = new ArrayList<>();
-                    OmeroRawObjects.Group userGroup = new OmeroRawObjects.Group(group.getId().getValue(), group.getName().getValue());
+                    OmeroRawObjects.Group userGroup = new OmeroRawObjects.Group(group.getId(), group.getName());
 
                     // get all available users for the current group
-                    List<ExperimenterWrapper> users = OmeroRawTools.getOmeroUsersInGroup(client, group.getId().getValue());
+                    List<ExperimenterWrapper> users = OmeroRawTools.getGroupUsers(client, group.getId());
 
                     // convert each user to qupath compatible owners object
                     for (ExperimenterWrapper user : users)
@@ -295,8 +300,8 @@ public class OmeroRawBrowserTools {
         Collection<ImageData> orphanedImages = OmeroRawTools.readOmeroOrphanedImagesPerUser(client, owner.getId());
 
         // get OMERO user and group
-        Experimenter user = OmeroRawTools.getOmeroUser(client, owner.getId(), owner.getName());
-        ExperimenterGroup userGroup = OmeroRawTools.getOmeroGroup(client, group.getId(), group.getName());
+        ExperimenterWrapper user = OmeroRawTools.getUser(client, owner.getId());
+        GroupWrapper userGroup = OmeroRawTools.getGroup(client, group.getId());
 
         // convert dataset to OmeroRawObject
         orphanedImages.forEach( e ->

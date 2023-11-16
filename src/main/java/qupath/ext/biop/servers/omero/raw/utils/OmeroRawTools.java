@@ -48,7 +48,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import fr.igred.omero.exception.AccessException;
+import fr.igred.omero.exception.OMEROServerError;
+import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.meta.ExperimenterWrapper;
+import fr.igred.omero.meta.GroupWrapper;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataLevel;
 import ome.formats.OMEROMetadataStoreClient;
@@ -78,7 +82,9 @@ import omero.gateway.model.AnnotationData;
 import omero.gateway.model.ChannelData;
 import omero.gateway.model.DataObject;
 import omero.gateway.model.DatasetData;
+import omero.gateway.model.ExperimenterData;
 import omero.gateway.model.FileAnnotationData;
+import omero.gateway.model.GroupData;
 import omero.gateway.model.ImageData;
 import omero.gateway.model.MapAnnotationData;
 import omero.gateway.model.PixelsData;
@@ -113,7 +119,6 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import qupath.ext.biop.servers.omero.raw.UtilityTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.common.GeneralTools;
 import qupath.fx.dialogs.Dialogs;
@@ -156,9 +161,10 @@ public final class OmeroRawTools {
      * @param username
      * @return The specified OMERO user
      */
-    public static Experimenter getOmeroUser(OmeroRawClient client, long userId, String username){
+    @Deprecated
+    public static ExperimenterWrapper getOmeroUser(OmeroRawClient client, long userId, String username){
         try {
-            return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).getExperimenter(userId);
+            return client.getSimpleClient().getUser(userId);
         } catch (ServerError | DSOutOfServiceException e) {
             Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO user "+username +" ; id: "+userId);
             logger.error(String.valueOf(e));
@@ -166,6 +172,44 @@ public final class OmeroRawTools {
             throw new RuntimeException(e);
         }
     }
+
+    /**
+     * Retrieve a user on OMERO based on its ID
+     *
+     * @param client
+     * @param userId
+     * @return The specified OMERO user
+     */
+    public static ExperimenterWrapper getUser(OmeroRawClient client, long userId){
+        try {
+            return client.getSimpleClient().getUser(userId);
+        } catch (ServerError | DSOutOfServiceException e) {
+            Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO user from id: "+userId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    /**
+     * Retrieve a user on OMERO based on its name
+     *
+     * @param client
+     * @param username
+     * @return The specified OMERO user
+     */
+    public static ExperimenterWrapper getUser(OmeroRawClient client, String username){
+        try {
+            return client.getSimpleClient().getUser(username);
+        } catch (AccessException | ExecutionException | DSOutOfServiceException e) {
+            Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO user : "+username);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            throw new RuntimeException(e);
+        }
+    }
+
 
 
     /**
@@ -175,11 +219,56 @@ public final class OmeroRawTools {
      * @param groupId
      * @return A list of all OMERO user within the specified group
      */
-    public static List<ExperimenterWrapper> getOmeroUsersInGroup(OmeroRawClient client, long groupId){
+    @Deprecated
+    public static List<Experimenter> getOmeroUsersInGroup(OmeroRawClient client, long groupId){
+            return getGroupUsers(client, groupId).stream()
+                    .map(ExperimenterWrapper::asDataObject)
+                    .map(ExperimenterData::asExperimenter).
+                    collect(Collectors.toList());
+    }
+
+    public static List<ExperimenterWrapper> getGroupUsers(OmeroRawClient client, long groupId){
         try {
             return client.getSimpleClient().getGroup(groupId).getExperimenters();
-        } catch (ServerError | DSOutOfServiceException e) {
+        } catch (ServiceException | OMEROServerError e) {
             Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO users in group "+groupId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            throw new RuntimeException("Cannot read OMERO users in group "+groupId, e);
+        }
+    }
+
+
+    /**
+     * Retrieve a group on OMERO based on its id
+     *
+     * @param client
+     * @param groupId
+     * @return The specified OMERO group
+     */
+    public static GroupWrapper getGroup(OmeroRawClient client, long groupId){
+        try {
+            return client.getSimpleClient().getGroup(groupId);
+        } catch (ServerError | DSOutOfServiceException e) {
+            Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO group with id: "+groupId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Retrieve a group on OMERO based on its name
+     *
+     * @param client
+     * @param groupName
+     * @return The specified OMERO group
+     */
+    public static GroupWrapper getGroup(OmeroRawClient client, String groupName){
+        try {
+            return client.getSimpleClient().getGroup(groupName);
+        } catch (AccessException | ExecutionException | DSOutOfServiceException e) {
+            Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO group : "+groupName);
             logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             throw new RuntimeException(e);
@@ -192,20 +281,32 @@ public final class OmeroRawTools {
      *
      * @param client
      * @param groupId
-     * @param groupName
      * @return The specified OMERO group
      */
-    public static ExperimenterGroup getOmeroGroup(OmeroRawClient client, long groupId, String groupName){
-        try {
-            return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).getGroup(groupId);
-        } catch (ServerError | DSOutOfServiceException e) {
-            Dialogs.showErrorMessage("OMERO admin","Cannot read OMERO group "+groupName +" ; id: "+groupId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            throw new RuntimeException(e);
-        }
+    @Deprecated
+    public static ExperimenterGroup getOmeroGroup(OmeroRawClient client, long groupId, String username){
+            return getGroup(client, groupId).asDataObject().asGroup();
     }
 
+    /**
+     * get all the groups the logged-in user is member of
+     *
+     * @param client
+     * @return The list of user's OMERO groups
+     */
+    public static List<GroupWrapper> getUserGroups(OmeroRawClient client) {
+        return client.getLoggedInUser().getGroups();
+    }
+
+    /**
+     * get all the groups the certain user is member of
+     *
+     * @param client
+     * @return The list of user's OMERO groups
+     */
+    public static List<GroupWrapper> getUserGroups(OmeroRawClient client, long userId) {
+        return getUser(client, userId).getGroups();
+    }
 
     /**
      * get all the groups where the current user is member of
@@ -214,32 +315,46 @@ public final class OmeroRawTools {
      * @param userId
      * @return The list of user's OMERO groups
      */
+    @Deprecated
     public static List<ExperimenterGroup> getUserOmeroGroups(OmeroRawClient client, long userId) {
-        try {
-            return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).containedGroups(userId);
-        }catch(DSOutOfServiceException | ServerError e){
-            Dialogs.showErrorMessage("OMERO admin","Cannot retrieve OMERO groups for user "+userId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            throw new RuntimeException(e);
-        }
+        return getUserGroups(client).stream()
+                .map(GroupWrapper::asDataObject)
+                .map(GroupData::asGroup)
+                .collect(Collectors.toList());
     }
 
 
     /**
      * get all the groups on OMERO server. This functionality is reserved to Admin people. In case you are not
-     * Admin, {@link #getUserOmeroGroups(OmeroRawClient client, long userId)} method is called instead.
+     * Admin, {@link #getUserGroups(OmeroRawClient)} method is called instead.
      *
      * @param client
      * @return The list of all groups on OMERO server
      */
+    @Deprecated
     public static List<ExperimenterGroup> getAllOmeroGroups(OmeroRawClient client) {
+        return getAllGroups(client).stream()
+                .map(GroupWrapper::asDataObject)
+                .map(GroupData::asGroup)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * get all the groups on OMERO server. This functionality is reserved to Admin people. In case you are not
+     * Admin, {@link #getUserGroups(OmeroRawClient client)} method is called instead.
+     *
+     * @param client
+     * @return The list of all groups on OMERO server
+     */
+    public static List<GroupWrapper> getAllGroups(OmeroRawClient client) {
         try {
-            if(client.isAdmin())
-                return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).lookupGroups();
+            if(client.isAdmin()) {
+                List<ExperimenterGroup> allGroups = client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).lookupGroups();
+                 return allGroups.stream().map(GroupData::new).map(GroupWrapper::new).collect(Collectors.toList());
+            }
             else {
                 Dialogs.showWarningNotification("OMERO admin", "You are not allowed to see all OMERO groups. Only available groups for you are loaded");
-                return getUserOmeroGroups(client, client.getLoggedInUser().getId());
+                return getUserGroups(client);
             }
         }catch(DSOutOfServiceException | ServerError e){
             Dialogs.showErrorMessage("OMERO admin", "Cannot retrieve all OMERO groups");
@@ -257,6 +372,7 @@ public final class OmeroRawTools {
      * @param userId
      * @return User's OMERO default group
      */
+    @Deprecated
     public static ExperimenterGroup getDefaultOmeroGroup(OmeroRawClient client, long userId) {
         try {
             return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).getDefaultGroup(userId);

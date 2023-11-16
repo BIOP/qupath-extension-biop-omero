@@ -1,6 +1,7 @@
 package qupath.ext.biop.servers.omero.raw.utils;
 
 import fr.igred.omero.Client;
+import fr.igred.omero.meta.ExperimenterWrapper;
 import javafx.collections.ObservableList;
 import omero.gateway.facility.TablesFacility;
 import omero.gateway.model.ChannelData;
@@ -11,14 +12,12 @@ import omero.gateway.model.ROIData;
 import omero.gateway.model.TableData;
 import omero.gateway.model.TagAnnotationData;
 import omero.model.ChannelBinding;
-import omero.model.Experimenter;
 import omero.model.NamedValue;
 import omero.model.RenderingDef;
 import omero.rtypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
-import qupath.ext.biop.servers.omero.raw.UtilityTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.display.ChannelDisplayInfo;
 import qupath.fx.dialogs.Dialogs;
@@ -1326,8 +1325,8 @@ public class OmeroRawScripting {
                     if (ownerMap.containsKey(ownerId)) {
                         tableOwner = ownerMap.get(ownerId);
                     } else {
-                        Experimenter ownerObj = OmeroRawTools.getOmeroUser(client, ownerId, "");
-                        tableOwner = ownerObj.getOmeName().getValue();
+                        ExperimenterWrapper ownerObj = OmeroRawTools.getUser(client, ownerId);
+                        tableOwner = ownerObj.getUserName();
                         ownerMap.put(ownerId, tableOwner);
                     }
 

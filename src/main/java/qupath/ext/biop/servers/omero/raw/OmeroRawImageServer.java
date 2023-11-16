@@ -21,6 +21,7 @@
 
 package qupath.ext.biop.servers.omero.raw;
 
+import fr.igred.omero.meta.GroupWrapper;
 import loci.common.DataTools;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
@@ -42,7 +43,6 @@ import omero.gateway.model.PixelsData;
 import omero.gateway.model.ROIData;
 
 import omero.model.ChannelBinding;
-import omero.model.ExperimenterGroup;
 import omero.model.Length;
 import omero.model.RenderingDef;
 import omero.model.enums.UnitsLength;
@@ -85,7 +85,6 @@ import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.Cleaner;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -870,7 +869,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 		List<ROIData> filteredROIs = OmeroRawShapes.filterByOwner(getClient(), roiData, omeroRoiOwner);
 
-		return OmeroRawShapes.createPathObjectsFromOmeroROIs(filteredROIs);
+		return OmeroRawTools.createPathObjectsFromOmeroROIs(filteredROIs);
 	}
 
 
@@ -1022,7 +1021,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			 * @return the {@code IFormatReader}
 			 * @throws IOException
 			 */
-			private synchronized LocalReaderWrapper createReader(final Long imageID, final MetadataStore store, OmeroRawClient client) throws DSOutOfServiceException, URISyntaxException, MalformedURLException, ServerError {
+			private synchronized LocalReaderWrapper createReader(final Long imageID, final MetadataStore store, OmeroRawClient client) throws DSOutOfServiceException, ServerError {
 				logger.info("Create new OMERO reader for image ID : "+imageID);
 				OmeroRawClient currentClient = client;
 
@@ -1031,10 +1030,10 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 				// if image unreadable, check all groups the current user is part of
 				if(image == null){
-					List<ExperimenterGroup> availableGroups = OmeroRawTools.getUserOmeroGroups(currentClient, currentClient.getLoggedInUser().getId());
-					for(ExperimenterGroup group:availableGroups){
+					List<GroupWrapper> availableGroups = OmeroRawTools.getUserGroups(currentClient);
+					for(GroupWrapper group:availableGroups){
 						// switch the user to another group
-						currentClient.switchGroup(group.getId().getValue());
+						currentClient.switchGroup(group.getId());
 
 						// read the image
 						image = OmeroRawTools.readOmeroImage(currentClient,imageID);

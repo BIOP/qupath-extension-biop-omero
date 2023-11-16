@@ -54,7 +54,7 @@ public class OmeroRawImportAnnotationObjectsCommand implements Runnable{
         // get the list of available user for the current group (i.e. the one of the current image)
         OmeroRawImageServer omeroServer = ((OmeroRawImageServer) imageServer);
         long groupID = OmeroRawTools.getGroupIdFromImageId(omeroServer.getClient(), omeroServer.getId());
-        List<String> userList = OmeroRawTools.getOmeroUsersInGroup(omeroServer.getClient(), groupID)
+        List<String> userList = OmeroRawTools.getGroupUsers(omeroServer.getClient(), groupID)
                 .stream()
                 .map(ExperimenterWrapper::getUserName)
                 .collect(Collectors.toList());
