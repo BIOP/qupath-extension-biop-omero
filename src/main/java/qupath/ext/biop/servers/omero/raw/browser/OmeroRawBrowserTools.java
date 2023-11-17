@@ -173,7 +173,7 @@ public class OmeroRawBrowserTools {
             throws AccessException, ServiceException, ExecutionException {
         List<OmeroRawObjects.OmeroRawObject> projectsList = new ArrayList<>();
         client.getSimpleClient().getProjects(user).forEach(projectWrapper -> {
-            projectsList.add(new OmeroRawObjects.Project("",projectWrapper, projectWrapper.getId(),
+            projectsList.add(new OmeroRawObjects.Project(projectWrapper, projectWrapper.getId(),
                     OmeroRawObjects.OmeroRawObjectType.PROJECT, parent, user, userGroup));
         });
         projectsList.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
@@ -197,7 +197,7 @@ public class OmeroRawBrowserTools {
             throws AccessException, ServiceException, ExecutionException {
         List<OmeroRawObjects.OmeroRawObject> screensList = new ArrayList<>();
         client.getSimpleClient().getScreens(user).forEach(screenWrapper -> {
-            screensList.add(new OmeroRawObjects.Screen("",screenWrapper, screenWrapper.getId(), OmeroRawObjects.
+            screensList.add(new OmeroRawObjects.Screen(screenWrapper, screenWrapper.getId(), OmeroRawObjects.
                     OmeroRawObjectType.SCREEN, parent, user, userGroup));
         });
         screensList.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
@@ -221,7 +221,7 @@ public class OmeroRawBrowserTools {
             throws AccessException, ServiceException, OMEROServerError, ExecutionException {
         List<OmeroRawObjects.OmeroRawObject> ophDatasetsList = new ArrayList<>();
         OmeroRawTools.readOmeroOrphanedDatasetsPerOwner(client, user).forEach(datasetWrapper -> {
-            ophDatasetsList.add(new OmeroRawObjects.Dataset("", datasetWrapper, datasetWrapper.getId(),
+            ophDatasetsList.add(new OmeroRawObjects.Dataset(datasetWrapper, datasetWrapper.getId(),
                     OmeroRawObjects.OmeroRawObjectType.DATASET, parent, user, userGroup));
         });
         ophDatasetsList.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
@@ -258,7 +258,7 @@ public class OmeroRawBrowserTools {
 
             // build dataset object
             for(DatasetWrapper dataset : datasets)
-                datasetItems.add(new OmeroRawObjects.Dataset("", dataset, dataset.getId(),
+                datasetItems.add(new OmeroRawObjects.Dataset(dataset, dataset.getId(),
                         OmeroRawObjects.OmeroRawObjectType.DATASET, parent, user, userGroup));
         }
         return datasetItems;
@@ -289,7 +289,7 @@ public class OmeroRawBrowserTools {
             // get child images
             for (DatasetImageLink link : links) {
                 ImageWrapper imageWrapper = new ImageWrapper(new ImageData(link.getChild()));
-                imageItems.add(new OmeroRawObjects.Image("",imageWrapper ,imageWrapper.getId(),
+                imageItems.add(new OmeroRawObjects.Image(imageWrapper ,imageWrapper.getId(),
                         OmeroRawObjects.OmeroRawObjectType.IMAGE, parent, user, userGroup));
             }
         }
@@ -318,7 +318,7 @@ public class OmeroRawBrowserTools {
             // get child images
             for (WellSampleWrapper wSample : wellWrapper.getWellSamples()) {
                 ImageWrapper image = wSample.getImage();
-                imageItems.add(new OmeroRawObjects.Image("", image, image.getId(),
+                imageItems.add(new OmeroRawObjects.Image(image, image.getId(),
                         OmeroRawObjects.OmeroRawObjectType.IMAGE, parent, user, userGroup));
             }
         }
@@ -352,7 +352,7 @@ public class OmeroRawBrowserTools {
 
             // build plate object
             for(PlateWrapper plate : plates)
-                plateItems.add(new OmeroRawObjects.Plate("", plate, plate.getId(),
+                plateItems.add(new OmeroRawObjects.Plate(plate, plate.getId(),
                         OmeroRawObjects.OmeroRawObjectType.PLATE, parent, user, userGroup));
         }
         return plateItems;
@@ -382,7 +382,7 @@ public class OmeroRawBrowserTools {
 
         if(parent.getNChildren() > 0) {
             for(WellWrapper well : wellDataList)
-                wellItems.add(new OmeroRawObjects.Well("", well, well.getId(), 0,
+                wellItems.add(new OmeroRawObjects.Well(well, well.getId(), 0,
                         OmeroRawObjects.OmeroRawObjectType.WELL, parent, user, userGroup));
         }
         return wellItems;
@@ -477,7 +477,7 @@ public class OmeroRawBrowserTools {
         List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
 
         // get orphaned datasets
-        Collection<ImageWrapper> orphanedImages = OmeroRawTools.readOmeroOrphanedImagesPerUser(client, owner.getData());
+        Collection<ImageWrapper> orphanedImages = OmeroRawTools.readOmeroOrphanedImagesPerUser(client, owner.getWrapper());
 
         // get OMERO user and group
         ExperimenterWrapper user = OmeroRawTools.getUser(client, owner.getId());
@@ -485,7 +485,7 @@ public class OmeroRawBrowserTools {
 
         // convert dataset to OmeroRawObject
         orphanedImages.forEach( e ->
-            list.add(new OmeroRawObjects.Image("", e, e.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE, new OmeroRawObjects.Server(client.getServerURI()),user, userGroup))
+            list.add(new OmeroRawObjects.Image(e, e.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE, new OmeroRawObjects.Server(client.getServerURI()), user, userGroup))
         );
 
         return list;

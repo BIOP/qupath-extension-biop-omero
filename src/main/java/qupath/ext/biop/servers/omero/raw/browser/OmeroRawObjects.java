@@ -41,8 +41,6 @@ import fr.igred.omero.repository.WellWrapper;
 import omero.gateway.model.PixelsData;
 import omero.gateway.model.DataObject;
 import omero.gateway.model.PermissionData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
@@ -61,41 +59,32 @@ import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
  */
 final class OmeroRawObjects {
 
-    private final static Logger logger = LoggerFactory.getLogger(OmeroRawObjects.class);
-
     public enum OmeroRawObjectType {
-        SERVER("#Server", "Server"),
-        PROJECT("http://www.openmicroscopy.org/Schemas/OME/2016-06#Project", "Project"),
-        DATASET("http://www.openmicroscopy.org/Schemas/OME/2016-06#Dataset", "Dataset"),
-        IMAGE("http://www.openmicroscopy.org/Schemas/OME/2016-06#Image", "Image"),
-        PLATE("https://www.openmicroscopy.org/Schemas/OME/2016-06/#Plate", "Plate"),
-        WELL("https://www.openmicroscopy.org/Schemas/OME/2016-06/#Well", "Well"),
-        SCREEN("https://www.openmicroscopy.org/Schemas/OME/2016-06/#Screen", "Screen"),
-        PLATE_ACQUISITION("https://www.openmicroscopy.org/Schemas/OME/2016-06/#Plate-Acquisiton", "Plate acquisition"),
-
-        // Object for OmeroRawBrowser's 'Orphaned folder' item (not for deserialization)
-        ORPHANED_FOLDER("#OrphanedFolder", "Orphaned Folder"),
+        SERVER("Server"),
+        PROJECT("Project"),
+        DATASET("Dataset"),
+        IMAGE("Image"),
+        PLATE("Plate"),
+        WELL("Well"),
+        SCREEN("Screen"),
+        PLATE_ACQUISITION("Plate acquisition"),
+        ORPHANED_FOLDER("Orphaned Folder"),
 
         // Default if unknown
-        UNKNOWN("", "Unknown");
+        UNKNOWN("Unknown");
 
-        private final String APIName;
         private final String displayedName;
-        OmeroRawObjectType(String APIName, String displayedName) {
-            this.APIName = APIName;
+
+        OmeroRawObjectType(String displayedName) {
             this.displayedName = displayedName;
         }
 
         static OmeroRawObjectType fromString(String text) {
             for (var type : OmeroRawObjectType.values()) {
-                if (type.APIName.equalsIgnoreCase(text) || type.displayedName.equalsIgnoreCase(text))
+                if (type.displayedName.equalsIgnoreCase(text))
                     return type;
             }
             return UNKNOWN;
-        }
-
-        String toURLString() {
-            return displayedName.toLowerCase() + 's';
         }
 
         @Override
@@ -104,8 +93,7 @@ final class OmeroRawObjects {
         }
     }
 
-    static abstract class OmeroRawObject {
-
+    protected static abstract class OmeroRawObject {
         private long id = -1;
         protected String name;
         protected String type;
@@ -164,11 +152,6 @@ final class OmeroRawObjects {
         }
 
 
-        /**
-         * Return the URL associated with this object.
-         * @return url
-         */
-        abstract String getAPIURLString();
 
         /**
          * Return the {@code OmeroRawObjectType} associated with this object.
@@ -259,11 +242,9 @@ final class OmeroRawObjects {
         }
     }
 
-    static class Server extends OmeroRawObject {
-
-        private final String url;
-
-        public Server(URI uri) {
+    protected static class Server extends OmeroRawObject {
+        private String url;
+        protected Server(URI uri) {
             super.id = -1;
             super.type = "Server";
             super.owner = null;
@@ -272,11 +253,7 @@ final class OmeroRawObjects {
             super.parent = null;
             this.url = uri.toString();
         }
-
-        @Override
-        String getAPIURLString() {
-            return url;
-        }
+        protected String getUrl(){return this.url;}
     }
 
 
@@ -293,7 +270,7 @@ final class OmeroRawObjects {
      * <li>{@code isLoading} property: defines whether QuPath is still loading its children objects.</li>
      * <li>List of orphaned image objects.</li>
      */
-    static class OrphanedFolder extends OmeroRawObject {
+    protected static class OrphanedFolder extends OmeroRawObject {
 
         /**
          * Number of children currently to display (based on Group/Owner and loaded objects)
@@ -313,7 +290,7 @@ final class OmeroRawObjects {
         private final BooleanProperty isLoading;
         private final ObservableList<OmeroRawObject> orphanedImageList;
 
-        public OrphanedFolder(ObservableList<OmeroRawObject> orphanedImageList) {
+        protected OrphanedFolder(ObservableList<OmeroRawObject> orphanedImageList) {
             this.name = "Orphaned Images";
             this.type = OmeroRawObjectType.ORPHANED_FOLDER.toString();
             this.currentChildCount = new SimpleIntegerProperty(0);
@@ -355,37 +332,23 @@ final class OmeroRawObjects {
         int getNChildren() {
             return currentChildCount.get();
         }
-
-        @Override
-        String getAPIURLString() {
-            return "";
-        }
     }
 
-    static class Project extends OmeroRawObject {
-
-        private final String url;
+    protected static class Project extends OmeroRawObject {
         private final String description;
         private final int childCount;
 
         @Override
-        String getAPIURLString() {
-            return url;
-        }
-
-        @Override
-        int getNChildren() {
+        protected int getNChildren() {
             return childCount;
         }
-
-        String getDescription() {
+        protected String getDescription() {
             return description;
         }
 
 
-        public Project(String url, ProjectWrapper projectWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
+        protected Project(ProjectWrapper projectWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
                        ExperimenterWrapper user, GroupWrapper group) {
-            this.url = url;
             this.description = projectWrapper.getDescription();
             this.childCount = projectWrapper.asDataObject().asProject().sizeOfDatasetLinks();
             super.wrapper = projectWrapper;
@@ -398,30 +361,21 @@ final class OmeroRawObjects {
         }
     }
 
-    static class Dataset extends OmeroRawObject {
-
-        private final String url;
+    protected static class Dataset extends OmeroRawObject {
         private final String description;
         private final int childCount;
-
-        @Override
-        String getAPIURLString() {
-            return url;
-        }
 
         @Override
         int getNChildren() {
             return childCount;
         }
-
         String getDescription() {
             return description;
         }
 
 
-        public Dataset(String url, DatasetWrapper datasetWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
+        protected Dataset( DatasetWrapper datasetWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
                        ExperimenterWrapper user, GroupWrapper group) {
-            this.url = url;
             this.description = datasetWrapper.getDescription();
             this.childCount = datasetWrapper.asDataObject().asDataset().sizeOfImageLinks();
             super.wrapper = datasetWrapper;
@@ -436,29 +390,20 @@ final class OmeroRawObjects {
     }
 
 
-    static class Screen extends OmeroRawObject {
-
-        private final String url;
+    protected static class Screen extends OmeroRawObject {
         private final String description;
         private final int childCount;
-
-        @Override
-        String getAPIURLString() {
-            return url;
-        }
 
         @Override
         int getNChildren() {
             return childCount;
         }
-
         String getDescription() {
             return description;
         }
 
 
-        public Screen(String url, ScreenWrapper screenWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
-            this.url = url;
+        protected Screen(ScreenWrapper screenWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
             this.description = screenWrapper.getDescription();
             this.childCount = screenWrapper.asDataObject().asScreen().sizeOfPlateLinks();
             super.wrapper = screenWrapper;
@@ -472,30 +417,22 @@ final class OmeroRawObjects {
     }
 
 
-    static class Plate extends OmeroRawObject {
-
-        private final String url;
+    protected static class Plate extends OmeroRawObject {
         private final String description;
         private final int plateAquisitionCount;
         private final int childCount;
 
-        @Override
-        String getAPIURLString() {
-            return url;
-        }
 
         @Override
         int getNChildren() {
             return childCount;
         }
-
         String getDescription() {
             return description;
         }
 
 
-        public Plate(String url, PlateWrapper plateWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
-            this.url = url;
+        protected Plate(PlateWrapper plateWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
             this.description = plateWrapper.getDescription();
             this.plateAquisitionCount = plateWrapper.asDataObject().asPlate().sizeOfPlateAcquisitions();
             this.childCount = plateWrapper.asDataObject().asPlate().sizeOfWells();
@@ -511,30 +448,21 @@ final class OmeroRawObjects {
 
 
     // TODo see how to deal with that => not really understandable
-    static class PlateAcquisition extends OmeroRawObject {
-
-        private final String url;
+    protected static class PlateAcquisition extends OmeroRawObject {
         private final String description;
         private final int timePoint;
-
-        @Override
-        String getAPIURLString() {
-            return url;
-        }
 
         @Override
         int getNChildren() {
             return 0;
         }
-
         String getDescription() {
             return description;
         }
 
 
-        public PlateAcquisition(String url, PlateAcquisitionWrapper plateAcquisitionWrapper, long id, int timePoint,
+        protected PlateAcquisition(PlateAcquisitionWrapper plateAcquisitionWrapper, long id, int timePoint,
                                 OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
-            this.url = url;
             this.description = plateAcquisitionWrapper.getDescription();
             this.timePoint = timePoint;
             super.wrapper = plateAcquisitionWrapper;
@@ -548,35 +476,26 @@ final class OmeroRawObjects {
     }
 
 
-    static class Well extends OmeroRawObject {
-
-        private final String url;
+    protected static class Well extends OmeroRawObject {
         private final String description;
         private final int childCount;
         private final int timePoint;
 
-        @Override
-        String getAPIURLString() {
-            return url;
-        }
 
         @Override
         int getNChildren() {
             return childCount;
         }
-
         String getDescription() {
             return description;
         }
-
         int getTimePoint() {
             return timePoint;
         }
 
 
-        public Well(String url, WellWrapper wellWrapper, long id, int timePoint, OmeroRawObjectType type, OmeroRawObject parent,
+        protected Well(WellWrapper wellWrapper, long id, int timePoint, OmeroRawObjectType type, OmeroRawObject parent,
                     ExperimenterWrapper user, GroupWrapper group) {
-            this.url = url;
             this.description = "";
             this.childCount = wellWrapper.asDataObject().asWell().sizeOfWellSamples();
             this.timePoint = timePoint;
@@ -590,37 +509,25 @@ final class OmeroRawObjects {
         }
     }
 
-    static class Image extends OmeroRawObject {
-        private final String url;
+    protected static class Image extends OmeroRawObject {
         private long acquisitionDate = -1;
         private final PixelInfo pixels;
-
-
-        @Override
-        String getAPIURLString() {
-            return url;
-        }
 
         long getAcquisitionDate() {
             return acquisitionDate;
         }
-
         int[] getImageDimensions() {
             return pixels.getImageDimensions();
         }
-
         PhysicalSize[] getPhysicalSizes() {
             return pixels.getPhysicalSizes();
         }
-
         String getPixelType() {
             return pixels.getPixelType();
         }
 
-
-        public Image(String url, ImageWrapper imageWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
+        protected Image(ImageWrapper imageWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
                      ExperimenterWrapper user, GroupWrapper group) {
-            this.url = url;
             this.acquisitionDate = imageWrapper.getAcquisitionDate()==null ? -1 : imageWrapper.getAcquisitionDate().getTime();
             super.wrapper = imageWrapper;
             PixelsData pixData = imageWrapper.getPixels().asDataObject();
@@ -643,7 +550,7 @@ final class OmeroRawObjects {
     }
 
 
-    static class Owner {
+    protected static class Owner {
         private final long id;
         private String firstName = "";
         private String middleName = "";
@@ -651,12 +558,12 @@ final class OmeroRawObjects {
         private String emailAddress = "";
         private String institution = "";
         private String username = "";
-        private ExperimenterWrapper data;
+        private ExperimenterWrapper wrapper;
 
         // Singleton (with static factory)
         private static final Owner ALL_MEMBERS = new Owner(null,-1, "All members", "", "", "", "", "");
 
-        public Owner(ExperimenterWrapper experimenterWrapper) {
+        protected Owner(ExperimenterWrapper experimenterWrapper) {
             this.id = experimenterWrapper.getId();
             this.firstName = experimenterWrapper.getFirstName()==null ? "" : experimenterWrapper.getFirstName();
             //TODO see when this issue is solved https://github.com/ome/omero-gateway-java/issues/83
@@ -672,7 +579,7 @@ final class OmeroRawObjects {
             this.emailAddress = experimenterWrapper.getEmail()==null ? "" : experimenterWrapper.getEmail();;
             this.institution = experimenterWrapper.getInstitution()==null ? "" : experimenterWrapper.getInstitution();;
             this.username = experimenterWrapper.getUserName()==null ? "" : experimenterWrapper.getUserName();;
-            this.data = experimenterWrapper;
+            this.wrapper = experimenterWrapper;
         }
 
         private Owner(ExperimenterWrapper experimenterWrapper, long id, String firstName, String middleName, String lastName, String emailAddress, String institution, String username){
@@ -684,7 +591,7 @@ final class OmeroRawObjects {
             this.emailAddress = emailAddress;
             this.institution = institution;
             this.username = username;
-            this.data = experimenterWrapper;
+            this.wrapper = experimenterWrapper;
         }
 
         String getName() {
@@ -695,7 +602,7 @@ final class OmeroRawObjects {
             return id;
         }
 
-        ExperimenterWrapper getData(){return data;}
+        ExperimenterWrapper getWrapper(){return wrapper;}
 
         /**
          * Dummy {@code Owner} object (singleton instance) to represent all owners.
@@ -727,14 +634,14 @@ final class OmeroRawObjects {
         }
     }
 
-    static class Group implements Comparable {
+    protected static class Group implements Comparable {
         private final long id;
         private final String name;
 
         // Singleton (with static factory)
         private static final Group ALL_GROUPS = new Group(-1, "All groups");
 
-        public Group(long id, String name) {
+        protected Group(long id, String name) {
             this.id = id;
             this.name = name;
         }
@@ -743,11 +650,11 @@ final class OmeroRawObjects {
          * Dummy {@code Group} object (singleton instance) to represent all groups.
          * @return group
          */
-        public static Group getAllGroupsGroup() {
+        protected static Group getAllGroupsGroup() {
             return ALL_GROUPS;
         }
 
-        public String getName() {
+        protected String getName() {
             return this.name;
         }
 
@@ -781,7 +688,7 @@ final class OmeroRawObjects {
         }
     }
 
-    static class PixelInfo {
+    protected static class PixelInfo {
         private final int width;
         private final int height;
         private final int z;
@@ -804,7 +711,7 @@ final class OmeroRawObjects {
             return imageType.getValue();
         }
 
-        public PixelInfo(int width, int height,int c, int z, int t, PhysicalSize pSizeX, PhysicalSize pSizeY, PhysicalSize pSizeZ, ImageType imageType){
+        protected PixelInfo(int width, int height,int c, int z, int t, PhysicalSize pSizeX, PhysicalSize pSizeY, PhysicalSize pSizeZ, ImageType imageType){
             this.width = width;
             this.height = height;
             this.c = c;
@@ -817,11 +724,9 @@ final class OmeroRawObjects {
         }
     }
 
-    static class PhysicalSize {
-
+    protected static class PhysicalSize {
         private final String symbol;
         private final double value;
-
 
         String getSymbol() {
             return symbol;
@@ -830,59 +735,44 @@ final class OmeroRawObjects {
             return value;
         }
 
-        public PhysicalSize(String symbol, double value){
+        protected PhysicalSize(String symbol, double value){
             this.symbol = symbol;
             this.value = value;
         }
 
     }
 
-    static class ImageType {
-
+    protected static class ImageType {
         private final String value;
 
         String getValue() {
             return value;
         }
 
-        public ImageType(String value){
+        protected ImageType(String value){
             this.value = value;
         }
-
     }
 
 
     /**
      * Both in OmeroRawAnnotations and in OmeroRawObjects.
      */
-    static class Permission {
-
+    protected static class Permission {
         private final boolean canDelete;
-
         private final boolean canAnnotate;
-
         private final boolean canLink;
-
         private final boolean canEdit;
-
         // Only in OmeroRawObjects
         private final boolean isUserWrite;
-
         private final boolean isUserRead;
-
         private final boolean isWorldWrite;
-
         private final boolean isWorldRead;
-
         private final boolean isGroupWrite;
-
         private final boolean isGroupRead;
-
         private final boolean isGroupAnnotate;
 
-        private String perm;
-
-        public Permission(PermissionData permissions, OmeroRawClient client){
+        protected Permission(PermissionData permissions, OmeroRawClient client){
             this.isGroupAnnotate = permissions.isGroupAnnotate();
             this.isGroupRead = permissions.isGroupRead();
             this.isGroupWrite = permissions.isGroupWrite();
@@ -891,21 +781,20 @@ final class OmeroRawObjects {
             this.isWorldRead = permissions.isWorldRead();
             this.isWorldWrite = permissions.isWorldWrite();
 
-            this.canAnnotate = client.getLoggedInUser().canAnnotate();
-            this.canDelete = client.getLoggedInUser().canDelete();
-            this.canEdit = client.getLoggedInUser().canEdit();
-            this.canLink = client.getLoggedInUser().canLink();
+            ExperimenterWrapper loggedInUser = client.getLoggedInUser();
+            this.canAnnotate = loggedInUser.canAnnotate();
+            this.canDelete = loggedInUser.canDelete();
+            this.canEdit = loggedInUser.canEdit();
+            this.canLink = loggedInUser.canLink();
         }
     }
 
 
-    static class Link {
-
+    protected static class Link {
         private int id;
-
         private final Owner owner;
 
-        public Link(Owner owner){
+        protected Link(Owner owner){
             this.owner = owner;
         }
 
@@ -915,8 +804,7 @@ final class OmeroRawObjects {
     }
 
 
-    static class Experimenter {
-
+    protected static class Experimenter {
         private final long id;
         private final String omeName;
         private final String firstName;
@@ -938,7 +826,7 @@ final class OmeroRawObjects {
             return firstName + " " + lastName;
         }
 
-        public Experimenter(ExperimenterWrapper experimenter){
+        protected Experimenter(ExperimenterWrapper experimenter){
             this.id = experimenter.getId();
             this.omeName = experimenter.getUserName()==null ? "" : experimenter.getUserName();
             this.firstName = experimenter.getFirstName()==null ? "" : experimenter.getFirstName();
