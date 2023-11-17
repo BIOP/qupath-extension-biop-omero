@@ -1,26 +1,28 @@
 package qupath.ext.biop.servers.omero.raw.browser;
 
+import fr.igred.omero.exception.AccessException;
+import fr.igred.omero.exception.OMEROServerError;
+import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.meta.ExperimenterWrapper;
 import fr.igred.omero.meta.GroupWrapper;
-import omero.RLong;
+import fr.igred.omero.repository.DatasetWrapper;
+import fr.igred.omero.repository.ImageWrapper;
+import fr.igred.omero.repository.PlateWrapper;
+import fr.igred.omero.repository.ProjectWrapper;
+import fr.igred.omero.repository.ScreenWrapper;
+import fr.igred.omero.repository.WellSampleWrapper;
+import fr.igred.omero.repository.WellWrapper;
 import omero.gateway.exception.DSAccessException;
 import omero.gateway.exception.DSOutOfServiceException;
-import omero.gateway.facility.BrowseFacility;
-import omero.gateway.model.DatasetData;
 import omero.gateway.model.ExperimenterData;
 import omero.gateway.model.ImageData;
-import omero.gateway.model.PlateData;
-import omero.gateway.model.ProjectData;
-import omero.gateway.model.ScreenData;
-import omero.gateway.model.WellData;
-import omero.gateway.model.WellSampleData;
-import omero.model.Dataset;
 import omero.model.DatasetImageLink;
-import omero.model.Image;
+import omero.model.Experimenter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.projects.ProjectImageEntry;
 
 import java.awt.image.BufferedImage;
@@ -31,7 +33,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -43,8 +44,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class OmeroRawBrowserTools {
-
-
     final private static Logger logger = LoggerFactory.getLogger(OmeroRawBrowserTools.class);
 
     /**
@@ -89,115 +88,305 @@ public class OmeroRawBrowserTools {
 
         switch (parent.getType()){
             case SERVER:
-                // get all projects for the current user
-                List<OmeroRawObjects.OmeroRawObject> projectsList = new ArrayList<>();
-                Collection<ProjectData> projects = new ArrayList<>(OmeroRawTools.readOmeroProjectsByUser(client, owner.getId()));
-                for(ProjectData project : projects)
-                    projectsList.add(new OmeroRawObjects.Project("",project, project.getId(), OmeroRawObjects.OmeroRawObjectType.PROJECT, parent, user, userGroup));
-                projectsList.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
+                // get projects
+                try {
+                    list.addAll(getProjectItems(client,parent,user,userGroup));
+                }catch(ServiceException | AccessException | ExecutionException e){
+                    Dialogs.showErrorNotification("Reading projects", "Impossible to retrieve projects from your account");
+                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                }
 
-                // get all screens for the current user
-                List<OmeroRawObjects.OmeroRawObject> screensList = new ArrayList<>();
-                Collection<ScreenData> screens = new ArrayList<>(OmeroRawTools.readOmeroScreensByUser(client, owner.getId()));
-                for(ScreenData screen : screens)
-                    screensList.add(new OmeroRawObjects.Screen("",screen, screen.getId(), OmeroRawObjects.OmeroRawObjectType.SCREEN, parent, user, userGroup));
-                screensList.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
+                // get all screens
+                try {
+                    list.addAll(getScreenItems(client,parent,user,userGroup));
+                }catch(ServiceException | AccessException | ExecutionException e){
+                    Dialogs.showErrorNotification("Reading screens", "Impossible to retrieve screens from your account");
+                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                }
 
                 // read orphaned dataset
-                List<OmeroRawObjects.OmeroRawObject> ophDatasetsList = new ArrayList<>();
-                Collection<DatasetData> orphanedDatasets = OmeroRawTools.readOmeroOrphanedDatasetsPerOwner(client, owner.getId());
-                for(DatasetData ophDataset : orphanedDatasets)
-                    ophDatasetsList.add(new OmeroRawObjects.Dataset("", ophDataset, ophDataset.getId(), OmeroRawObjects.OmeroRawObjectType.DATASET, parent, user, userGroup));
-                ophDatasetsList.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
-
-                list.addAll(projectsList);
-                list.addAll(ophDatasetsList);
-                list.addAll(screensList);
-
+                try {
+                    list.addAll(getOrphanedDatasetItems(client,parent,user,userGroup));
+                }catch(ServiceException | AccessException | ExecutionException | OMEROServerError e){
+                    Dialogs.showErrorNotification("Reading orphaned dataset",
+                            "Impossible to retrieve orphaned dataset from your account");
+                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                }
                 return list;
 
             case PROJECT:
-                // get the current project to have access to the child datasets
-                ProjectData projectData = (ProjectData)parent.getData();
-
-                // if the current project has some datasets
-                if(projectData.asProject().sizeOfDatasetLinks() > 0){
-                    // get dataset ids
-                    List<Long> linksId = projectData.getDatasets().stream().map(DatasetData::getId).collect(Collectors.toList());
-
-                    // get child datasets
-                    List<DatasetData> datasets = new ArrayList<>(OmeroRawTools.readOmeroDatasets(client,linksId));
-
-                    // build dataset object
-                    for(DatasetData dataset : datasets)
-                        list.add(new OmeroRawObjects.Dataset("", dataset, dataset.getId(), OmeroRawObjects.OmeroRawObjectType.DATASET, parent, user, userGroup));
+                try {
+                    list.addAll(getDatasetItems(client, parent, user, userGroup));
+                }catch(ServiceException | AccessException | ExecutionException e){
+                    Dialogs.showErrorNotification("Reading datasets",
+                            "Impossible to retrieve datasets from project '"+parent.getName()+"'");
+                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
                 }
                 break;
 
             case DATASET:
-                // get the current dataset to have access to the child images
-                DatasetData datasetData = (DatasetData)parent.getData();
-
-                // if the current dataset has some images
-                if(parent.getNChildren() > 0){
-                    List<ImageData> images = new ArrayList<>();
-                    List<DatasetImageLink> links = datasetData.asDataset().copyImageLinks();
-
-                    // get child images
-                    for (DatasetImageLink link : links)
-                        images.add(new ImageData(link.getChild()));
-
-                    // build image object
-                    for(ImageData image : images)
-                        list.add(new OmeroRawObjects.Image("",image ,image.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE, parent, user, userGroup));
-                }
+                    list.addAll(getDatasetImageItems(parent, user, userGroup));
                 break;
 
             case SCREEN:
-                // get the current screen to have access to the child plates
-                ScreenData screenData = (ScreenData)parent.getData();
-
-                // if the current screen has some plates
-                if(parent.getNChildren() > 0){
-                    List<Long> plateIds = screenData.getPlates().stream().map(PlateData::getId).collect(Collectors.toList());
-
-                    Collection<PlateData> plates = OmeroRawTools.readOmeroPlates(client, plateIds);
-                    // build plate object
-                    for(PlateData plate : plates)
-                        list.add(new OmeroRawObjects.Plate("", plate, plate.getId(), OmeroRawObjects.OmeroRawObjectType.PLATE, parent, user, userGroup));
+                try{
+                    list.addAll(getPlateItems(client, parent, user, userGroup));
+                }catch(ServiceException | AccessException | ExecutionException e){
+                    Dialogs.showErrorNotification("Reading Plates",
+                            "Impossible to retrieve plates from screen '"+parent.getName()+"'");
+                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
                 }
                 break;
 
             case PLATE:
-                // get the current project to have access to the child datasets
-                PlateData plateData = (PlateData)parent.getData();
-                // get well for the current plate
-                Collection<WellData> wellDataList = OmeroRawTools.readOmeroWells(client, plateData.getId());
-
-                if(parent.getNChildren() > 0) {
-                    for(WellData well : wellDataList)
-                        list.add(new OmeroRawObjects.Well("", well, well.getId(), 0, OmeroRawObjects.OmeroRawObjectType.WELL, parent, user, userGroup));
+                try {
+                    list.addAll(getWellItems(client, parent, user, userGroup));
+                }catch(ServiceException | AccessException | ExecutionException e){
+                    Dialogs.showErrorNotification("Reading wells",
+                            "Impossible to retrieve wells from plate '"+parent.getName()+"'");
+                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
                 }
                 break;
 
             case WELL:
-                // get the current project to have access to the child datasets
-                WellData wellData = (WellData)parent.getData();
-
-                // if the current well has some images
-                if(parent.getNChildren() > 0) {
-                    // get child images
-                    for (WellSampleData wSample : wellData.getWellSamples()) {
-                        ImageData image = wSample.getImage();
-                        list.add(new OmeroRawObjects.Image("", image, image.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE, parent, user, userGroup));
-                    }
-                }
+                list.addAll(getWellImageItems(parent, user, userGroup));
                 break;
         }
         list.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
         return list;
     }
 
+    /**
+     * returns the list of {@link OmeroRawObjects.OmeroRawObject} projects for the given user
+     *
+     * @param client
+     * @param parent
+     * @param user
+     * @param userGroup
+     * @return
+     * @throws AccessException
+     * @throws ServiceException
+     * @throws ExecutionException
+     */
+    private static List<OmeroRawObjects.OmeroRawObject> getProjectItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
+                                                                        ExperimenterWrapper user, GroupWrapper userGroup)
+            throws AccessException, ServiceException, ExecutionException {
+        List<OmeroRawObjects.OmeroRawObject> projectsList = new ArrayList<>();
+        client.getSimpleClient().getProjects(user).forEach(projectWrapper -> {
+            projectsList.add(new OmeroRawObjects.Project("",projectWrapper, projectWrapper.getId(),
+                    OmeroRawObjects.OmeroRawObjectType.PROJECT, parent, user, userGroup));
+        });
+        projectsList.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
+        return projectsList;
+    }
+
+    /**
+     * returns the list of {@link OmeroRawObjects.OmeroRawObject} screens for the given user
+     *
+     * @param client
+     * @param parent
+     * @param user
+     * @param userGroup
+     * @return
+     * @throws AccessException
+     * @throws ServiceException
+     * @throws ExecutionException
+     */
+    private static List<OmeroRawObjects.OmeroRawObject> getScreenItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
+                                                                        ExperimenterWrapper user, GroupWrapper userGroup)
+            throws AccessException, ServiceException, ExecutionException {
+        List<OmeroRawObjects.OmeroRawObject> screensList = new ArrayList<>();
+        client.getSimpleClient().getScreens(user).forEach(screenWrapper -> {
+            screensList.add(new OmeroRawObjects.Screen("",screenWrapper, screenWrapper.getId(), OmeroRawObjects.
+                    OmeroRawObjectType.SCREEN, parent, user, userGroup));
+        });
+        screensList.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
+        return screensList;
+    }
+
+    /**
+     * returns the list of {@link OmeroRawObjects.OmeroRawObject} orphaned datasets for the given user
+     *
+     * @param client
+     * @param parent
+     * @param user
+     * @param userGroup
+     * @return
+     * @throws AccessException
+     * @throws ServiceException
+     * @throws ExecutionException
+     */
+    private static List<OmeroRawObjects.OmeroRawObject> getOrphanedDatasetItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
+                                                                       ExperimenterWrapper user, GroupWrapper userGroup)
+            throws AccessException, ServiceException, OMEROServerError, ExecutionException {
+        List<OmeroRawObjects.OmeroRawObject> ophDatasetsList = new ArrayList<>();
+        OmeroRawTools.readOmeroOrphanedDatasetsPerOwner(client, user).forEach(datasetWrapper -> {
+            ophDatasetsList.add(new OmeroRawObjects.Dataset("", datasetWrapper, datasetWrapper.getId(),
+                    OmeroRawObjects.OmeroRawObjectType.DATASET, parent, user, userGroup));
+        });
+        ophDatasetsList.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
+        return ophDatasetsList;
+    }
+
+    /**
+     * returns the list of {@link OmeroRawObjects.OmeroRawObject} datasets for a given project
+     *
+     * @param client
+     * @param parent
+     * @param user
+     * @param userGroup
+     * @return
+     * @throws AccessException
+     * @throws ServiceException
+     * @throws ExecutionException
+     */
+    private static List<OmeroRawObjects.OmeroRawObject> getDatasetItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
+                                                                 ExperimenterWrapper user, GroupWrapper userGroup)
+            throws AccessException, ServiceException, ExecutionException {
+
+        // get the current project to have access to the child datasets
+        ProjectWrapper projectWrapper = (ProjectWrapper)parent.getWrapper();
+        List<OmeroRawObjects.OmeroRawObject> datasetItems = new ArrayList<>();
+
+        // if the current project has some datasets
+        if(projectWrapper.asDataObject().asProject().sizeOfDatasetLinks() > 0){
+            // get dataset ids
+            Long[] linksId = projectWrapper.getDatasets().stream().map(DatasetWrapper::getId).toArray(Long[]::new);
+
+            // get child datasets
+            List<DatasetWrapper> datasets = client.getSimpleClient().getDatasets(linksId);
+
+            // build dataset object
+            for(DatasetWrapper dataset : datasets)
+                datasetItems.add(new OmeroRawObjects.Dataset("", dataset, dataset.getId(),
+                        OmeroRawObjects.OmeroRawObjectType.DATASET, parent, user, userGroup));
+        }
+        return datasetItems;
+    }
+
+
+    /**
+     * returns the list of {@link OmeroRawObjects.OmeroRawObject} images for a given dataset
+     *
+     * @param parent
+     * @param user
+     * @param userGroup
+     * @return
+     * @throws AccessException
+     * @throws ServiceException
+     * @throws ExecutionException
+     */
+    private static List<OmeroRawObjects.OmeroRawObject> getDatasetImageItems(OmeroRawObjects.OmeroRawObject parent,
+                                                                             ExperimenterWrapper user, GroupWrapper userGroup){
+        // get the current dataset to have access to the child images
+        DatasetWrapper datasetWrapper = (DatasetWrapper)parent.getWrapper();
+        List<OmeroRawObjects.OmeroRawObject> imageItems = new ArrayList<>();
+
+        // if the current dataset has some images
+        if(parent.getNChildren() > 0){
+            List<DatasetImageLink> links = datasetWrapper.asDataObject().asDataset().copyImageLinks();
+
+            // get child images
+            for (DatasetImageLink link : links) {
+                ImageWrapper imageWrapper = new ImageWrapper(new ImageData(link.getChild()));
+                imageItems.add(new OmeroRawObjects.Image("",imageWrapper ,imageWrapper.getId(),
+                        OmeroRawObjects.OmeroRawObjectType.IMAGE, parent, user, userGroup));
+            }
+        }
+        return imageItems;
+    }
+
+    /**
+     * returns the list of {@link OmeroRawObjects.OmeroRawObject} images for a given well
+     *
+     * @param parent
+     * @param user
+     * @param userGroup
+     * @return
+     * @throws AccessException
+     * @throws ServiceException
+     * @throws ExecutionException
+     */
+    private static List<OmeroRawObjects.OmeroRawObject> getWellImageItems(OmeroRawObjects.OmeroRawObject parent,
+                                                                             ExperimenterWrapper user, GroupWrapper userGroup){
+        // get the current project to have access to the child datasets
+        WellWrapper wellWrapper = (WellWrapper)parent.getWrapper();
+        List<OmeroRawObjects.OmeroRawObject> imageItems = new ArrayList<>();
+
+        // if the current well has some images
+        if(parent.getNChildren() > 0) {
+            // get child images
+            for (WellSampleWrapper wSample : wellWrapper.getWellSamples()) {
+                ImageWrapper image = wSample.getImage();
+                imageItems.add(new OmeroRawObjects.Image("", image, image.getId(),
+                        OmeroRawObjects.OmeroRawObjectType.IMAGE, parent, user, userGroup));
+            }
+        }
+        return imageItems;
+    }
+
+
+    /**
+     * returns the list of {@link OmeroRawObjects.OmeroRawObject} plates for a given screen
+     *
+     * @param client
+     * @param parent
+     * @param user
+     * @param userGroup
+     * @return
+     * @throws AccessException
+     * @throws ServiceException
+     * @throws ExecutionException
+     */
+    private static List<OmeroRawObjects.OmeroRawObject> getPlateItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
+                                                                      ExperimenterWrapper user, GroupWrapper userGroup)
+            throws AccessException, ServiceException, ExecutionException {
+        // get the current screen to have access to the child plates
+        ScreenWrapper screenWrapper = (ScreenWrapper)parent.getWrapper();
+        List<OmeroRawObjects.OmeroRawObject> plateItems = new ArrayList<>();
+
+        // if the current screen has some plates
+        if(parent.getNChildren() > 0){
+            List<Long> plateIds = screenWrapper.getPlates().stream().map(PlateWrapper::getId).collect(Collectors.toList());
+            Collection<PlateWrapper> plates = OmeroRawTools.readPlates(client, plateIds);
+
+            // build plate object
+            for(PlateWrapper plate : plates)
+                plateItems.add(new OmeroRawObjects.Plate("", plate, plate.getId(),
+                        OmeroRawObjects.OmeroRawObjectType.PLATE, parent, user, userGroup));
+        }
+        return plateItems;
+    }
+
+    /**
+     * returns the list of {@link OmeroRawObjects.OmeroRawObject} wells for a given plate
+     *
+     * @param client
+     * @param parent
+     * @param user
+     * @param userGroup
+     * @return
+     * @throws AccessException
+     * @throws ServiceException
+     * @throws ExecutionException
+     */
+    private static List<OmeroRawObjects.OmeroRawObject> getWellItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
+                                ExperimenterWrapper user, GroupWrapper userGroup)
+            throws AccessException, ServiceException, ExecutionException {
+        // get the current project to have access to the child datasets
+        PlateWrapper plateWrapper = (PlateWrapper)parent.getWrapper();
+        List<OmeroRawObjects.OmeroRawObject> wellItems = new ArrayList<>();
+
+        // get well for the current plate
+        Collection<WellWrapper> wellDataList = plateWrapper.getWells(client.getSimpleClient());
+
+        if(parent.getNChildren() > 0) {
+            for(WellWrapper well : wellDataList)
+                wellItems.add(new OmeroRawObjects.Well("", well, well.getId(), 0,
+                        OmeroRawObjects.OmeroRawObjectType.WELL, parent, user, userGroup));
+        }
+        return wellItems;
+    }
 
     /**
      * Build an {@link OmeroRawObjects.Owner} object based on the OMERO {@link ExperimenterData} user
@@ -205,21 +394,10 @@ public class OmeroRawBrowserTools {
      * @param user
      * @return
      */
-    public static OmeroRawObjects.Owner getOwnerItem(ExperimenterWrapper user){
-        //TODO see when the issue on Omerogateway will be solved and integrated
-        String middleName = "";
-        try{
-            middleName = user.getMiddleName();
-        }catch (Exception e){
-
-        }
-        return new OmeroRawObjects.Owner(user.getId(),
-                user.getFirstName()==null ? "" : user.getFirstName(),
-                middleName==null ? "" : middleName,
-                user.getLastName()==null ? "" : user.getLastName(),
-                user.getEmail()==null ? "" : user.getEmail(),
-                user.getInstitution()==null ? "" : user.getInstitution(),
-                user.getUserName()==null ? "" : user.getUserName());
+    @Deprecated
+    public static OmeroRawObjects.Owner getOwnerItem(Experimenter user){
+        ExperimenterWrapper experimenterWrapper = new ExperimenterWrapper(new ExperimenterData(user));
+        return new OmeroRawObjects.Owner(experimenterWrapper);
     }
 
     /**
@@ -228,8 +406,9 @@ public class OmeroRawBrowserTools {
      * @param client
      * @return
      */
+    @Deprecated
     public static OmeroRawObjects.Owner getDefaultOwnerItem(OmeroRawClient client)  {
-        return getOwnerItem(client.getLoggedInUser());
+        return new OmeroRawObjects.Owner(client.getLoggedInUser());
     }
 
 
@@ -238,6 +417,7 @@ public class OmeroRawBrowserTools {
      * @param client
      * @return
      */
+    @Deprecated
     public static OmeroRawObjects.Group getDefaultGroupItem(OmeroRawClient client) {
         GroupWrapper userGroup = client.getLoggedInUser().getDefaultGroup();
         return new OmeroRawObjects.Group(userGroup.getId(), userGroup.getName());
@@ -274,7 +454,7 @@ public class OmeroRawBrowserTools {
 
                     // convert each user to qupath compatible owners object
                     for (ExperimenterWrapper user : users)
-                        owners.add(getOwnerItem(user));
+                        owners.add(new OmeroRawObjects.Owner(user));
 
                     // sort in alphabetic order
                     owners.sort(Comparator.comparing(OmeroRawObjects.Owner::getName));
@@ -297,7 +477,7 @@ public class OmeroRawBrowserTools {
         List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
 
         // get orphaned datasets
-        Collection<ImageData> orphanedImages = OmeroRawTools.readOmeroOrphanedImagesPerUser(client, owner.getId());
+        Collection<ImageWrapper> orphanedImages = OmeroRawTools.readOmeroOrphanedImagesPerUser(client, owner.getData());
 
         // get OMERO user and group
         ExperimenterWrapper user = OmeroRawTools.getUser(client, owner.getId());
@@ -321,8 +501,9 @@ public class OmeroRawBrowserTools {
      * @param category
      * @return omeroRawAnnotations object
      */
+    @Deprecated
     public static OmeroRawAnnotations readAnnotationsItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject obj, OmeroRawAnnotations.OmeroRawAnnotationType category) {
-        return OmeroRawAnnotations.getOmeroAnnotations(client, category, OmeroRawTools.readOmeroAnnotations(client, obj.getData()));
+        return OmeroRawAnnotations.getOmeroAnnotations(client, category, OmeroRawTools.readOmeroAnnotations(client, obj.getWrapper()));
     }
 
     /**
@@ -459,11 +640,9 @@ public class OmeroRawBrowserTools {
                 break;
             case PROJECT:
                 for (String id: ids) {
-                    tempIds.add(client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), Collections.singletonList(Long.parseLong(id))).iterator().next().getDatasets()
+                    tempIds.add(client.getSimpleClient().getProject(Long.parseLong(id)).getDatasets()
                             .stream()
-                            .map(DatasetData::asDataset)
-                            .map(Dataset::getId)
-                            .map(RLong::getValue)
+                            .map(DatasetWrapper::getId)
                             .toString());
                 }
                 ids =  new ArrayList<>(tempIds);
@@ -472,11 +651,9 @@ public class OmeroRawBrowserTools {
 
             case DATASET:
                 for (String id: ids) {
-                    tempIds.add(client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImagesForDatasets(client.getSimpleClient().getCtx(),Collections.singletonList(Long.parseLong(id)))
+                    tempIds.add(client.getSimpleClient().getDataset(Long.parseLong(id)).getImages(client.getSimpleClient())
                             .stream()
-                            .map(ImageData::asImage)
-                            .map(Image::getId)
-                            .map(RLong::getValue)
+                            .map(ImageWrapper::getId)
                             .toString());
                 }
                 ids = new ArrayList<>(tempIds);

@@ -48,11 +48,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import fr.igred.omero.Client;
+import fr.igred.omero.annotations.AnnotationList;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.meta.ExperimenterWrapper;
 import fr.igred.omero.meta.GroupWrapper;
+import fr.igred.omero.repository.DatasetWrapper;
+import fr.igred.omero.repository.GenericRepositoryObjectWrapper;
+import fr.igred.omero.repository.ImageWrapper;
+import fr.igred.omero.repository.PlateWrapper;
+import fr.igred.omero.repository.ProjectWrapper;
+import fr.igred.omero.repository.ScreenWrapper;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataLevel;
 import ome.formats.OMEROMetadataStoreClient;
@@ -415,6 +423,7 @@ public final class OmeroRawTools {
      * @param userId
      * @return List orphaned of datasets
      */
+    @Deprecated
     public static Collection<DatasetData> readOmeroOrphanedDatasetsPerOwner(OmeroRawClient client, long userId) {
         try {
             // query orphaned dataset
@@ -448,11 +457,39 @@ public final class OmeroRawTools {
 
 
     /**
+     * Get user's orphaned datasets from the OMERO server
+     *
+     * @param client the client {@link OmeroRawClient} object
+     * @param user
+     * @return List orphaned of datasets
+     */
+    public static Collection<DatasetWrapper> readOmeroOrphanedDatasetsPerOwner(OmeroRawClient client, ExperimenterWrapper user)
+            throws ServiceException, OMEROServerError, AccessException, ExecutionException {
+        // query orphaned dataset
+        List<IObject> datasetObjects = client.getSimpleClient().findByQuery("select dataset from Dataset as dataset " +
+                "join fetch dataset.details.owner as o " +
+                "where o.id = " + user.getId() +
+                "and not exists (select obl from " +
+                "ProjectDatasetLink as obl where obl.child = dataset.id) ");
+
+        // get orphaned dataset ids
+        Long[] datasetIds = datasetObjects.stream()
+                .map(IObject::getId)
+                .map(RLong::getValue)
+                .toArray(Long[]::new);
+
+        // get orphaned datasets
+        return client.getSimpleClient().getDatasets(datasetIds);
+    }
+
+    /**
      * Get all orphaned datasets from the OMERO server linked to the current group (contained in the security context of the current client).
      *
      * @param client
      * @return List of orphaned datasets
+     * @deprecated user {@link OmeroRawTools#readOmeroOrphanedDatasetsPerOwner(OmeroRawClient, ExperimenterWrapper)}
      */
+    @Deprecated
     public static Collection<DatasetData> readOmeroOrphanedDatasets(OmeroRawClient client)  {
         Collection<DatasetData> orphanedDatasets;
 
@@ -494,12 +531,38 @@ public final class OmeroRawTools {
      * @param client
      * @param userId
      * @return List of orphaned images
+     * @deprecated use {@link OmeroRawTools#readOmeroOrphanedImagesPerUser(OmeroRawClient, ExperimenterWrapper) instead}
      */
+    @Deprecated
     public static Collection<ImageData> readOmeroOrphanedImagesPerUser(OmeroRawClient client, long userId) {
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getOrphanedImages(client.getSimpleClient().getCtx(), userId);
         } catch (ExecutionException e) {
             Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+userId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Get user's orphaned images from the OMERO server
+     *
+     * @param client
+     * @param user
+     * @return List of orphaned images
+     */
+    public static Collection<ImageWrapper> readOmeroOrphanedImagesPerUser(OmeroRawClient client, ExperimenterWrapper user) {
+        try {
+            return client.getSimpleClient()
+                    .getGateway()
+                    .getFacility(BrowseFacility.class)
+                    .getOrphanedImages(client.getSimpleClient().getCtx(), user.getId())
+                    .stream()
+                    .map(ImageWrapper::new)
+                    .collect(Collectors.toList());
+        } catch (ExecutionException e) {
+            Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+user.getUserName());
             logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
@@ -678,7 +741,9 @@ public final class OmeroRawTools {
      * @param client
      * @param projectIds
      * @return List of OMERO project objects
+     * @deprecated use {@link fr.igred.omero.Client#getProjects(Long...)} instead
      */
+    @Deprecated
     public static Collection<ProjectData> readOmeroProjects(OmeroRawClient client, List<Long> projectIds){
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), projectIds);
@@ -702,7 +767,9 @@ public final class OmeroRawTools {
      * @param client
      * @param userId
      * @return User's list of OMERO project objects
+     * @deprecated Use {@link fr.igred.omero.Client#getProjects(ExperimenterWrapper)} instead
      */
+    @Deprecated
     public static Collection<ProjectData> readOmeroProjectsByUser(OmeroRawClient client, long userId){
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), userId);
@@ -725,7 +792,9 @@ public final class OmeroRawTools {
      * @param client
      * @param userId
      * @return User's list of OMERO project objects
+     * @deprecated Use {@link fr.igred.omero.Client#getScreens(ExperimenterWrapper)} instead
      */
+    @Deprecated
     public static Collection<ScreenData> readOmeroScreensByUser(OmeroRawClient client, long userId){
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getScreens(client.getSimpleClient().getCtx(), userId);
@@ -748,7 +817,9 @@ public final class OmeroRawTools {
      * @param client
      * @param datasetId
      * @return OMERO dataset or null object is ot doesn't exists
+     * @deprecated use {@link Client#getDataset(Long)} instead
      */
+    @Deprecated
     public static DatasetData readOmeroDataset(OmeroRawClient client, Long datasetId){
         Collection<DatasetData> datasets = readOmeroDatasets(client, Collections.singletonList(datasetId));
         if(datasets.isEmpty())
@@ -763,7 +834,9 @@ public final class OmeroRawTools {
      * @param client
      * @param datasetIds
      * @return List of OMERO dataset objects
+     * @deprecated use {@link fr.igred.omero.Client#getDatasets(Long...)}
      */
+    @Deprecated
     public static Collection<DatasetData> readOmeroDatasets(OmeroRawClient client, List<Long> datasetIds){
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
@@ -786,32 +859,45 @@ public final class OmeroRawTools {
      * @param client
      * @param plateIds
      * @return List of OMERO dataset objects
+     * @deprecated use {@link OmeroRawTools#readPlates(OmeroRawClient, List)} instead
      */
+    @Deprecated
     public static Collection<PlateData> readOmeroPlates(OmeroRawClient client, List<Long> plateIds){
+        return readPlates(client, plateIds).stream().map(PlateWrapper::asDataObject).collect(Collectors.toList());
+    }
+
+
+    /**
+     * Get all OMERO datasets corresponding to the list of ids
+     *
+     * @param client
+     * @param plateIds
+     * @return List of OMERO dataset objects
+     */
+    public static Collection<PlateWrapper> readPlates(OmeroRawClient client, List<Long> plateIds){
 
         String GET_PLATE_QUERY = "select p from Plate as p " +
                 "left join fetch p.wells as w " +
                 "left join fetch p.plateAcquisitions as pa " +
                 "where p.id in (:ids)";
         try {
-            IQueryPrx qs = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx());
+            IQueryPrx qs = client.getSimpleClient().getQueryService();
             ParametersI param = new ParametersI();
 
             param.addIds(plateIds);
             return qs.findAllByQuery(GET_PLATE_QUERY, param).stream()
                     .map(PlateI.class::cast)
                     .map(PlateData::new)
+                    .map(PlateWrapper::new)
                     .collect(Collectors.toList());
 
         }catch(DSOutOfServiceException | ServerError e){
             Dialogs.showErrorNotification("Reading plates","An error occurs when reading OMERO plates "+plateIds);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
+            logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }catch (NoSuchElementException e){
             Dialogs.showErrorNotification("Reading plates","You don't have the right to access OMERO plates "+plateIds);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
+            logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
     }
@@ -822,7 +908,9 @@ public final class OmeroRawTools {
      * @param client
      * @param plateId
      * @return List of OMERO dataset objects
+     * @deprecated use {@link fr.igred.omero.repository.PlateWrapper#getWells(Client)}
      */
+    @Deprecated
     public static Collection<WellData> readOmeroWells(OmeroRawClient client, long plateId){
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getWells(client.getSimpleClient().getCtx(), plateId);
@@ -894,7 +982,9 @@ public final class OmeroRawTools {
      * @param client
      * @param obj
      * @return List of annotation objects
+     * @deprecated
      */
+    @Deprecated
     public static List<AnnotationData> readOmeroAnnotations(OmeroRawClient client, DataObject obj){
         try {
              // read annotations linked to the image
@@ -911,6 +1001,22 @@ public final class OmeroRawTools {
             logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
+    }
+
+    public static AnnotationList readOmeroAnnotations(OmeroRawClient client, GenericRepositoryObjectWrapper<? extends DataObject> obj){
+        try {
+            // read annotations linked to the image
+            return obj.getAnnotations(client.getSimpleClient());
+        } catch(ExecutionException | DSOutOfServiceException e) {
+            Dialogs.showErrorNotification("Reading OMERO annotations", "Cannot get annotations from OMERO for the object "+obj);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+        } catch (DSAccessException e) {
+            Dialogs.showErrorNotification("Reading OMERO annotations", "You don't have the right to read annotations on OMERO for the object " + obj);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+        }
+        return null;
     }
 
 
@@ -1356,10 +1462,11 @@ public final class OmeroRawTools {
      * @return id of the newly uploaded image
      */
     public static List<Long> uploadImage(OmeroRawClient client, long datasetId, String path){
-        Collection<DatasetData> datasets = readOmeroDatasets(client, Collections.singletonList(datasetId));
-        if(!datasets.isEmpty())
-            return uploadImage(client, datasets.iterator().next(), path);
-        else {
+        DatasetWrapper dataset;
+        try {
+            dataset = client.getSimpleClient().getDataset(datasetId);
+            return uploadImage(client, dataset, path);
+        }catch(DSAccessException | ServiceException | ExecutionException e) {
             Dialogs.showErrorNotification("Upload image", "The dataset "+datasetId+" does not exist");
             return Collections.emptyList();
         }
@@ -1375,7 +1482,7 @@ public final class OmeroRawTools {
      * @param path
      * @return id of the newly uploaded image
      */
-    public static List<Long> uploadImage(OmeroRawClient client, DatasetData dataset, String path){
+    public static List<Long> uploadImage(OmeroRawClient client, DatasetWrapper dataset, String path){
         if(dataset == null){
             Dialogs.showErrorNotification("Upload image", "The dataset you want to access does not exist");
             return Collections.emptyList();
@@ -1405,7 +1512,7 @@ public final class OmeroRawTools {
             if (containers != null) {
                 for (int i = 0; i < containers.size(); i++) {
                     ImportContainer container = containers.get(i);
-                    container.setTarget(dataset.asIObject());
+                    container.setTarget(dataset.asDataObject().asIObject());
                     List<Pixels> imported = library.importImage(container, uploadThreadPool, i);
                     pixels.addAll(imported);
                 }

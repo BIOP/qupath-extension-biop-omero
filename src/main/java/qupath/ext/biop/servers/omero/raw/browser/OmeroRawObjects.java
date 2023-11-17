@@ -26,23 +26,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import IceInternal.Ex;
 import fr.igred.omero.meta.ExperimenterWrapper;
 import fr.igred.omero.meta.GroupWrapper;
-import omero.gateway.model.DatasetData;
-import omero.gateway.model.PlateAcquisitionData;
-import omero.gateway.model.PlateData;
-import omero.gateway.model.ProjectData;
-import omero.gateway.model.ImageData;
+import fr.igred.omero.repository.DatasetWrapper;
+import fr.igred.omero.repository.GenericRepositoryObjectWrapper;
+import fr.igred.omero.repository.ImageWrapper;
+import fr.igred.omero.repository.PlateAcquisitionWrapper;
+import fr.igred.omero.repository.PlateWrapper;
+import fr.igred.omero.repository.ProjectWrapper;
+import fr.igred.omero.repository.ScreenWrapper;
+import fr.igred.omero.repository.WellWrapper;
 import omero.gateway.model.PixelsData;
 import omero.gateway.model.DataObject;
 import omero.gateway.model.PermissionData;
-import omero.gateway.model.ScreenData;
-import omero.gateway.model.WellData;
-import omero.model.ExperimenterGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +71,7 @@ final class OmeroRawObjects {
         PLATE("https://www.openmicroscopy.org/Schemas/OME/2016-06/#Plate", "Plate"),
         WELL("https://www.openmicroscopy.org/Schemas/OME/2016-06/#Well", "Well"),
         SCREEN("https://www.openmicroscopy.org/Schemas/OME/2016-06/#Screen", "Screen"),
-        PLATE_ACQUISITION("https://www.openmicroscopy.org/Schemas/OME/2016-06/#Plate-Aqcuisiton", "Plate acquisition"),
+        PLATE_ACQUISITION("https://www.openmicroscopy.org/Schemas/OME/2016-06/#Plate-Acquisiton", "Plate acquisition"),
 
         // Object for OmeroRawBrowser's 'Orphaned folder' item (not for deserialization)
         ORPHANED_FOLDER("#OrphanedFolder", "Orphaned Folder"),
@@ -115,7 +113,7 @@ final class OmeroRawObjects {
         private Group group;
         private OmeroRawObject parent;
 
-        private DataObject data;
+        private GenericRepositoryObjectWrapper<? extends DataObject> wrapper;
 
         /**
          * Return the OMERO ID associated with this object.
@@ -137,16 +135,16 @@ final class OmeroRawObjects {
          * Return the OMERO data associated with this object.
          * @return id
          */
-        DataObject getData() {
-            return data;
+        GenericRepositoryObjectWrapper<? extends DataObject> getWrapper() {
+            return wrapper;
         }
 
         /**
          * Set the data of this object
          * @param obj
          */
-        void setData(DataObject obj) {
-            this.data = obj;
+        void setWrapper(GenericRepositoryObjectWrapper<? extends DataObject> obj) {
+            this.wrapper = obj;
         }
 
         /**
@@ -385,17 +383,17 @@ final class OmeroRawObjects {
         }
 
 
-        public Project(String url, ProjectData projectData, long id, OmeroRawObjectType type, OmeroRawObject parent,
+        public Project(String url, ProjectWrapper projectWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
                        ExperimenterWrapper user, GroupWrapper group) {
             this.url = url;
-            this.description = projectData.getDescription();
-            this.childCount = projectData.asProject().sizeOfDatasetLinks();
-            super.data = projectData;
+            this.description = projectWrapper.getDescription();
+            this.childCount = projectWrapper.asDataObject().asProject().sizeOfDatasetLinks();
+            super.wrapper = projectWrapper;
             super.setId(id);
-            super.setName(projectData.getName());
+            super.setName(projectWrapper.getName());
             super.setType(type.toString());
             super.setParent(parent);
-            super.setOwner(OmeroRawBrowserTools.getOwnerItem(user));
+            super.setOwner(new Owner(user));
             super.setGroup(new Group(group.getId(), group.getName()));
         }
     }
@@ -421,18 +419,18 @@ final class OmeroRawObjects {
         }
 
 
-        public Dataset(String url, DatasetData datasetData, long id, OmeroRawObjectType type, OmeroRawObject parent,
+        public Dataset(String url, DatasetWrapper datasetWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
                        ExperimenterWrapper user, GroupWrapper group) {
             this.url = url;
-            this.description = datasetData.getDescription();
-            this.childCount = datasetData.asDataset().sizeOfImageLinks();
-            super.data = datasetData;
+            this.description = datasetWrapper.getDescription();
+            this.childCount = datasetWrapper.asDataObject().asDataset().sizeOfImageLinks();
+            super.wrapper = datasetWrapper;
 
             super.setId(id);
-            super.setName(datasetData.getName());
+            super.setName(datasetWrapper.getName());
             super.setType(type.toString());
             super.setParent(parent);
-            super.setOwner(OmeroRawBrowserTools.getOwnerItem(user));
+            super.setOwner(new Owner(user));
             super.setGroup(new Group(group.getId(), group.getName()));
         }
     }
@@ -459,16 +457,16 @@ final class OmeroRawObjects {
         }
 
 
-        public Screen(String url, ScreenData screenData, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
+        public Screen(String url, ScreenWrapper screenWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
             this.url = url;
-            this.description = screenData.getDescription();
-            this.childCount = screenData.asScreen().sizeOfPlateLinks();
-            super.data = screenData;
+            this.description = screenWrapper.getDescription();
+            this.childCount = screenWrapper.asDataObject().asScreen().sizeOfPlateLinks();
+            super.wrapper = screenWrapper;
             super.setId(id);
-            super.setName(screenData.getName());
+            super.setName(screenWrapper.getName());
             super.setType(type.toString());
             super.setParent(parent);
-            super.setOwner(OmeroRawBrowserTools.getOwnerItem(user));
+            super.setOwner(new Owner(user));
             super.setGroup(new Group(group.getId(), group.getName()));
         }
     }
@@ -496,17 +494,17 @@ final class OmeroRawObjects {
         }
 
 
-        public Plate(String url, PlateData plateData, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
+        public Plate(String url, PlateWrapper plateWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
             this.url = url;
-            this.description = plateData.getDescription();
-            this.plateAquisitionCount = plateData.asPlate().sizeOfPlateAcquisitions(); // TODO see that also
-            this.childCount = plateData.asPlate().sizeOfWells(); // TODO seem to does not work
-            super.data = plateData;
+            this.description = plateWrapper.getDescription();
+            this.plateAquisitionCount = plateWrapper.asDataObject().asPlate().sizeOfPlateAcquisitions();
+            this.childCount = plateWrapper.asDataObject().asPlate().sizeOfWells();
+            super.wrapper = plateWrapper;
             super.setId(id);
-            super.setName(plateData.getName());
+            super.setName(plateWrapper.getName());
             super.setType(type.toString());
             super.setParent(parent);
-            super.setOwner(OmeroRawBrowserTools.getOwnerItem(user));
+            super.setOwner(new Owner(user));
             super.setGroup(new Group(group.getId(), group.getName()));
         }
     }
@@ -534,17 +532,17 @@ final class OmeroRawObjects {
         }
 
 
-        public PlateAcquisition(String url, PlateAcquisitionData plateAcquisitionData, long id, int timePoint,
+        public PlateAcquisition(String url, PlateAcquisitionWrapper plateAcquisitionWrapper, long id, int timePoint,
                                 OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
             this.url = url;
-            this.description = plateAcquisitionData.getDescription();
+            this.description = plateAcquisitionWrapper.getDescription();
             this.timePoint = timePoint;
-            super.data = plateAcquisitionData;
+            super.wrapper = plateAcquisitionWrapper;
             super.setId(id);
-            super.setName(plateAcquisitionData.getName());
+            super.setName(plateAcquisitionWrapper.getName());
             super.setType(type.toString());
             super.setParent(parent);
-            super.setOwner(OmeroRawBrowserTools.getOwnerItem(user));
+            super.setOwner(new Owner(user));
             super.setGroup(new Group(group.getId(), group.getName()));
         }
     }
@@ -576,18 +574,18 @@ final class OmeroRawObjects {
         }
 
 
-        public Well(String url, WellData wellData, long id, int timePoint, OmeroRawObjectType type, OmeroRawObject parent,
+        public Well(String url, WellWrapper wellWrapper, long id, int timePoint, OmeroRawObjectType type, OmeroRawObject parent,
                     ExperimenterWrapper user, GroupWrapper group) {
             this.url = url;
             this.description = "";
-            this.childCount = wellData.asWell().sizeOfWellSamples();
+            this.childCount = wellWrapper.asDataObject().asWell().sizeOfWellSamples();
             this.timePoint = timePoint;
-            super.data = wellData;
+            super.wrapper = wellWrapper;
             super.setId(id);
-            super.setName("" + (char)(wellData.getRow() + 65) + (wellData.getColumn() < 9 ? ""+ 0 + (wellData.getColumn() + 1) : ""+(wellData.getColumn() + 1)));
+            super.setName("" + (char)(wellWrapper.getRow() + 65) + (wellWrapper.getColumn() < 9 ? "0"+ (wellWrapper.getColumn() + 1) : String.valueOf(wellWrapper.getColumn() + 1)));
             super.setType(type.toString());
             super.setParent(parent);
-            super.setOwner(OmeroRawBrowserTools.getOwnerItem(user));
+            super.setOwner(new Owner(user));
             super.setGroup(new Group(group.getId(), group.getName()));
         }
     }
@@ -620,12 +618,12 @@ final class OmeroRawObjects {
         }
 
 
-        public Image(String url, ImageData imageData, long id, OmeroRawObjectType type, OmeroRawObject parent,
+        public Image(String url, ImageWrapper imageWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
                      ExperimenterWrapper user, GroupWrapper group) {
             this.url = url;
-            this.acquisitionDate = imageData.getAcquisitionDate()==null ? -1 : imageData.getAcquisitionDate().getTime();
-            super.data = imageData;
-            PixelsData pixData = imageData.getDefaultPixels();
+            this.acquisitionDate = imageWrapper.getAcquisitionDate()==null ? -1 : imageWrapper.getAcquisitionDate().getTime();
+            super.wrapper = imageWrapper;
+            PixelsData pixData = imageWrapper.getPixels().asDataObject();
 
             PixelInfo pixelInfo = new PixelInfo(pixData.getSizeX(), pixData.getSizeY(), pixData.getSizeC(), pixData.getSizeZ(), pixData.getSizeT(),
                     pixData.asPixels().getPhysicalSizeX()==null ? new PhysicalSize("", -1) : new PhysicalSize(pixData.asPixels().getPhysicalSizeX().getUnit().toString(), pixData.asPixels().getPhysicalSizeX().getValue()),
@@ -636,10 +634,10 @@ final class OmeroRawObjects {
             this.pixels = pixelInfo;
 
             super.setId(id);
-            super.setName(imageData.getName());
+            super.setName(imageWrapper.getName());
             super.setType(type.toString());
             super.setParent(parent);
-            super.setOwner(OmeroRawBrowserTools.getOwnerItem(user));
+            super.setOwner(new Owner(user));
             super.setGroup(new Group(group.getId(), group.getName()));
         }
     }
@@ -653,11 +651,31 @@ final class OmeroRawObjects {
         private String emailAddress = "";
         private String institution = "";
         private String username = "";
+        private ExperimenterWrapper data;
 
         // Singleton (with static factory)
-        private static final Owner ALL_MEMBERS = new Owner(-1, "All members", "", "", "", "", "");
+        private static final Owner ALL_MEMBERS = new Owner(null,-1, "All members", "", "", "", "", "");
 
-        public Owner(long id, String firstName, String middleName, String lastName, String emailAddress, String institution, String username) {
+        public Owner(ExperimenterWrapper experimenterWrapper) {
+            this.id = experimenterWrapper.getId();
+            this.firstName = experimenterWrapper.getFirstName()==null ? "" : experimenterWrapper.getFirstName();
+            //TODO see when this issue is solved https://github.com/ome/omero-gateway-java/issues/83
+            String middleName = "";
+            try{
+                middleName = experimenterWrapper.getMiddleName();
+            }catch (Exception e){
+
+            }
+            this.middleName = middleName;
+            this.lastName = experimenterWrapper.getLastName()==null ? "" : experimenterWrapper.getLastName();
+
+            this.emailAddress = experimenterWrapper.getEmail()==null ? "" : experimenterWrapper.getEmail();;
+            this.institution = experimenterWrapper.getInstitution()==null ? "" : experimenterWrapper.getInstitution();;
+            this.username = experimenterWrapper.getUserName()==null ? "" : experimenterWrapper.getUserName();;
+            this.data = experimenterWrapper;
+        }
+
+        private Owner(ExperimenterWrapper experimenterWrapper, long id, String firstName, String middleName, String lastName, String emailAddress, String institution, String username){
             this.id = id;
             this.firstName = firstName;
             this.middleName = middleName;
@@ -666,19 +684,18 @@ final class OmeroRawObjects {
             this.emailAddress = emailAddress;
             this.institution = institution;
             this.username = username;
+            this.data = experimenterWrapper;
         }
 
         String getName() {
-            // We never know if a deserialized Owner will have all the necessary information
-            this.firstName = this.firstName == null ? "" : this.firstName;
-            this.middleName = this.middleName == null ? "" : this.middleName;
-            this.lastName = this.lastName == null ? "" : this.lastName;
             return this.firstName + " " + (this.middleName.isEmpty() ? "" : this.middleName + " ") + this.lastName;
         }
 
         long getId() {
             return id;
         }
+
+        ExperimenterWrapper getData(){return data;}
 
         /**
          * Dummy {@code Owner} object (singleton instance) to represent all owners.
@@ -900,7 +917,7 @@ final class OmeroRawObjects {
 
     static class Experimenter {
 
-        private final int id;
+        private final long id;
         private final String omeName;
         private final String firstName;
         private final String lastName;
@@ -909,7 +926,7 @@ final class OmeroRawObjects {
          * Return the Id of this {@code Experimenter}.
          * @return id
          */
-        int getId() {
+        long getId() {
             return id;
         }
 
@@ -921,12 +938,11 @@ final class OmeroRawObjects {
             return firstName + " " + lastName;
         }
 
-        public Experimenter(omero.model.Experimenter experimenter){
-            this.id = experimenter.getId()==null ? -1 : (int)experimenter.getId().getValue();
-            this.omeName = experimenter.getId()==null ? "" : experimenter.getOmeName().getValue();
-            this.firstName = experimenter.getId()==null ? "" : experimenter.getFirstName().getValue();
-            this.lastName = experimenter.getId()==null ? "" : experimenter.getLastName().getValue();
-
+        public Experimenter(ExperimenterWrapper experimenter){
+            this.id = experimenter.getId();
+            this.omeName = experimenter.getUserName()==null ? "" : experimenter.getUserName();
+            this.firstName = experimenter.getFirstName()==null ? "" : experimenter.getFirstName();
+            this.lastName = experimenter.getFirstName()==null ? "" : experimenter.getLastName();
         }
     }
 }

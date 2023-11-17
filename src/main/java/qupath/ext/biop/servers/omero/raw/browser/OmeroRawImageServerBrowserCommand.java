@@ -51,6 +51,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import fr.igred.omero.annotations.AnnotationList;
+import fr.igred.omero.exception.ServiceException;
+import fr.igred.omero.meta.ExperimenterWrapper;
 import javafx.event.EventHandler;
 import javafx.geometry.Rectangle2D;
 import javafx.stage.Screen;
@@ -381,8 +384,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
         // Initialises the comboboxes with all the available groups and set select the default group and owner
         groupMap = OmeroRawBrowserTools.getGroupUsersMapAvailableForCurrentUser(client);
-        defaultGroup = OmeroRawBrowserTools.getDefaultGroupItem(client);
-        defaultOwner = OmeroRawBrowserTools.getDefaultOwnerItem(client);
+        ExperimenterWrapper loggedInUser = client.getLoggedInUser();
+        defaultGroup = new OmeroRawObjects.Group(loggedInUser.getDefaultGroup().getId(),
+                                                 loggedInUser.getDefaultGroup().getName());
+        defaultOwner = new OmeroRawObjects.Owner(loggedInUser);
         groups=   groupMap.keySet();
 
         comboGroup.getItems().setAll(groups);
@@ -1466,13 +1471,20 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
         private AdvancedObjectInfo(OmeroRawObjects.OmeroRawObject obj) {
             this.obj = obj;
-            this.tags = OmeroRawBrowserTools.readAnnotationsItems(client, obj, OmeroRawAnnotationType.TAG);
-            this.keyValuePairs = OmeroRawBrowserTools.readAnnotationsItems(client, obj, OmeroRawAnnotationType.MAP);
-//			this.tables = OmeroRawTools.getOmeroAnnotations(client, obj, OmeroRawAnnotationType.TABLE);
-            this.attachments = OmeroRawBrowserTools.readAnnotationsItems(client, obj, OmeroRawAnnotationType.ATTACHMENT);
-            this.comments = OmeroRawBrowserTools.readAnnotationsItems(client, obj, OmeroRawAnnotationType.COMMENT);
-            this.ratings = OmeroRawBrowserTools.readAnnotationsItems(client, obj, OmeroRawAnnotationType.RATING);
-//			this.others = OmeroRawTools.getOmeroAnnotations(client, obj, OmeroRawAnnotationType.CUSTOM);
+            AnnotationList annotations;
+            try {
+                annotations = obj.getWrapper().getAnnotations(client.getSimpleClient());
+            }catch (DSAccessException | ServiceException | ExecutionException e){
+                annotations = new AnnotationList();
+            }
+
+            this.tags = OmeroRawAnnotations.getOmeroAnnotations(client, OmeroRawAnnotationType.TAG, annotations);
+            this.keyValuePairs = OmeroRawAnnotations.getOmeroAnnotations(client, OmeroRawAnnotationType.MAP, annotations);
+//			this.tables = OmeroRawAnnotations.getOmeroAnnotations(client, OmeroRawAnnotationType.TABLE, annotations);
+            this.attachments = OmeroRawAnnotations.getOmeroAnnotations(client, OmeroRawAnnotationType.ATTACHMENT, annotations);
+            this.comments = OmeroRawAnnotations.getOmeroAnnotations(client, OmeroRawAnnotationType.COMMENT, annotations);
+            this.ratings = OmeroRawAnnotations.getOmeroAnnotations(client, OmeroRawAnnotationType.RATING, annotations);
+//			this.others = OmeroRawAnnotations.getOmeroAnnotations(client, OmeroRawAnnotationType.CUSTOM, annotations);
 
             showOmeroObjectInfo();
         }
