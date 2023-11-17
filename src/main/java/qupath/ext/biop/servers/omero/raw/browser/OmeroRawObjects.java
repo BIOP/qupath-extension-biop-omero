@@ -100,8 +100,8 @@ final class OmeroRawObjects {
         private Owner owner;
         private Group group;
         private OmeroRawObject parent;
-
         private GenericRepositoryObjectWrapper<? extends DataObject> wrapper;
+        private String description;
 
         /**
          * Return the OMERO ID associated with this object.
@@ -150,8 +150,6 @@ final class OmeroRawObjects {
         void setName(String name) {
             this.name = name;
         }
-
-
 
         /**
          * Return the {@code OmeroRawObjectType} associated with this object.
@@ -225,6 +223,19 @@ final class OmeroRawObjects {
             return 0;
         }
 
+        /**
+         * Set the object description
+         * @param description
+         */
+        void setDescription(String description){this.description = description;}
+
+        /**
+         * Returns the object description
+         * @return description
+         */
+        String getDescription(){return this.description;}
+
+
         @Override
         public int hashCode() {
             return Objects.hash(id);
@@ -243,15 +254,16 @@ final class OmeroRawObjects {
     }
 
     protected static class Server extends OmeroRawObject {
-        private String url;
+        private final String url;
         protected Server(URI uri) {
-            super.id = -1;
-            super.type = "Server";
-            super.owner = null;
-            super.name = "";
-            super.group = null;
-            super.parent = null;
             this.url = uri.toString();
+            super.setId(-1);
+            super.setType("Server");
+            super.setOwner(null);
+            super.setName("");
+            super.setGroup(null);
+            super.setParent(null);
+            super.setDescription("");
         }
         protected String getUrl(){return this.url;}
     }
@@ -335,23 +347,20 @@ final class OmeroRawObjects {
     }
 
     protected static class Project extends OmeroRawObject {
-        private final String description;
         private final int childCount;
 
         @Override
         protected int getNChildren() {
             return childCount;
         }
-        protected String getDescription() {
-            return description;
-        }
 
 
         protected Project(ProjectWrapper projectWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
                        ExperimenterWrapper user, GroupWrapper group) {
-            this.description = projectWrapper.getDescription();
             this.childCount = projectWrapper.asDataObject().asProject().sizeOfDatasetLinks();
-            super.wrapper = projectWrapper;
+
+            super.setWrapper(projectWrapper);
+            super.setDescription(projectWrapper.getDescription());
             super.setId(id);
             super.setName(projectWrapper.getName());
             super.setType(type.toString());
@@ -362,24 +371,20 @@ final class OmeroRawObjects {
     }
 
     protected static class Dataset extends OmeroRawObject {
-        private final String description;
         private final int childCount;
 
         @Override
         int getNChildren() {
             return childCount;
         }
-        String getDescription() {
-            return description;
-        }
 
 
         protected Dataset( DatasetWrapper datasetWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
                        ExperimenterWrapper user, GroupWrapper group) {
-            this.description = datasetWrapper.getDescription();
             this.childCount = datasetWrapper.asDataObject().asDataset().sizeOfImageLinks();
-            super.wrapper = datasetWrapper;
 
+            super.setWrapper(datasetWrapper);
+            super.setDescription(datasetWrapper.getDescription());
             super.setId(id);
             super.setName(datasetWrapper.getName());
             super.setType(type.toString());
@@ -391,22 +396,19 @@ final class OmeroRawObjects {
 
 
     protected static class Screen extends OmeroRawObject {
-        private final String description;
         private final int childCount;
 
         @Override
         int getNChildren() {
             return childCount;
         }
-        String getDescription() {
-            return description;
-        }
 
 
         protected Screen(ScreenWrapper screenWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
-            this.description = screenWrapper.getDescription();
             this.childCount = screenWrapper.asDataObject().asScreen().sizeOfPlateLinks();
-            super.wrapper = screenWrapper;
+
+            super.setWrapper(screenWrapper);
+            super.setDescription(screenWrapper.getDescription());
             super.setId(id);
             super.setName(screenWrapper.getName());
             super.setType(type.toString());
@@ -418,7 +420,6 @@ final class OmeroRawObjects {
 
 
     protected static class Plate extends OmeroRawObject {
-        private final String description;
         private final int plateAquisitionCount;
         private final int childCount;
 
@@ -427,16 +428,14 @@ final class OmeroRawObjects {
         int getNChildren() {
             return childCount;
         }
-        String getDescription() {
-            return description;
-        }
 
 
         protected Plate(PlateWrapper plateWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
-            this.description = plateWrapper.getDescription();
             this.plateAquisitionCount = plateWrapper.asDataObject().asPlate().sizeOfPlateAcquisitions();
             this.childCount = plateWrapper.asDataObject().asPlate().sizeOfWells();
-            super.wrapper = plateWrapper;
+
+            super.setWrapper(plateWrapper);
+            super.setDescription(plateWrapper.getDescription());
             super.setId(id);
             super.setName(plateWrapper.getName());
             super.setType(type.toString());
@@ -449,23 +448,20 @@ final class OmeroRawObjects {
 
     // TODo see how to deal with that => not really understandable
     protected static class PlateAcquisition extends OmeroRawObject {
-        private final String description;
         private final int timePoint;
 
         @Override
         int getNChildren() {
             return 0;
         }
-        String getDescription() {
-            return description;
-        }
 
 
         protected PlateAcquisition(PlateAcquisitionWrapper plateAcquisitionWrapper, long id, int timePoint,
                                 OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
-            this.description = plateAcquisitionWrapper.getDescription();
             this.timePoint = timePoint;
-            super.wrapper = plateAcquisitionWrapper;
+
+            super.setWrapper(plateAcquisitionWrapper);
+            super.setDescription(plateAcquisitionWrapper.getDescription());
             super.setId(id);
             super.setName(plateAcquisitionWrapper.getName());
             super.setType(type.toString());
@@ -477,7 +473,6 @@ final class OmeroRawObjects {
 
 
     protected static class Well extends OmeroRawObject {
-        private final String description;
         private final int childCount;
         private final int timePoint;
 
@@ -486,9 +481,6 @@ final class OmeroRawObjects {
         int getNChildren() {
             return childCount;
         }
-        String getDescription() {
-            return description;
-        }
         int getTimePoint() {
             return timePoint;
         }
@@ -496,10 +488,11 @@ final class OmeroRawObjects {
 
         protected Well(WellWrapper wellWrapper, long id, int timePoint, OmeroRawObjectType type, OmeroRawObject parent,
                     ExperimenterWrapper user, GroupWrapper group) {
-            this.description = "";
             this.childCount = wellWrapper.asDataObject().asWell().sizeOfWellSamples();
             this.timePoint = timePoint;
-            super.wrapper = wellWrapper;
+
+            super.setWrapper(wellWrapper);
+            super.setDescription(wellWrapper.getDescription());
             super.setId(id);
             super.setName("" + (char)(wellWrapper.getRow() + 65) + (wellWrapper.getColumn() < 9 ? "0"+ (wellWrapper.getColumn() + 1) : String.valueOf(wellWrapper.getColumn() + 1)));
             super.setType(type.toString());
@@ -529,17 +522,16 @@ final class OmeroRawObjects {
         protected Image(ImageWrapper imageWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent,
                      ExperimenterWrapper user, GroupWrapper group) {
             this.acquisitionDate = imageWrapper.getAcquisitionDate()==null ? -1 : imageWrapper.getAcquisitionDate().getTime();
-            super.wrapper = imageWrapper;
-            PixelsData pixData = imageWrapper.getPixels().asDataObject();
 
-            PixelInfo pixelInfo = new PixelInfo(pixData.getSizeX(), pixData.getSizeY(), pixData.getSizeC(), pixData.getSizeZ(), pixData.getSizeT(),
+            PixelsData pixData = imageWrapper.getPixels().asDataObject();
+            this.pixels = new PixelInfo(pixData.getSizeX(), pixData.getSizeY(), pixData.getSizeC(), pixData.getSizeZ(), pixData.getSizeT(),
                     pixData.asPixels().getPhysicalSizeX()==null ? new PhysicalSize("", -1) : new PhysicalSize(pixData.asPixels().getPhysicalSizeX().getUnit().toString(), pixData.asPixels().getPhysicalSizeX().getValue()),
                     pixData.asPixels().getPhysicalSizeY()==null ? new PhysicalSize("", -1) : new PhysicalSize(pixData.asPixels().getPhysicalSizeY().getUnit().toString(), pixData.asPixels().getPhysicalSizeY().getValue()),
                     pixData.asPixels().getPhysicalSizeZ()==null ? new PhysicalSize("", -1) : new PhysicalSize(pixData.asPixels().getPhysicalSizeZ().getUnit().toString(), pixData.asPixels().getPhysicalSizeZ().getValue()),
                     new ImageType(pixData.getPixelType()));
 
-            this.pixels = pixelInfo;
-
+            super.setWrapper(imageWrapper);
+            super.setDescription(imageWrapper.getDescription());
             super.setId(id);
             super.setName(imageWrapper.getName());
             super.setType(type.toString());
@@ -753,42 +745,6 @@ final class OmeroRawObjects {
             this.value = value;
         }
     }
-
-
-    /**
-     * Both in OmeroRawAnnotations and in OmeroRawObjects.
-     */
-    protected static class Permission {
-        private final boolean canDelete;
-        private final boolean canAnnotate;
-        private final boolean canLink;
-        private final boolean canEdit;
-        // Only in OmeroRawObjects
-        private final boolean isUserWrite;
-        private final boolean isUserRead;
-        private final boolean isWorldWrite;
-        private final boolean isWorldRead;
-        private final boolean isGroupWrite;
-        private final boolean isGroupRead;
-        private final boolean isGroupAnnotate;
-
-        protected Permission(PermissionData permissions, OmeroRawClient client){
-            this.isGroupAnnotate = permissions.isGroupAnnotate();
-            this.isGroupRead = permissions.isGroupRead();
-            this.isGroupWrite = permissions.isGroupWrite();
-            this.isUserRead = permissions.isUserRead();
-            this.isUserWrite = permissions.isUserWrite();
-            this.isWorldRead = permissions.isWorldRead();
-            this.isWorldWrite = permissions.isWorldWrite();
-
-            ExperimenterWrapper loggedInUser = client.getLoggedInUser();
-            this.canAnnotate = loggedInUser.canAnnotate();
-            this.canDelete = loggedInUser.canDelete();
-            this.canEdit = loggedInUser.canEdit();
-            this.canLink = loggedInUser.canLink();
-        }
-    }
-
 
     protected static class Link {
         private int id;

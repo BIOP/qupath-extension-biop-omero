@@ -503,7 +503,7 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static OmeroRawAnnotations readAnnotationsItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject obj, OmeroRawAnnotations.OmeroRawAnnotationType category) {
-        return OmeroRawAnnotations.getOmeroAnnotations(client, category, OmeroRawTools.readOmeroAnnotations(client, obj.getWrapper()));
+        return OmeroRawAnnotations.getOmeroAnnotations(category, OmeroRawTools.readOmeroAnnotations(client, obj.getWrapper()));
     }
 
     /**
