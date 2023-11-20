@@ -422,14 +422,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         }
                     }
                     else {
-                        HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
-                        promptToImportOmeroImages(createObjectURI(selectedItem));
-                        HashSet<ProjectImageEntry<BufferedImage>> afterImport = new HashSet<>(qupath.getProject().getImageList());
-
-                        // filter newly imported images
-                        afterImport.removeAll(beforeImport);
-
-                        for(ProjectImageEntry<BufferedImage> entry : afterImport)
+                        List<ProjectImageEntry<BufferedImage>> importedImageEntries = promptToImportOmeroImages(createObjectURI(selectedItem));
+                        for(ProjectImageEntry<BufferedImage> entry : importedImageEntries)
                            OmeroRawBrowserTools.addContainersAsMetadataFields(entry, selectedItem);
                     }
                 }
@@ -688,14 +682,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     Dialogs.showErrorMessage("Open OMERO images", "If you want to handle multiple images, you need to create a project first."); // Same as D&D for images
                 return;
             }
-            //TODO wait new qupath version to remove before and after import images because prompt to import images should return the list of newly images
-            HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
-            List<ProjectImageEntry<BufferedImage>> img = promptToImportOmeroImages(validUris);
-            HashSet<ProjectImageEntry<BufferedImage>> afterImport = new HashSet<>(qupath.getProject().getImageList());
 
-            // filter newly imported images
-            afterImport.removeAll(beforeImport);
-            for(ProjectImageEntry<BufferedImage> entry : afterImport) {
+            List<ProjectImageEntry<BufferedImage>> importedImageEntries = promptToImportOmeroImages(validUris);
+            for(ProjectImageEntry<BufferedImage> entry : importedImageEntries) {
 
                 String[] query = entry.getServerBuilder().getURIs().iterator().next().getQuery().split("-");
                 long id = Long.parseLong(query[query.length-1]);
@@ -1854,15 +1843,11 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         .map(URI::toString)
                         .toArray(String[]::new);
                 if (URIs.length > 0) {
-                    HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
-                    promptToImportOmeroImages(URIs);
-                    HashSet<ProjectImageEntry<BufferedImage>> afterImport = new HashSet<>(qupath.getProject().getImageList());
 
-                    // filter newly imported images
-                    afterImport.removeAll(beforeImport);
+                    List<ProjectImageEntry<BufferedImage>> importedImageEntries = promptToImportOmeroImages(URIs);
 
                     //TODO Find a way to get an OmeroRawObjects.OmeroRawObject
-                    /*for(ProjectImageEntry<BufferedImage> entry : afterImport) {
+                    /*for(ProjectImageEntry<BufferedImage> entry : importedImageEntries) {
                         Optional<OmeroRawObjects.OmeroRawObject> optObj = validObjs.stream()
                                 .filter(obj -> {
                                     try {
@@ -1992,12 +1977,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             List<URI> URIs = OmeroRawBrowserTools.getURIs(selectedItem.link.toURI(), client);
                             var uriStrings = URIs.parallelStream().map(URI::toString).toArray(String[]::new);
                             if (URIs.size() > 0) {
-                                HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
-                                promptToImportOmeroImages(uriStrings);
-                                HashSet<ProjectImageEntry<BufferedImage>> afterImport = new HashSet<>(qupath.getProject().getImageList());
-
-                                // filter newly imported images
-                                afterImport.removeAll(beforeImport);
+                                List<ProjectImageEntry<BufferedImage>> importedImageEntries = promptToImportOmeroImages(uriStrings);
 
                                 //TODO Find a way to get an OmeroRawObjects.OmeroRawObject
                                /* for(ProjectImageEntry<BufferedImage> entry : afterImport)
