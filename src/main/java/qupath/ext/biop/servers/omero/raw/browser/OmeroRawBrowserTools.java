@@ -228,6 +228,27 @@ public class OmeroRawBrowserTools {
         return ophDatasetsList;
     }
 
+
+    /**
+     * Get all the orphaned images from the server for a certain user as list of {@link OmeroRawObjects.OmeroRawObject}
+     *
+     * @param client
+     * @param parent
+     * @param user
+     * @param userGroup
+     * @return
+     */
+    public static List<OmeroRawObjects.OmeroRawObject> readOrphanedImagesItem(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
+                                                                              ExperimenterWrapper user, GroupWrapper userGroup){
+        List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
+        // convert dataset to OmeroRawObject
+        OmeroRawTools.readOmeroOrphanedImagesPerUser(client, user).forEach( e ->
+                list.add(new OmeroRawObjects.Image(e, e.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE,
+                        new OmeroRawObjects.Server(client.getServerURI()), user, userGroup))
+        );
+        return list;
+    }
+
     /**
      * returns the list of {@link OmeroRawObjects.OmeroRawObject} datasets for a given project
      *
@@ -473,6 +494,7 @@ public class OmeroRawBrowserTools {
      * @param owner
      * @return
      */
+    @Deprecated
     public static List<OmeroRawObjects.OmeroRawObject> readOrphanedImagesItem(OmeroRawClient client, OmeroRawObjects.Group group, OmeroRawObjects.Owner owner){
         List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
 

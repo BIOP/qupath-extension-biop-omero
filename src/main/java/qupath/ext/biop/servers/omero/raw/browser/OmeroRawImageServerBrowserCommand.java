@@ -291,6 +291,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         comboOwner = new ComboBox<>();
         filter = new TextField();
 
+        // define the panels
         BorderPane mainPane = new BorderPane();
         BorderPane serverInfoPane = new BorderPane();
         GridPane serverAttributePane = new GridPane();
@@ -299,10 +300,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         GridPane browseRightPane = new GridPane();
         GridPane loadingInfoPane = new GridPane();
 
+        // define the progress indicators
         var progressChildren = new ProgressIndicator();
         progressChildren.setPrefSize(15, 15);
         loadingChildrenLabel = new Label("Loading OMERO objects", progressChildren);
-
 
         var progressThumbnail = new ProgressIndicator();
         progressThumbnail.setPrefSize(15, 15);
@@ -315,7 +316,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         loadingOrphanedLabel.setGraphic(progressOrphaned);
 
         GridPaneUtils.addGridRow(loadingInfoPane, 0, 0, "OMERO objects are loaded in the background", loadingChildrenLabel);
-        GridPaneUtils.addGridRow(loadingInfoPane, 1, 0, "OMERO objects are loaded in the background", loadingOrphanedLabel);
+        //GridPaneUtils.addGridRow(loadingInfoPane, 1, 0, "OMERO objects are loaded in the background", loadingOrphanedLabel);
         GridPaneUtils.addGridRow(loadingInfoPane, 2, 0, "Thumbnails are loaded in the background", loadingThumbnailLabel);
 
         // Info about the server to display at the top
@@ -337,6 +338,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         usernameLabel.setStyle(BOLD);
         nOpenImages.setStyle(BOLD);
 
+        // create the color disc showing whether if the client is connected or not
         Label isReachable = new Label();
         isReachable.graphicProperty().bind(Bindings.createObjectBinding(() -> createStateNode(client.isLoggedIn()), client.logProperty()));
 
@@ -403,7 +405,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         comboGroup.getSelectionModel().selectedItemProperty().addListener((v, o, n) -> refreshTree());
 
         OmeroRawObjectTreeItem root = new OmeroRawObjectTreeItem(new OmeroRawObjects.Server(serverURI));
-
 
         tree.setRoot(root);
         tree.setShowRoot(false);
@@ -689,7 +690,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             }
             //TODO wait new qupath version to remove before and after import images because prompt to import images should return the list of newly images
             HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
-            promptToImportOmeroImages(validUris);
+            List<ProjectImageEntry<BufferedImage>> img = promptToImportOmeroImages(validUris);
             HashSet<ProjectImageEntry<BufferedImage>> afterImport = new HashSet<>(qupath.getProject().getImageList());
 
             // filter newly imported images
@@ -820,7 +821,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.SERVER && groupOwnersChildrenMap.containsKey(group) && groupOwnersChildrenMap.get(group).containsKey(owner))
             return groupOwnersChildrenMap.get(group).get(owner);
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER && orphanedImageList.size() > 0)
-            return orphanedImageList;
+            return orphanedImageList;//((OmeroRawObjects.OrphanedFolder)parentObj).getImageList();
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.PROJECT && projectMap.containsKey(parentObj))
             return projectMap.get(parentObj);
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.SCREEN && screenMap.containsKey(parentObj))
@@ -1372,8 +1373,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     return FXCollections.observableArrayList();
                 }
 
+                // retrieve children in another thread
                 executorTable.submit(() -> {
-                    var parentOmeroObj = this.getValue();
+                    OmeroRawObjects.OmeroRawObject parentOmeroObj = this.getValue();
 
                     // get current groups and owners
                     OmeroRawObjects.Group currentGroup = comboGroup.getSelectionModel().getSelectedItem();
