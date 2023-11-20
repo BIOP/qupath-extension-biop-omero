@@ -1578,61 +1578,30 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 case TAG:
                     for (var ann: anns) {
                         var ann2 = (TagAnnotation)ann;
-                       /* var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
-                                .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(OmeroRawObjects.Experimenter::getFullName)
-                                .findAny().get();*/
-                       /* var creator = omeroRawAnnotations.getExperimenters().parallelStream()
-                                .filter(e -> e .getId() == ann2.getOwner().getId())
-                                .map(OmeroRawObjects.Experimenter::getFullName)
-                                .findAny().get();*/
-                        //tooltip = String.format("Added by: %s%sCreated by: %s", addedBy, System.lineSeparator(), creator);
                         tooltip = String.format("Owned by: %s", ann2.getOwner().getName());
+                        //tooltip += String.format("\nAdded by: %s", ann2.addedBy().getName());
                         GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getValue()));
                     }
                     break;
                 case MAP:
                     for (var ann: anns) {
                         var ann2 = (MapAnnotation)ann;
-                        /*var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
-                                .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(OmeroRawObjects.Experimenter::getFullName)
-                                .findAny().get();
-                        var creator = omeroRawAnnotations.getExperimenters().parallelStream()
-                                .filter(e -> e .getId() == ann2.getOwner().getId())
-                                .map(OmeroRawObjects.Experimenter::getFullName)
-                                .findAny().get();*/
                         for (var value: ann2.getValues().entrySet())
-                        addKeyValueToGrid(gp, true, "Added by: " + ann2.getOwner().getName(), value.getKey(), value.getValue().isEmpty() ? "-" : value.getValue());
-                        //addKeyValueToGrid(gp, true, "Added by: " + addedBy + System.lineSeparator() + "Created by: " + creator, value.getKey(), value.getValue().isEmpty() ? "-" : value.getValue());
+                            addKeyValueToGrid(gp, true, "Added by: " + ann2.getOwner().getName(), value.getKey(), value.getValue().isEmpty() ? "-" : value.getValue());
                     }
                     break;
                 case ATTACHMENT:
                     for (var ann: anns) {
                         var ann2 = (FileAnnotation)ann;
-                       /* var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
-                                .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(OmeroRawObjects.Experimenter::getFullName)
-                                .findAny().get();
-                        var creator = omeroRawAnnotations.getExperimenters().parallelStream()
-                                .filter(e -> e .getId() == ann2.getOwner().getId())
-                                .map(OmeroRawObjects.Experimenter::getFullName)
-                                .findAny().get();*/
-                        //tooltip = String.format("Added by: %s%sCreated by: %s%sType: %s", addedBy, System.lineSeparator(), creator, System.lineSeparator(), ann2.getMimeType());
                         tooltip = String.format("Owned by: %s%sType: %s", ann2.getOwner().getName(), System.lineSeparator(), ann2.getMimeType());
+                        //tooltip += String.format("\nAdded by: %s", ann2.addedBy().getName());
                         GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getFilename() + " (" + ann2.getFileSize() + " bytes)"));
                     }
                     break;
                 case COMMENT:
                     for (var ann: anns) {
                         var ann2 = (CommentAnnotation)ann;
-                       /* var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
-                                .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(OmeroRawObjects.Experimenter::getFullName)
-                                .findAny().get();*/
-                        //GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, "Added by " + addedBy, new Label(ann2.getValue()));
                         GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, "Added by " + ann2.getOwner().getName(), new Label(ann2.getValue()));
-
                     }
                     break;
                 case RATING:

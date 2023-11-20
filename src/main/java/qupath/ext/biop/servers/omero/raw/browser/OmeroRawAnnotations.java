@@ -37,8 +37,6 @@ import fr.igred.omero.annotations.RatingAnnotationWrapper;
 import fr.igred.omero.annotations.TagAnnotationWrapper;
 import fr.igred.omero.annotations.TextualAnnotationWrapper;
 import omero.model.NamedValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 
 /**
@@ -85,13 +83,10 @@ final class OmeroRawAnnotations {
 
     private final List<OmeroAnnotation> annotations;
 
-   // private final List<OmeroRawObjects.Experimenter> experimenters;
-
     private final OmeroRawAnnotationType type;
 
-    OmeroRawAnnotations(List<OmeroAnnotation> annotations, /*List<OmeroRawObjects.Experimenter> experimenters,*/ OmeroRawAnnotationType type) {
+    OmeroRawAnnotations(List<OmeroAnnotation> annotations, OmeroRawAnnotationType type) {
         this.annotations = Objects.requireNonNull(annotations);
-        //this.experimenters = Objects.requireNonNull(experimenters);
         this.type = type;
     }
 
@@ -119,48 +114,32 @@ final class OmeroRawAnnotations {
      */
     static OmeroRawAnnotations getOmeroAnnotations(OmeroRawAnnotationType annotationType, AnnotationList annotations) {
         List<OmeroAnnotation> omeroAnnotations = new ArrayList<>();
-       // List<OmeroRawObjects.Experimenter> experimenters = new ArrayList<>();
 
         switch(annotationType){
             case TAG:
                 List<TagAnnotationWrapper> tags = annotations.getElementsOf(TagAnnotationWrapper.class);
-                tags.forEach(tag-> {
-                    omeroAnnotations.add(new TagAnnotation(tag));
-                  //  experimenters.add(new OmeroRawObjects.Experimenter(tag.getOwner()));
-                });
+                tags.forEach(tag-> {omeroAnnotations.add(new TagAnnotation(tag));});
                 break;
             case MAP:
                 List<MapAnnotationWrapper> kvps = annotations.getElementsOf(MapAnnotationWrapper.class);
-                kvps.forEach(kvp-> {
-                    omeroAnnotations.add(new MapAnnotation(kvp));
-                   // experimenters.add(new OmeroRawObjects.Experimenter(kvp.getOwner()));
-                });
+                kvps.forEach(kvp-> {omeroAnnotations.add(new MapAnnotation(kvp));});
                 break;
             case ATTACHMENT:
                 List<FileAnnotationWrapper> files = annotations.getElementsOf(FileAnnotationWrapper.class);
-                files.forEach(file-> {
-                    omeroAnnotations.add(new FileAnnotation(file));
-                    //experimenters.add(new OmeroRawObjects.Experimenter(file.getOwner()));
-                });
+                files.forEach(file-> {omeroAnnotations.add(new FileAnnotation(file));});
                 break;
             case RATING:
                 List<RatingAnnotationWrapper> ratings = annotations.getElementsOf(RatingAnnotationWrapper.class);
-                ratings.forEach(rating-> {
-                    omeroAnnotations.add(new LongAnnotation(rating));
-                    //experimenters.add(new OmeroRawObjects.Experimenter(rating.getOwner()));
-                });
+                ratings.forEach(rating-> {omeroAnnotations.add(new LongAnnotation(rating));});
                 break;
             case COMMENT:
                 List<TextualAnnotationWrapper> comments = annotations.getElementsOf(TextualAnnotationWrapper.class);
-                comments.forEach(comment-> {
-                    omeroAnnotations.add(new CommentAnnotation(comment));
-                    //experimenters.add(new OmeroRawObjects.Experimenter(comment.getOwner()));
-                });
+                comments.forEach(comment-> {omeroAnnotations.add(new CommentAnnotation(comment));});
                 break;
             default:
 
         }
-        return new OmeroRawAnnotations(omeroAnnotations/*, experimenters,*/, annotationType);
+        return new OmeroRawAnnotations(omeroAnnotations, annotationType);
     }
 
     /**
@@ -168,12 +147,6 @@ final class OmeroRawAnnotations {
      * @return annotations
      */
     public List<OmeroAnnotation> getAnnotations() {return annotations;}
-
-    /**
-     * Return all {@code Experimenter}s present in this {@code OmeroAnnotations} object.
-     * @return experimenters
-     */
-   // public List<OmeroRawObjects.Experimenter> getExperimenters() {return experimenters;}
 
     /**
      * Return the type of the {@code OmeroAnnotation} objects present in this {@code OmeroAnnotations} object.
@@ -193,6 +166,7 @@ final class OmeroRawAnnotations {
         private long id;
         private OmeroRawObjects.Owner owner;
         private String type;
+        //TODO See how to get the user who added the annotation, if it is possible to get it
         //private OmeroRawObjects.Link link;
 
         /**

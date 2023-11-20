@@ -40,7 +40,6 @@ import fr.igred.omero.repository.ScreenWrapper;
 import fr.igred.omero.repository.WellWrapper;
 import omero.gateway.model.PixelsData;
 import omero.gateway.model.DataObject;
-import omero.gateway.model.PermissionData;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
@@ -48,7 +47,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.ObservableList;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
-import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 
 
 /**
@@ -756,37 +754,6 @@ final class OmeroRawObjects {
 
         Owner getOwner() {
             return owner;
-        }
-    }
-
-
-    protected static class Experimenter {
-        private final long id;
-        private final String omeName;
-        private final String firstName;
-        private final String lastName;
-
-        /**
-         * Return the Id of this {@code Experimenter}.
-         * @return id
-         */
-        long getId() {
-            return id;
-        }
-
-        /**
-         * Return the full name (first name + last name) of this {@code Experimenter}.
-         * @return full name
-         */
-        String getFullName() {
-            return firstName + " " + lastName;
-        }
-
-        protected Experimenter(ExperimenterWrapper experimenter){
-            this.id = experimenter.getId();
-            this.omeName = experimenter.getUserName()==null ? "" : experimenter.getUserName();
-            this.firstName = experimenter.getFirstName()==null ? "" : experimenter.getFirstName();
-            this.lastName = experimenter.getFirstName()==null ? "" : experimenter.getLastName();
         }
     }
 }
