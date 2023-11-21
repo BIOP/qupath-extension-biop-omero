@@ -944,7 +944,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             String t = String.valueOf(obj.getImageDimensions()[4]);
             String pixelSizeX = obj.getPhysicalSizes()[0] == null ? "-" : obj.getPhysicalSizes()[0].getValue() + " " + obj.getPhysicalSizes()[0].getSymbol();
             String pixelSizeY = obj.getPhysicalSizes()[1] == null ? "-" : obj.getPhysicalSizes()[1].getValue() + " " + obj.getPhysicalSizes()[1].getSymbol();
-            String pixelSizeZ = obj.getPhysicalSizes()[2] == null ? "-" : obj.getPhysicalSizes()[2].getValue() + obj.getPhysicalSizes()[2].getSymbol();
+            String pixelSizeZ = obj.getPhysicalSizes()[2] == null ? "-" : obj.getPhysicalSizes()[2].getValue() + " " + obj.getPhysicalSizes()[2].getSymbol();
             String pixelType = obj.getPixelType();
             outString = new String[] {name, id, description, owner, group, acquisitionDate, width, height, c, z, t, pixelSizeX, pixelSizeY, pixelSizeZ, pixelType};
         } else if(omeroObject.getType() != OmeroRawObjects.OmeroRawObjectType.UNKNOWN){
@@ -1011,24 +1011,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
      * @param omeroObj
      * @return isSupported
      */
-    // TODO check the different unsuported format or othe rthings that are not supported by Omero Raw Server
     private static boolean isSupported(OmeroRawObjects.OmeroRawObject omeroObj) {
-        if (omeroObj == null || omeroObj.getType() != OmeroRawObjects.OmeroRawObjectType.IMAGE)
-            return true;
-        return true;//isUint8((Image)omeroObj) && has3Channels((Image)omeroObj);
+        return !(omeroObj == null || omeroObj.getType() == OmeroRawObjects.OmeroRawObjectType.UNKNOWN);
     }
-
-   /* private static boolean isUint8(Image image) {
-        if (image == null)
-            return false;
-        return image.getPixelType().equals("uint8");
-    }
-
-    private static boolean has3Channels(Image image) {
-        if (image == null)
-            return false;
-        return Integer.parseInt(getObjectInfo(7, image).getValue()) == 3;
-    }*/
 
     /**
      * Set the specified item and its children to the specified expanded mode
@@ -1075,7 +1060,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     }
 
     private void updateOwnersComboBox(List<OmeroRawObjects.Owner> tempOwners, OmeroRawObjects.Owner currentOwner){
-        if (!tempOwners.containsAll(comboOwner.getItems()) || !comboOwner.getItems().containsAll(tempOwners)) {
+        if (!new HashSet<>(tempOwners).containsAll(comboOwner.getItems()) || !new HashSet<>(comboOwner.getItems()).containsAll(tempOwners)) {
             Platform.runLater(() -> {
                 comboOwner.getItems().setAll(tempOwners);
                 // Attempt not to change the currently selected owner if present in new Owner set
@@ -1152,22 +1137,12 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     Label notSupportedLabel = new Label("Image not supported:");
                     notSupportedLabel.setStyle("-fx-text-fill: red;");
 
-                    // Clarify to the user WHY it's not supported
-                    // TODO clean this code according to what is supported or not (see the other todo above the isSupported method)
                     Label uint8 = new Label();
- //                   if (isUint8((Image)item)) {
- //                       uint8.setText("- uint8 " + Character.toString((char)10003));
- //                   } else {
                         uint8.setText("- uint8 " + (char) 10007);
                         uint8.setStyle("-fx-text-fill: red;");
- //                   }
                     Label has3Channels = new Label();
- //                   if (has3Channels((Image)item)) {
-  //                      has3Channels.setText("- 3 channels " + Character.toString((char)10003));
-  //                  } else {
                         has3Channels.setText("- 3 channels " + (char) 10007);
                         has3Channels.setStyle("-fx-text-fill: red;");
-  //                  }
                     gp.addRow(1, notSupportedLabel, new HBox(uint8, has3Channels));
                 }
 
@@ -1176,7 +1151,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     if (thumbnailBank.containsKey(item.getId()))
                         OmeroRawBrowserTools.paintBufferedImageOnCanvas(thumbnailBank.get(item.getId()), tooltipCanvas, 100);
                     else {
-                        // Get thumbnail from JSON API in separate thread
+                        // Get thumbnail from OMERO in separate thread
                         executorThumbnails.submit(() -> {
                             var loadedImg = OmeroRawTools.getThumbnail(client, item.getId(), imgPrefSize);
                             if (loadedImg != null) {
