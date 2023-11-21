@@ -180,43 +180,50 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
     private final String[] orphanedAttributes = new String[] {"Name"};
 
-    private final String[] projectAttributes = new String[] {"Name",
+    private final String[] projectAttributes = new String[] {
+            "Name",
             "Id",
             "Description",
             "Owner",
             "Group",
             "Num. datasets"};
 
-    private final String[] datasetAttributes = new String[] {"Name",
+    private final String[] datasetAttributes = new String[] {
+            "Name",
             "Id",
             "Description",
             "Owner",
             "Group",
             "Num. images"};
 
-    private final String[] screenAttributes = new String[] {"Name",
+    private final String[] screenAttributes = new String[] {
+            "Name",
             "Id",
             "Description",
             "Owner",
             "Group",
             "Num. plates"};
 
-    private final String[] plateAttributes = new String[] {"Name",
+    private final String[] plateAttributes = new String[] {
+            "Name",
             "Id",
             "Description",
             "Owner",
             "Group",
             "Num. wells"};
 
-    private final String[] wellAttributes = new String[] {"Name",
+    private final String[] wellAttributes = new String[] {
+            "Name",
             "Id",
             "Description",
             "Owner",
             "Group",
             "Num. images"};
 
-    private final String[] imageAttributes = new String[] {"Name",
+    private final String[] imageAttributes = new String[] {
+            "Name",
             "Id",
+            "Description",
             "Owner",
             "Group",
             "Acquisition date",
@@ -331,8 +338,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         serverInfoPane.setRight(loadingInfoPane);
 
         // Get OMERO icons (project and dataset icons)
-        omeroIcons = getOmeroIcons();
-
+        omeroIcons = OmeroRawBrowserTools.getOmeroIcons();
 
         currentOrphanedCount.bind(Bindings.createIntegerBinding(() -> Math.toIntExact(filterList(orphanedImageList,
                         comboGroup.getSelectionModel().getSelectedItem(),
@@ -833,37 +839,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         return children;
     }
 
-    private Map<OmeroRawObjects.OmeroRawObjectType, BufferedImage> getOmeroIcons() {
-        Map<OmeroRawObjects.OmeroRawObjectType, BufferedImage> map = new HashMap<>();
-
-        try {
-            // Load project icon
-            map.put(OmeroRawObjects.OmeroRawObjectType.PROJECT, ImageIO.read(getClass().getClassLoader().getResource("images/folder16.png")));
-
-            // Load dataset icon
-            map.put(OmeroRawObjects.OmeroRawObjectType.DATASET, ImageIO.read(getClass().getClassLoader().getResource("images/folder_image16.png")));
-
-            // Load image icon
-            map.put(OmeroRawObjects.OmeroRawObjectType.IMAGE, ImageIO.read(getClass().getClassLoader().getResource("images/image16.png")));
-
-            // Load screen icon
-            map.put(OmeroRawObjects.OmeroRawObjectType.SCREEN, ImageIO.read(getClass().getClassLoader().getResource("images/folder_screen16.png")));
-
-            // Load plate icon
-            map.put(OmeroRawObjects.OmeroRawObjectType.PLATE, ImageIO.read(getClass().getClassLoader().getResource("images/folder_plate16.png")));
-
-            // Load orphaned folder icon
-            map.put(OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER, ImageIO.read(getClass().getClassLoader().getResource("images/folder_yellow16.png")));
-
-            // Load image icon
-            map.put(OmeroRawObjects.OmeroRawObjectType.WELL, ImageIO.read(getClass().getClassLoader().getResource("images/folder_well16.png")));
-
-        } catch (IOException e) {
-            logger.warn("Could not load OMERO icons: {}", e.getLocalizedMessage());
-        }
-        return map;
-    }
-
 
     /**
      * Return a list of Strings representing the {@code OmeroRawObject}s in the parameter list.
@@ -943,51 +918,25 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         tree.refresh();
     }
 
+    /**
+     * read the object info. Special case for orphaned folder (nothing to display) and for images (raw file info).
+     * All other containers have the same info fields.
+     */
     private static ObservableValue<String> getObjectInfo(Integer index, OmeroRawObjects.OmeroRawObject omeroObject) {
         if (omeroObject == null)
             return new ReadOnlyObjectWrapper<>();
         String[] outString = new String[0];
+
+        // get all common attributes
         String name = omeroObject.getName();
         String id = String.valueOf(omeroObject.getId());
         String owner = omeroObject.getOwner() == null ? null : omeroObject.getOwner().getName();
         String group = omeroObject.getGroup() == null ? null : omeroObject.getGroup().getName();
-        if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER)
-            outString = new String[] {name};
-        else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.PROJECT) {
-            String description = ((OmeroRawObjects.Project)omeroObject).getDescription();
-            if (description == null || description.isEmpty())
-                description = "-";
-            String nChildren = String.valueOf(omeroObject.getNChildren());
-            outString = new String[] {name, id, description, owner, group, nChildren};
+        String description = omeroObject.getDescription() == null ? "-" : omeroObject.getDescription();
 
-        } else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.DATASET) {
-            String description = ((OmeroRawObjects.Dataset) omeroObject).getDescription();
-            if (description == null || description.isEmpty())
-                description = "-";
-            String nChildren = String.valueOf(omeroObject.getNChildren());
-            outString = new String[]{name, id, description, owner, group, nChildren};}
-
-        else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.SCREEN) {
-            String description = ((OmeroRawObjects.Screen)omeroObject).getDescription();
-            if (description == null || description.isEmpty())
-                description = "-";
-            String nChildren = String.valueOf(omeroObject.getNChildren());
-            outString = new String[] {name, id, description, owner, group, nChildren};}
-
-        else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.PLATE) {
-            String description = ((OmeroRawObjects.Plate)omeroObject).getDescription();
-            if (description == null || description.isEmpty())
-                description = "-";
-            String nChildren = String.valueOf(omeroObject.getNChildren());
-            outString = new String[] {name, id, description, owner, group, nChildren};}
-
-        else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.WELL) {
-            String description = ((OmeroRawObjects.Well)omeroObject).getDescription();
-            if (description == null || description.isEmpty())
-                description = "-";
-            String nChildren = String.valueOf(omeroObject.getNChildren());
-            outString = new String[] {name, id, description, owner, group, nChildren};
-
+        // special cases
+        if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER){
+            outString = new String[]{name};
         } else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE) {
             OmeroRawObjects.Image obj = (OmeroRawObjects.Image)omeroObject;
             String acquisitionDate = obj.getAcquisitionDate() == -1 ? "-" : new Date(obj.getAcquisitionDate()).toString();
@@ -1000,12 +949,18 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             String pixelSizeY = obj.getPhysicalSizes()[1] == null ? "-" : obj.getPhysicalSizes()[1].getValue() + " " + obj.getPhysicalSizes()[1].getSymbol();
             String pixelSizeZ = obj.getPhysicalSizes()[2] == null ? "-" : obj.getPhysicalSizes()[2].getValue() + obj.getPhysicalSizes()[2].getSymbol();
             String pixelType = obj.getPixelType();
-            outString = new String[] {name, id, owner, group, acquisitionDate, width, height, c, z, t, pixelSizeX, pixelSizeY, pixelSizeZ, pixelType};
+            outString = new String[] {name, id, description, owner, group, acquisitionDate, width, height, c, z, t, pixelSizeX, pixelSizeY, pixelSizeZ, pixelType};
+        } else if(omeroObject.getType() != OmeroRawObjects.OmeroRawObjectType.UNKNOWN){
+            String nChildren = String.valueOf(omeroObject.getNChildren());
+            outString = new String[] {name, id, description, owner, group, nChildren};
         }
 
         return new ReadOnlyObjectWrapper<>(outString[index]);
     }
 
+    /**
+     * Update the container metadata (right panel and under the thumbnail preview for the image)
+     */
     private void updateDescription() {
         ObservableList<Integer> indexList = FXCollections.observableArrayList();
         var selectedItems = tree.getSelectionModel().getSelectedItems();
@@ -1014,6 +969,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 Integer[] orphanedIndices = new Integer[orphanedAttributes.length];
                 for (int index = 0; index < orphanedAttributes.length; index++) orphanedIndices[index] = index;
                 indexList = FXCollections.observableArrayList(orphanedIndices);
+
             } else if (selectedItems.get(0).getValue().getType().equals(OmeroRawObjects.OmeroRawObjectType.PROJECT)) {
                 Integer[] projectIndices = new Integer[projectAttributes.length];
                 for (int index = 0; index < projectAttributes.length; index++) projectIndices[index] = index;
@@ -1025,19 +981,19 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 indexList = FXCollections.observableArrayList(datasetIndices);
 
             } else if (selectedItems.get(0).getValue().getType().equals(OmeroRawObjects.OmeroRawObjectType.SCREEN)) {
-                Integer[] datasetIndices = new Integer[screenAttributes.length];
-                for (int index = 0; index < screenAttributes.length; index++) datasetIndices[index] = index;
-                indexList = FXCollections.observableArrayList(datasetIndices);
+                Integer[] screenIndices = new Integer[screenAttributes.length];
+                for (int index = 0; index < screenAttributes.length; index++) screenIndices[index] = index;
+                indexList = FXCollections.observableArrayList(screenIndices);
 
             } else if (selectedItems.get(0).getValue().getType().equals(OmeroRawObjects.OmeroRawObjectType.PLATE)) {
-                Integer[] datasetIndices = new Integer[plateAttributes.length];
-                for (int index = 0; index < plateAttributes.length; index++) datasetIndices[index] = index;
-                indexList = FXCollections.observableArrayList(datasetIndices);
+                Integer[] plateIndices = new Integer[plateAttributes.length];
+                for (int index = 0; index < plateAttributes.length; index++) plateIndices[index] = index;
+                indexList = FXCollections.observableArrayList(plateIndices);
 
             } else if (selectedItems.get(0).getValue().getType().equals(OmeroRawObjects.OmeroRawObjectType.WELL)) {
-                Integer[] datasetIndices = new Integer[wellAttributes.length];
-                for (int index = 0; index < wellAttributes.length; index++) datasetIndices[index] = index;
-                indexList = FXCollections.observableArrayList(datasetIndices);
+                Integer[] wellIndices = new Integer[wellAttributes.length];
+                for (int index = 0; index < wellAttributes.length; index++) wellIndices[index] = index;
+                indexList = FXCollections.observableArrayList(wellIndices);
 
             } else if (selectedItems.get(0).getValue().getType().equals(OmeroRawObjects.OmeroRawObjectType.IMAGE)) {
                 Integer[] imageIndices = new Integer[imageAttributes.length];

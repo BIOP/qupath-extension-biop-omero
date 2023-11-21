@@ -35,6 +35,7 @@ import qupath.lib.gui.tools.GuiTools;
 import qupath.lib.images.servers.ImageServerProvider;
 import qupath.lib.projects.ProjectImageEntry;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -571,6 +572,41 @@ public class OmeroRawBrowserTools {
         }
     }
 
+    /**
+     * Load container / image icons for the nice browser interface
+     * @return
+     */
+    protected static Map<OmeroRawObjects.OmeroRawObjectType, BufferedImage> getOmeroIcons() {
+        Map<OmeroRawObjects.OmeroRawObjectType, BufferedImage> map = new HashMap<>();
+
+        try {
+            // Load project icon
+            map.put(OmeroRawObjects.OmeroRawObjectType.PROJECT, ImageIO.read(OmeroRawBrowserTools.class.getClassLoader().getResource("images/folder16.png")));
+
+            // Load dataset icon
+            map.put(OmeroRawObjects.OmeroRawObjectType.DATASET, ImageIO.read(OmeroRawBrowserTools.class.getClassLoader().getResource("images/folder_image16.png")));
+
+            // Load image icon
+            map.put(OmeroRawObjects.OmeroRawObjectType.IMAGE, ImageIO.read(OmeroRawBrowserTools.class.getClassLoader().getResource("images/image16.png")));
+
+            // Load screen icon
+            map.put(OmeroRawObjects.OmeroRawObjectType.SCREEN, ImageIO.read(OmeroRawBrowserTools.class.getClassLoader().getResource("images/folder_screen16.png")));
+
+            // Load plate icon
+            map.put(OmeroRawObjects.OmeroRawObjectType.PLATE, ImageIO.read(OmeroRawBrowserTools.class.getClassLoader().getResource("images/folder_plate16.png")));
+
+            // Load orphaned folder icon
+            map.put(OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER, ImageIO.read(OmeroRawBrowserTools.class.getClassLoader().getResource("images/folder_yellow16.png")));
+
+            // Load image icon
+            map.put(OmeroRawObjects.OmeroRawObjectType.WELL, ImageIO.read(OmeroRawBrowserTools.class.getClassLoader().getResource("images/folder_well16.png")));
+
+        } catch (IOException e) {
+            logger.warn("Could not load OMERO icons: {}", e.getLocalizedMessage());
+        }
+        return map;
+    }
+
     protected static StringConverter<OmeroRawObjects.Owner> getOwnerStringConverter(Collection<OmeroRawObjects.Owner> owners) {
         return new StringConverter<>() {
             // Create converter from Owner object to proper String
@@ -776,6 +812,7 @@ public class OmeroRawBrowserTools {
      * @param type
      * @return Id
      */
+    @Deprecated
     public static int parseOmeroRawObjectId(URI uri, OmeroRawObjects.OmeroRawObjectType type) {
         String cleanUri = uri.toString().replace("%3D", "=");
         Matcher m;
@@ -815,6 +852,7 @@ public class OmeroRawBrowserTools {
      * @param uri
      * @return omeroRawObjectType
      */
+    @Deprecated
     public static OmeroRawObjects.OmeroRawObjectType parseOmeroRawObjectType(URI uri) {
         var uriString = uri.toString().replace("%3D", "=");
         if (patternLinkProject.matcher(uriString).find())
@@ -829,5 +867,4 @@ public class OmeroRawBrowserTools {
         }
         return OmeroRawObjects.OmeroRawObjectType.UNKNOWN;
     }
-
 }
