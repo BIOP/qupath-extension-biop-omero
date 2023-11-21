@@ -1074,6 +1074,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
 
     /**
+     * This class builds the GUI layout for one OMERO object in the browser
      * Display an OMERO object using its name.
      */
     private class OmeroObjectCell extends TreeCell<OmeroRawObjects.OmeroRawObject> {
@@ -1108,9 +1109,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     item.getType() == OmeroRawObjects.OmeroRawObjectType.WELL)
                 name = item.getName() + " (" + item.getNChildren() + ")";
             else if (item.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER) {
-                // No need for 'text', as we're using the graphic component of the cell for orphaned folder
-                setText("");
-                var label = new Label("", iconCanvas);
+                name = item.getName() + " (" + item.getNChildren() + ")";
+                Label label = new Label("", iconCanvas);
 
                 // Bind the label property to display the total amount of loaded orphaned images (for this Group/Owner)
                 label.textProperty().bind(
@@ -1120,14 +1120,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
                 // If orphaned images are still loading, disable the cell (prevent weird and unnecessary errors)
                 disableProperty().bind(orphanedFolder.getLoadingProperty());
-                if (icon != null)
-                    OmeroRawBrowserTools.paintBufferedImageOnCanvas(icon, iconCanvas, 15);
-                // Orphaned object is still 'selectable' via arrows (despite being disabled), which looks like a JavaFX bug..
-//            		orphanedFolder.getCurrentCountProperty().addListener((v, o, n) -> getDisclosureNode().setVisible(n.intValue() > 0 && !orphanedFolder.getLoadingProperty().get()));
-                tooltip.setText(item.getName());
-                setTooltip(tooltip);
-                setGraphic(label);
-                return;
             } else if (item.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE) {
                 name = item.getName();
                 GridPane gp = new GridPane();
@@ -1186,6 +1178,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     }
 
     /**
+     * Abstract object that handle the hierarchy logic
      * TreeItem to help with the display of OMERO objects.
      */
     private class OmeroRawObjectTreeItem extends TreeItem<OmeroRawObjects.OmeroRawObject> {
