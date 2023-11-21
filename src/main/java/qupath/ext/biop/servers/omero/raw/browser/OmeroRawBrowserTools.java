@@ -676,7 +676,7 @@ public class OmeroRawBrowserTools {
      * @return list
      * @throws IOException
      */
-
+    @Deprecated
     public static List<URI> getURIs(URI uri, OmeroRawClient client) throws IOException, DSOutOfServiceException, ExecutionException, DSAccessException {
         List<URI> list = new ArrayList<>();
         URI cleanServerUri = URI.create(uri.toString().replace("show%3Dimage-", "show=image-"));
@@ -722,6 +722,7 @@ public class OmeroRawBrowserTools {
         throw new IOException("URI not recognized: " + uri);
     }
 
+    @Deprecated
     public static URI getStandardURI(URI uri, OmeroRawClient client) throws IOException, ExecutionException, DSOutOfServiceException, DSAccessException {
         List<String> ids = new ArrayList<>();
         String vertBarSign = "%7C";
@@ -798,10 +799,6 @@ public class OmeroRawBrowserTools {
 
         return URI.create(sb.toString());
     }
-
-
-
-
 
     /**
      * Return the Id associated with the {@code URI} provided.

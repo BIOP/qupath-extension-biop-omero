@@ -222,7 +222,7 @@ class AdvancedSearch {
         importBtn.disableProperty().bind(resultsTableView.getSelectionModel().selectedItemProperty().isNull());
         importBtn.setMaxWidth(Double.MAX_VALUE);
         importBtn.setOnAction(e -> {
-            String[] URIs = resultsTableView.getSelectionModel().getSelectedItems().stream()
+            String[] URIs =  new String[]{};/*resultsTableView.getSelectionModel().getSelectedItems().stream()
                     .flatMap(item -> {
                         try {
                             return OmeroRawBrowserTools.getURIs(item.link.toURI(), client).stream();
@@ -234,7 +234,7 @@ class AdvancedSearch {
                         return null;
                     })
                     .map(URI::toString)
-                    .toArray(String[]::new);
+                    .toArray(String[]::new);*/
             if (URIs.length > 0) {
 
                 List<ProjectImageEntry<BufferedImage>> importedImageEntries = OmeroRawBrowserTools.promptToImportOmeroImages(qupath, URIs);
@@ -364,26 +364,20 @@ class AdvancedSearch {
 
         resultsTableView.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
-                var selectedItem = resultsTableView.getSelectionModel().getSelectedItem();
+                SearchResult selectedItem = resultsTableView.getSelectionModel().getSelectedItem();
                 if (selectedItem != null) {
-                    try {
-                        List<URI> URIs = OmeroRawBrowserTools.getURIs(selectedItem.link.toURI(), client);
-                        var uriStrings = URIs.parallelStream().map(URI::toString).toArray(String[]::new);
-                        if (URIs.size() > 0) {
-                            List<ProjectImageEntry<BufferedImage>> importedImageEntries =
-                                    OmeroRawBrowserTools.promptToImportOmeroImages(qupath, uriStrings);
+                    List<URI> URIs = new ArrayList<>();//OmeroRawBrowserTools.getURIs(selectedItem.link.toURI(), client);
+                    var uriStrings = URIs.parallelStream().map(URI::toString).toArray(String[]::new);
+                    if (URIs.size() > 0) {
+                        List<ProjectImageEntry<BufferedImage>> importedImageEntries =
+                                OmeroRawBrowserTools.promptToImportOmeroImages(qupath, uriStrings);
 
-                            //TODO Find a way to get an OmeroRawObjects.OmeroRawObject
-                               /* for(ProjectImageEntry<BufferedImage> entry : afterImport)
-                                    OmeroRawBrowserTools.addContainersAsMetadataFields(client, entry);*/
-                        }
-                        else
-                            Dialogs.showErrorMessage("No image found", "No image found in OMERO object.");
-                    } catch (IOException | URISyntaxException ex) {
-                        logger.error("Error while importing " + selectedItem.name + ": {}", ex.getLocalizedMessage());
-                    } catch (DSOutOfServiceException | ExecutionException | DSAccessException ex) {
-                        throw new RuntimeException(ex);
+                        //TODO Find a way to get an OmeroRawObjects.OmeroRawObject
+                           /* for(ProjectImageEntry<BufferedImage> entry : afterImport)
+                                OmeroRawBrowserTools.addContainersAsMetadataFields(client, entry);*/
                     }
+                    else
+                        Dialogs.showErrorMessage("No image found", "No image found in OMERO object.");
                 }
             }
         });
@@ -531,6 +525,7 @@ class AdvancedSearch {
         }
     }
 
+    //TODO if this search need to be implemented, we need first to use the OmeroRawObjects class
     private class SearchResult {
         private final String type;
         private final int id;

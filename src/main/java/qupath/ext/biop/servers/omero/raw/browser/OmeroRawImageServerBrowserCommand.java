@@ -848,22 +848,19 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
      *
      * @param list of OmeroRawObjects
      * @return list of constructed Strings
-     * @see OmeroRawBrowserTools#getURIs(URI, OmeroRawClient)
+     * @see OmeroRawImageServerBrowserCommand#createObjectURI(OmeroRawObjects.OmeroRawObject)
      */
     private List<String> getObjectsURI(OmeroRawObjects.OmeroRawObject... list) {
         List<String> URIs = new ArrayList<>();
         for (OmeroRawObjects.OmeroRawObject obj: list) {
             if (obj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER) {
-                var filteredList = filterList(((OmeroRawObjects.OrphanedFolder)obj).getImageList(), comboGroup.getSelectionModel().getSelectedItem(), comboOwner.getSelectionModel().getSelectedItem(), null);
+                var filteredList = filterList(((OmeroRawObjects.OrphanedFolder)obj).getImageList(),
+                        comboGroup.getSelectionModel().getSelectedItem(), comboOwner.getSelectionModel().getSelectedItem(), null);
                 URIs.addAll(filteredList.stream().map(this::createObjectURI).collect(Collectors.toList()));
-            } else {
-                try {
-                    URIs.addAll(OmeroRawBrowserTools.getURIs(URI.create(createObjectURI(obj)), client).stream().map(URI::toString).collect(Collectors.toList()));
-                } catch (IOException ex) {
-                    logger.error("Could not get URI for " + obj.getName() + ": {}", ex.getLocalizedMessage());
-                } catch (DSOutOfServiceException | ExecutionException | DSAccessException e) {
-                    throw new RuntimeException(e);
-                }
+            } else{
+                List<OmeroRawObjects.OmeroRawObject> flatImagesList = listAllImagesToImport(obj, comboGroup.getSelectionModel().getSelectedItem(),
+                        comboOwner.getSelectionModel().getSelectedItem());
+                URIs.addAll(flatImagesList.stream().map(this::createObjectURI).collect(Collectors.toList()));
             }
         }
         return URIs;
