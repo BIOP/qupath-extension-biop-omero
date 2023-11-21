@@ -594,10 +594,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 expandTreeView(tree.getRoot());
         });
 
-        Button advancedSearchBtn = new Button("Advanced...");
-        advancedSearchBtn.setOnAction(e -> new AdvancedSearch(qupath, client, owners, groups, omeroIcons, thumbnailBank, imgPrefSize));
+       /*Button advancedSearchBtn = new Button("Advanced...");
+        advancedSearchBtn.setOnAction(e -> new AdvancedSearch(qupath, client, owners, groups, omeroIcons, thumbnailBank, imgPrefSize));*/
         GridPane searchAndAdvancedPane = new GridPane();
-        GridPaneUtils.addGridRow(searchAndAdvancedPane, 0, 0, null, filter, advancedSearchBtn);
+        GridPaneUtils.addGridRow(searchAndAdvancedPane, 0, 0, null, filter);
 
         importBtn = new Button("Import image");
 
