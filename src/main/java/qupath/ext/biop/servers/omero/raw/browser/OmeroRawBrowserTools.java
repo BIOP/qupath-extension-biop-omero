@@ -12,6 +12,11 @@ import fr.igred.omero.repository.ProjectWrapper;
 import fr.igred.omero.repository.ScreenWrapper;
 import fr.igred.omero.repository.WellSampleWrapper;
 import fr.igred.omero.repository.WellWrapper;
+import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.WritableImage;
+import javafx.util.StringConverter;
 import omero.gateway.exception.DSAccessException;
 import omero.gateway.exception.DSOutOfServiceException;
 import omero.gateway.model.ExperimenterData;
@@ -20,9 +25,14 @@ import omero.model.DatasetImageLink;
 import omero.model.Experimenter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import qupath.ext.biop.servers.omero.raw.OmeroRawImageServerBuilder;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.fx.dialogs.Dialogs;
+import qupath.lib.gui.QuPathGUI;
+import qupath.lib.gui.commands.ProjectCommands;
+import qupath.lib.gui.tools.GuiTools;
+import qupath.lib.images.servers.ImageServerProvider;
 import qupath.lib.projects.ProjectImageEntry;
 
 import java.awt.image.BufferedImage;
@@ -559,6 +569,62 @@ public class OmeroRawBrowserTools {
             default:
                     break;
         }
+    }
+
+    protected static StringConverter<OmeroRawObjects.Owner> getOwnerStringConverter(Collection<OmeroRawObjects.Owner> owners) {
+        return new StringConverter<>() {
+            // Create converter from Owner object to proper String
+            @Override
+            public String toString(OmeroRawObjects.Owner owner) {
+                if (owner != null)
+                    return owner.getName();
+                return null;
+            }
+
+            @Override
+            public OmeroRawObjects.Owner fromString(String string) {
+                return owners.stream().filter(ap ->
+                        ap.getName().equals(string)).findFirst().orElse(null);
+            }
+        };
+    }
+
+    /**
+     * Paint the specified image onto the specified canvas (of the preferred size).
+     * Additionally, it returns the {@code WritableImage} for further use.
+     * @param img
+     * @param canvas
+     * @param prefSize
+     * @return writable image
+     */
+    protected static WritableImage paintBufferedImageOnCanvas(BufferedImage img, Canvas canvas, int prefSize) {
+        canvas.setWidth(prefSize);
+        canvas.setHeight(prefSize);
+
+        // Color the canvas in black, in case no new image can be painted
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+        if (img == null)
+            return null;
+
+        var wi =  SwingFXUtils.toFXImage(img, null);
+        if (wi == null)
+            return wi;
+
+        GuiTools.paintImage(canvas, wi);
+        return wi;
+    }
+
+
+    /**
+     * Prompt to import images, specifying the {@link OmeroRawImageServerBuilder} if possible.
+     * @param validUris
+     * @return
+     */
+    protected static List<ProjectImageEntry<BufferedImage>> promptToImportOmeroImages(QuPathGUI qupath, String... validUris) {
+        var builder = ImageServerProvider.getInstalledImageServerBuilders(BufferedImage.class).stream().filter(b -> b instanceof OmeroRawImageServerBuilder).findFirst().orElse(null);
+        return ProjectCommands.promptToImportImages(qupath, builder, validUris);
     }
 
 

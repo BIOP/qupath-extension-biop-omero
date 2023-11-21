@@ -51,16 +51,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import fr.igred.omero.annotations.AnnotationList;
-import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.meta.ExperimenterWrapper;
-import javafx.event.EventHandler;
-import javafx.geometry.Rectangle2D;
-import javafx.stage.Screen;
-import javafx.stage.Window;
 import omero.gateway.exception.DSAccessException;
 import omero.gateway.exception.DSOutOfServiceException;
-import org.controlsfx.glyphfont.GlyphFontRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +80,6 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressIndicator;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Separator;
 import javafx.scene.control.SplitPane;
@@ -95,7 +87,6 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TitledPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
@@ -104,8 +95,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -126,12 +115,6 @@ import qupath.lib.gui.tools.GuiTools;
 import qupath.fx.utils.GridPaneUtils;
 import qupath.lib.gui.tools.IconFactory;
 import qupath.lib.images.servers.ImageServerProvider;
-import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.CommentAnnotation;
-import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.FileAnnotation;
-import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.LongAnnotation;
-import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.MapAnnotation;
-import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.OmeroRawAnnotationType;
-import qupath.ext.biop.servers.omero.raw.browser.OmeroRawAnnotations.TagAnnotation;
 import qupath.lib.projects.ProjectImageEntry;
 
 import javax.imageio.ImageIO;
@@ -178,7 +161,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     private Button importBtn;
 
     // Other
-    private StringConverter<OmeroRawObjects.Owner> ownerStringConverter;
     private Map<OmeroRawObjects.OmeroRawObjectType, BufferedImage> omeroIcons;
     private ExecutorService executorTable;		// Get TreeView item children in separate thread
     private ExecutorService executorThumbnails;	// Get image thumbnails in separate thread
@@ -351,21 +333,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         // Get OMERO icons (project and dataset icons)
         omeroIcons = getOmeroIcons();
 
-        // Create converter from Owner object to proper String
-        ownerStringConverter = new StringConverter<>() {
-            @Override
-            public String toString(OmeroRawObjects.Owner owner) {
-                if (owner != null)
-                    return owner.getName();
-                return null;
-            }
-
-            @Override
-            public OmeroRawObjects.Owner fromString(String string) {
-                return comboOwner.getItems().stream().filter(ap ->
-                        ap.getName().equals(string)).findFirst().orElse(null);
-            }
-        };
 
         currentOrphanedCount.bind(Bindings.createIntegerBinding(() -> Math.toIntExact(filterList(orphanedImageList,
                         comboGroup.getSelectionModel().getSelectedItem(),
@@ -398,7 +365,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         owners.add(OmeroRawObjects.Owner.getAllMembersOwner());
         comboOwner.getItems().setAll(groupMap.get(comboGroup.getSelectionModel().getSelectedItem()));
         comboOwner.getSelectionModel().select(defaultOwner);
-        comboOwner.setConverter(ownerStringConverter);
+        comboOwner.setConverter(OmeroRawBrowserTools.getOwnerStringConverter(comboOwner.getItems()));
 
         // Changing the ComboBox value refreshes the TreeView
         comboOwner.getSelectionModel().selectedItemProperty().addListener((v, o, n) -> refreshTree());
@@ -422,7 +389,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         }
                     }
                     else {
-                        List<ProjectImageEntry<BufferedImage>> importedImageEntries = promptToImportOmeroImages(createObjectURI(selectedItem));
+                        List<ProjectImageEntry<BufferedImage>> importedImageEntries =
+                                OmeroRawBrowserTools.promptToImportOmeroImages(qupath, createObjectURI(selectedItem));
                         for(ProjectImageEntry<BufferedImage> entry : importedImageEntries)
                            OmeroRawBrowserTools.addContainersAsMetadataFields(entry, selectedItem);
                     }
@@ -436,7 +404,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         MenuItem collapseItem = new MenuItem("Collapse all items");
 
         // 'More info..' will open new AdvancedObjectInfo pane
-        moreInfoItem.setOnAction(ev -> new AdvancedObjectInfo(tree.getSelectionModel().getSelectedItem().getValue()));
+        moreInfoItem.setOnAction(ev -> new AdvancedObjectInfo(tree.getSelectionModel().getSelectedItem().getValue(), client));
         moreInfoItem.disableProperty().bind(tree.getSelectionModel().selectedItemProperty().isNull()
                 .or(Bindings.size(tree.getSelectionModel().getSelectedItems()).isNotEqualTo(1)
                         .or(Bindings.createBooleanBinding(() -> tree.getSelectionModel().getSelectedItem() != null && tree.getSelectionModel().getSelectedItem().getValue().getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER,
@@ -445,7 +413,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         // Opens the OMERO object in a browser
         openBrowserItem.setOnAction(ev -> {
             var selected = tree.getSelectionModel().getSelectedItems();
-            if (selected != null && !selected.isEmpty() && selected.size() == 1) {
+            if (selected != null && selected.size() == 1) {
                 if (selected.get(0).getValue() instanceof OmeroRawObjects.OrphanedFolder) {
                     Dialogs.showPlainMessage("Requesting orphaned folder", "Link to orphaned folder does not exist!");
                     return;
@@ -588,7 +556,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     if (selectedItems.get(0) != null && selectedItems.get(0).getValue().getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE) {
                         // Check if thumbnail was previously cached
                         if (thumbnailBank.containsKey(selectedObjectLocal.getId()))
-                            paintBufferedImageOnCanvas(thumbnailBank.get(selectedObjectLocal.getId()), canvas, imgPrefSize);
+                            OmeroRawBrowserTools.paintBufferedImageOnCanvas(thumbnailBank.get(selectedObjectLocal.getId()), canvas, imgPrefSize);
                         else {
                             // Get thumbnail from JSON API in separate thread (and show progress indicator)
                             loadingThumbnailLabel.setOpacity(1.0);
@@ -599,7 +567,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
                                 if (img != null) {
                                     thumbnailBank.put(selectedObjectLocal.getId(), img);
-                                    paintBufferedImageOnCanvas(thumbnailBank.get(selectedObjectLocal.getId()), canvas, imgPrefSize);
+                                    OmeroRawBrowserTools.paintBufferedImageOnCanvas(thumbnailBank.get(selectedObjectLocal.getId()), canvas, imgPrefSize);
                                 }
                                 Platform.runLater(() -> loadingThumbnailLabel.setOpacity(0));
                             });
@@ -627,7 +595,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         });
 
         Button advancedSearchBtn = new Button("Advanced...");
-        advancedSearchBtn.setOnAction(e -> new AdvancedSearch());
+        advancedSearchBtn.setOnAction(e -> new AdvancedSearch(qupath, client, owners, groups, omeroIcons, thumbnailBank, imgPrefSize));
         GridPane searchAndAdvancedPane = new GridPane();
         GridPaneUtils.addGridRow(searchAndAdvancedPane, 0, 0, null, filter, advancedSearchBtn);
 
@@ -683,7 +651,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 return;
             }
 
-            List<ProjectImageEntry<BufferedImage>> importedImageEntries = promptToImportOmeroImages(validUris);
+            List<ProjectImageEntry<BufferedImage>> importedImageEntries = OmeroRawBrowserTools.promptToImportOmeroImages(qupath, validUris);
             for(ProjectImageEntry<BufferedImage> entry : importedImageEntries) {
 
                 String[] query = entry.getServerBuilder().getURIs().iterator().next().getQuery().split("-");
@@ -1086,44 +1054,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     }
 
     /**
-     * Prompt to import images, specifying the {@link OmeroRawImageServerBuilder} if possible.
-     * @param validUris
-     * @return
-     */
-    private List<ProjectImageEntry<BufferedImage>> promptToImportOmeroImages(String... validUris) {
-        var builder = ImageServerProvider.getInstalledImageServerBuilders(BufferedImage.class).stream().filter(b -> b instanceof OmeroRawImageServerBuilder).findFirst().orElse(null);
-        return ProjectCommands.promptToImportImages(qupath, builder, validUris);
-    }
-
-
-    /**
-     * Paint the specified image onto the specified canvas (of the preferred size).
-     * Additionally, it returns the {@code WritableImage} for further use.
-     * @param img
-     * @param canvas
-     * @param prefSize
-     * @return writable image
-     */
-    private static WritableImage paintBufferedImageOnCanvas(BufferedImage img, Canvas canvas, int prefSize) {
-        canvas.setWidth(prefSize);
-        canvas.setHeight(prefSize);
-
-        // Color the canvas in black, in case no new image can be painted
-        GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-
-        if (img == null)
-            return null;
-
-        var wi =  SwingFXUtils.toFXImage(img, null);
-        if (wi == null)
-            return wi;
-
-        GuiTools.paintImage(canvas, wi);
-        return wi;
-    }
-
-    /**
      * Return whether the image type is supported by QuPath.
      * @param omeroObj
      * @return isSupported
@@ -1226,7 +1156,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             setOpacity(1.0);
             disableProperty().unbind();
             setDisable(false);
-            paintBufferedImageOnCanvas(null, tooltipCanvas, 0);
+            OmeroRawBrowserTools.paintBufferedImageOnCanvas(null, tooltipCanvas, 0);
 
             String name;
             Tooltip tooltip = new Tooltip();
@@ -1253,7 +1183,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 // If orphaned images are still loading, disable the cell (prevent weird and unnecessary errors)
                 disableProperty().bind(orphanedFolder.getLoadingProperty());
                 if (icon != null)
-                    paintBufferedImageOnCanvas(icon, iconCanvas, 15);
+                    OmeroRawBrowserTools.paintBufferedImageOnCanvas(icon, iconCanvas, 15);
                 // Orphaned object is still 'selectable' via arrows (despite being disabled), which looks like a JavaFX bug..
 //            		orphanedFolder.getCurrentCountProperty().addListener((v, o, n) -> getDisclosureNode().setVisible(n.intValue() > 0 && !orphanedFolder.getLoadingProperty().get()));
                 tooltip.setText(item.getName());
@@ -1291,14 +1221,14 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 tooltip.setOnShowing(e -> {
                     // Image tooltip shows the thumbnail (could show icon for other items, but icon is very low quality)
                     if (thumbnailBank.containsKey(item.getId()))
-                        paintBufferedImageOnCanvas(thumbnailBank.get(item.getId()), tooltipCanvas, 100);
+                        OmeroRawBrowserTools.paintBufferedImageOnCanvas(thumbnailBank.get(item.getId()), tooltipCanvas, 100);
                     else {
                         // Get thumbnail from JSON API in separate thread
                         executorThumbnails.submit(() -> {
                             var loadedImg = OmeroRawTools.getThumbnail(client, item.getId(), imgPrefSize);
                             if (loadedImg != null) {
                                 thumbnailBank.put(item.getId(), loadedImg);
-                                Platform.runLater(() -> paintBufferedImageOnCanvas(loadedImg, tooltipCanvas, 100));
+                                Platform.runLater(() -> OmeroRawBrowserTools.paintBufferedImageOnCanvas(loadedImg, tooltipCanvas, 100));
                             }
                         });
                     }
@@ -1314,7 +1244,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
             // Paint icon
             if (icon != null) {
-                paintBufferedImageOnCanvas(icon, iconCanvas, 15);
+                OmeroRawBrowserTools.paintBufferedImageOnCanvas(icon, iconCanvas, 15);
                 setGraphic(iconCanvas);
             }
 
@@ -1445,718 +1375,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         private <T> Predicate<T> distinctByName(Function<? super T, ?> keyExtractor) {
             Set<Object> seen = ConcurrentHashMap.newKeySet();
             return t -> seen.add(keyExtractor.apply(t));
-        }
-    }
-
-
-    private class AdvancedObjectInfo {
-
-        private final OmeroRawObjects.OmeroRawObject obj;
-        private final OmeroRawAnnotations tags;
-        private final OmeroRawAnnotations keyValuePairs;
-//		private final OmeroRawAnnotations tables;
-        private final OmeroRawAnnotations attachments;
-        private final OmeroRawAnnotations comments;
-        private final OmeroRawAnnotations ratings;
-//		private final OmeroRawAnnotations others;
-
-        private AdvancedObjectInfo(OmeroRawObjects.OmeroRawObject obj) {
-            this.obj = obj;
-            AnnotationList annotations;
-            try {
-                annotations = obj.getWrapper().getAnnotations(client.getSimpleClient());
-            }catch (DSAccessException | ServiceException | ExecutionException e){
-                annotations = new AnnotationList();
-            }
-
-            this.tags = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotationType.TAG, annotations);
-            this.keyValuePairs = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotationType.MAP, annotations);
-//			this.tables = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotationType.TABLE, annotations);
-            this.attachments = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotationType.ATTACHMENT, annotations);
-            this.comments = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotationType.COMMENT, annotations);
-            this.ratings = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotationType.RATING, annotations);
-//			this.others = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotationType.CUSTOM, annotations);
-
-            showOmeroObjectInfo();
-        }
-
-
-
-        private void showOmeroObjectInfo() {
-            BorderPane bp = new BorderPane();
-            GridPane gp = new GridPane();
-
-            Label nameLabel = new Label(obj.getName());
-            nameLabel.setStyle(BOLD);
-
-            int row = 0;
-            GridPaneUtils.addGridRow(gp, row++, 0, null, new TitledPane(obj.getType().toString() + " Details", createObjectDetailsPane(obj)));
-            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Tags (" + tags.getSize() + ")", tags));
-            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Key-Value Pairs (" + keyValuePairs.getSize() + ")", keyValuePairs));
-//			GridPaneUtils.addGridRow(gp, row++, 0, "Tables", new TitledPane("Tables", createAnnotationsPane(tables)));
-            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Attachments (" + attachments.getSize() + ")", attachments));
-            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Comments (" + comments.getSize() + ")", comments));
-            GridPaneUtils.addGridRow(gp, row++, 0, "Ratings", createAnnotationsPane("Ratings (" + ratings.getSize() + ")", ratings));
-//			GridPaneUtils.addGridRow(gp, row++, 0, "Others", new TitledPane("Others (" + others.getSize() + ")", createAnnotationsPane(others)));
-
-            // Top: object name
-            bp.setTop(nameLabel);
-
-            // Center: annotations
-            bp.setCenter(gp);
-
-            // Set max width/height
-            bp.setMaxWidth(500.0);
-            bp.setMaxHeight(800.0);
-
-            var dialog = Dialogs.builder()
-                    .content(bp)
-                    .title("More info")
-                    .build();
-
-            final Window window = dialog.getDialogPane().getScene().getWindow();
-            window.addEventHandler(WindowEvent.WINDOW_SHOWN, new EventHandler<WindowEvent>() {
-                @Override
-                public void handle(WindowEvent event) {
-                    Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
-                    if(window.getHeight() > screenBounds.getHeight()) {
-                        window.setY(0);
-                    }
-                }
-            });
-
-            // Resize Dialog when expanding/collapsing any TitledPane
-            gp.getChildren().forEach(e -> {
-                if (e instanceof TitledPane)
-                    ((TitledPane)e).heightProperty().addListener((v, o, n) -> dialog.getDialogPane().getScene().getWindow().sizeToScene());
-            });
-
-            // Catch escape key pressed
-            dialog.getDialogPane().getScene().addEventHandler(KeyEvent.KEY_PRESSED, e -> {
-                if (e.getCode() == KeyCode.ESCAPE)
-                    ((Stage)dialog.getDialogPane().getScene().getWindow()).close();
-            });
-
-            dialog.showAndWait();
-        }
-
-        /*
-         * Create a ScrollPane in which each row is an annotation value
-         */
-        private Node createAnnotationsPane(String title, OmeroRawAnnotations omeroRawAnnotations) {
-            TitledPane tp = new TitledPane();
-            tp.setText(title);
-
-            if (omeroRawAnnotations == null ||
-                    omeroRawAnnotations.getAnnotations() == null ||
-                    omeroRawAnnotations.getAnnotations().isEmpty() ||
-                    omeroRawAnnotations.getType() == null)
-                return tp;
-
-            ScrollPane sp = new ScrollPane();
-            GridPane gp = new GridPane();
-            gp.setHgap(50.0);
-            gp.setVgap(1.0);
-            sp.setMaxHeight(800.0);
-            sp.setMaxWidth(500.0);
-            sp.setMinHeight(50.0);
-            sp.setMinWidth(50.0);
-            sp.setPadding(new Insets(5.0, 5.0, 5.0, 5.0));
-
-            var anns = omeroRawAnnotations.getAnnotations();
-            String tooltip;
-            switch (omeroRawAnnotations.getType()) {
-                case TAG:
-                    for (var ann: anns) {
-                        var ann2 = (TagAnnotation)ann;
-                        tooltip = String.format("Owned by: %s", ann2.getOwner().getName());
-                        //tooltip += String.format("\nAdded by: %s", ann2.addedBy().getName());
-                        GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getValue()));
-                    }
-                    break;
-                case MAP:
-                    for (var ann: anns) {
-                        var ann2 = (MapAnnotation)ann;
-                        for (var value: ann2.getValues().entrySet())
-                            addKeyValueToGrid(gp, true, "Added by: " + ann2.getOwner().getName(), value.getKey(), value.getValue().isEmpty() ? "-" : value.getValue());
-                    }
-                    break;
-                case ATTACHMENT:
-                    for (var ann: anns) {
-                        var ann2 = (FileAnnotation)ann;
-                        tooltip = String.format("Owned by: %s%sType: %s", ann2.getOwner().getName(), System.lineSeparator(), ann2.getMimeType());
-                        //tooltip += String.format("\nAdded by: %s", ann2.addedBy().getName());
-                        GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getFilename() + " (" + ann2.getFileSize() + " bytes)"));
-                    }
-                    break;
-                case COMMENT:
-                    for (var ann: anns) {
-                        var ann2 = (CommentAnnotation)ann;
-                        GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, "Added by " + ann2.getOwner().getName(), new Label(ann2.getValue()));
-                    }
-                    break;
-                case RATING:
-                    int rating = 0;
-                    for (var ann: anns) {
-                        var ann2 = (LongAnnotation)ann;
-                        rating += ann2.getValue();
-                    }
-
-                    for (int i = 0; i < Math.round(rating/anns.size()); i++)
-                        gp.add(GlyphFontRegistry
-                                .font("icomoon") // font style of the icon
-                                .create("\u2605") // icon type (a star)
-                                .size(QuPathGUI.TOOLBAR_ICON_SIZE) // size of the icon
-                                .color(javafx.scene.paint.Color.GRAY), // color the icon
-                                i, 0);
-                    gp.setHgap(10.0);
-                    break;
-                default:
-                    logger.error("OMERO annotation not supported: {}", omeroRawAnnotations.getType());
-            }
-
-            sp.setContent(gp);
-            tp.setContent(sp);
-            return tp;
-        }
-
-        private Node createObjectDetailsPane(OmeroRawObjects.OmeroRawObject obj) {
-            GridPane gp = new GridPane();
-
-            addKeyValueToGrid(gp, true, "Id", "Id", String.valueOf(obj.getId()));
-            addKeyValueToGrid(gp, true, "Owner", "Owner", obj.getOwner().getName());
-            addKeyValueToGrid(gp, false, "Group", "Group", obj.getGroup().getName());
-
-            if (obj.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE) {
-                OmeroRawObjects.Image temp = (OmeroRawObjects.Image)obj;
-
-                gp.add(new Separator(), 0, gp.getRowCount() + 1, gp.getColumnCount(), 1);
-                String acquisitionDate = temp.getAcquisitionDate() == -1 ? "-" : new Date(temp.getAcquisitionDate()).toString();
-                String pixelSizeX = temp.getPhysicalSizes()[0] == null ? "-" : temp.getPhysicalSizes()[0].getValue() + " " + temp.getPhysicalSizes()[0].getSymbol();
-                String pixelSizeY = temp.getPhysicalSizes()[1] == null ? "-" : temp.getPhysicalSizes()[1].getValue() + " " + temp.getPhysicalSizes()[1].getSymbol();
-                String pixelSizeZ = temp.getPhysicalSizes()[2] == null ? "-" : temp.getPhysicalSizes()[2].getValue() + temp.getPhysicalSizes()[2].getSymbol();
-
-                addKeyValueToGrid(gp, true, "Acquisition date", "Acquisition date", acquisitionDate);
-                addKeyValueToGrid(gp, true, "Image width", "Image width", temp.getImageDimensions()[0] + " px");
-                addKeyValueToGrid(gp, true, "Image height", "Image height", temp.getImageDimensions()[1] + " px");
-                addKeyValueToGrid(gp, true, "Num. channels", "Num. channels", String.valueOf(temp.getImageDimensions()[2]));
-                addKeyValueToGrid(gp, true, "Num. z-slices", "Num. z-slices", String.valueOf(temp.getImageDimensions()[3]));
-                addKeyValueToGrid(gp, true, "Num. timepoints", "Num. timepoints", String.valueOf(temp.getImageDimensions()[4]));
-                addKeyValueToGrid(gp, true, "Pixel size X", "Pixel size X", pixelSizeX);
-                addKeyValueToGrid(gp, true, "Pixel size Y", "Pixel size Y", pixelSizeY);
-                addKeyValueToGrid(gp, true, "Pixel size Z", "Pixel size Z", pixelSizeZ);
-                addKeyValueToGrid(gp, false, "Pixel type", "Pixel type", temp.getPixelType());
-            }
-
-            gp.setHgap(50.0);
-            gp.setVgap(1.0);
-            return gp;
-        }
-
-
-        /**
-         * Append a key-value row to the end (bottom row) of the specified GridPane.
-         * @param gp
-         * @param addSeparator
-         * @param key
-         * @param value
-         */
-        private void addKeyValueToGrid(GridPane gp, boolean addSeparator, String tooltip, String key, String value) {
-            Label keyLabel = new Label(key);
-            keyLabel.setStyle(BOLD);
-            int row = gp.getRowCount();
-
-            GridPaneUtils.addGridRow(gp, row, 0, tooltip, keyLabel, new Label(value));
-            if (addSeparator)
-                gp.add(new Separator(), 0, row + 1, gp.getColumnCount(), 1);
-        }
-    }
-
-    private class AdvancedSearch {
-
-        private final TableView<SearchResult> resultsTableView = new TableView<>();
-        private final ObservableList<SearchResult> obsResults = FXCollections.observableArrayList();
-
-        private final TextField searchTf;
-        private final CheckBox restrictedByName;
-        private final CheckBox restrictedByDesc;
-        private final CheckBox searchForImages;
-        private final CheckBox searchForDatasets;
-        private final CheckBox searchForProjects;
-        private final CheckBox searchForWells;
-        private final CheckBox searchForPlates;
-        private final CheckBox searchForScreens;
-        private final ComboBox<OmeroRawObjects.Owner> ownedByCombo;
-        private final ComboBox<OmeroRawObjects.Group> groupCombo;
-
-        private final int prefScale = 50;
-
-        private final Button searchBtn;
-        private final ProgressIndicator progressIndicator2;
-
-        // Search query in separate thread
-        private final ExecutorService executorQuery = Executors.newSingleThreadExecutor(ThreadTools.createThreadFactory("query-processing", true));
-
-        // Load thumbnail in separate thread
-        private ExecutorService executorThumbnail;
-
-        private final Pattern patternRow = Pattern.compile("<tr id=\"(.+?)-(.+?)\".+?</tr>", Pattern.DOTALL | Pattern.MULTILINE);
-        private final Pattern patternDesc = Pattern.compile("<td class=\"desc\"><a>(.+?)</a></td>");
-        private final Pattern patternDate = Pattern.compile("<td class=\"date\">(.+?)</td>");
-        private final Pattern patternGroup = Pattern.compile("<td class=\"group\">(.+?)</td>");
-        private final Pattern patternLink = Pattern.compile("<td><a href=\"(.+?)\"");
-
-        private final Pattern[] patterns = new Pattern[] {patternDesc, patternDate, patternDate, patternGroup, patternLink};
-
-        private AdvancedSearch() {
-
-            BorderPane searchPane = new BorderPane();
-            GridPane searchOptionPane = new GridPane();
-            GridPane searchResultPane = new GridPane();
-
-            // 'Query' pane
-            GridPane queryPane = new GridPane();
-            queryPane.setHgap(10.0);
-            searchTf = new TextField();
-            searchTf.setPromptText("Query");
-            queryPane.addRow(0, new Label("Query:"), searchTf);
-
-
-            // 'Restrict by' pane
-            GridPane restrictByPane = new GridPane();
-            restrictByPane.setHgap(10.0);
-            restrictedByName = new CheckBox("Name");
-            restrictedByDesc = new CheckBox("Description");
-            restrictByPane.addRow(0, restrictedByName, restrictedByDesc);
-
-
-            // 'Search for' pane
-            GridPane searchForPane = new GridPane();
-            searchForPane.setHgap(10.0);
-            searchForPane.setVgap(10.0);
-            searchForImages = new CheckBox("Images");
-            searchForDatasets = new CheckBox("Datasets");
-            searchForProjects = new CheckBox("Projects");
-            searchForWells = new CheckBox("Wells");
-            searchForPlates = new CheckBox("Plates");
-            searchForScreens = new CheckBox("Screens");
-            searchForPane.addRow(0,  searchForImages, searchForDatasets, searchForProjects);
-            searchForPane.addRow(1,  searchForWells, searchForPlates, searchForScreens);
-            for (var searchFor: searchForPane.getChildren()) {
-                ((CheckBox)searchFor).setSelected(true);
-            }
-
-            // 'Owned by' & 'Group' pane
-            GridPane comboPane = new GridPane();
-            comboPane.setHgap(10.0);
-            comboPane.setHgap(10.0);
-            ownedByCombo = new ComboBox<>();
-            groupCombo = new ComboBox<>();
-            ownedByCombo.setMaxWidth(Double.MAX_VALUE);
-            groupCombo.setMaxWidth(Double.MAX_VALUE);
-            ownedByCombo.getItems().setAll(owners);
-            groupCombo.getItems().setAll(groups);
-            ownedByCombo.getSelectionModel().selectFirst();
-            groupCombo.getSelectionModel().selectFirst();
-            ownedByCombo.setConverter(ownerStringConverter);
-
-            // Changing the ComboBox value refreshes the TreeView
-            groupCombo.getSelectionModel().selectedItemProperty().addListener((v, o, n) -> {
-                Platform.runLater(() -> {
-                    Map<OmeroRawObjects.Group, List<OmeroRawObjects.Owner>> tempMap = null;
-                    tempMap = OmeroRawBrowserTools.getGroupUsersMapAvailableForCurrentUser(client);
-
-                    var tempOwners = new ArrayList<>(tempMap.get(groupCombo.getSelectionModel().getSelectedItem()));
-                    tempOwners.add(0, OmeroRawObjects.Owner.getAllMembersOwner());
-                    if (!tempOwners.containsAll(ownedByCombo.getItems()) || !ownedByCombo.getItems().containsAll(tempOwners)) {
-
-                            ownedByCombo.getItems().setAll(tempOwners);
-                            ownedByCombo.getSelectionModel().selectFirst(); // 'All members'
-                    }
-                });
-               // if (owners.size() == 1)
-                //    owners = new HashSet<>(tempOwners);
-            });
-
-            GridPaneUtils.addGridRow(comboPane, 0, 0, "Data owned by", new Label("Owned by:"),  ownedByCombo);
-            GridPaneUtils.addGridRow(comboPane, 1, 0, "Data from group", new Label("Group:"), groupCombo);
-
-            // Button pane
-            GridPane buttonPane = new GridPane();
-            Button resetBtn = new Button("Reset");
-            resetBtn.setOnAction(e -> {
-                searchTf.setText("");
-                for (var restrictBy: restrictByPane.getChildren()) {
-                    ((CheckBox)restrictBy).setSelected(false);
-                }
-                for (var searchFor: searchForPane.getChildren()) {
-                    ((CheckBox)searchFor).setSelected(true);
-                }
-                ownedByCombo.getSelectionModel().selectFirst();
-                groupCombo.getSelectionModel().selectFirst();
-                resultsTableView.getItems().clear();
-            });
-            searchBtn = new Button("Search");
-            progressIndicator2 = new ProgressIndicator();
-            progressIndicator2.setPrefSize(30, 30);
-            progressIndicator2.setMinSize(30, 30);
-            searchBtn.setOnAction(e -> {
-                searchBtn.setGraphic(progressIndicator2);
-                // Show progress indicator (loading)
-                Platform.runLater(() -> {
-                    // TODO: next line doesn't work
-                    searchBtn.setGraphic(progressIndicator2);
-                    searchBtn.setText(null);
-                });
-
-                // Process the query in different thread
-                executorQuery.submit(() -> searchQuery());
-
-                // Reset 'Search' button
-                Platform.runLater(() -> {
-                    searchBtn.setGraphic(null);
-                    searchBtn.setText("Search");
-                });
-            });
-            resetBtn.setMaxWidth(Double.MAX_VALUE);
-            searchBtn.setMaxWidth(Double.MAX_VALUE);
-            GridPane.setHgrow(resetBtn, Priority.ALWAYS);
-            GridPane.setHgrow(searchBtn, Priority.ALWAYS);
-            buttonPane.addRow(0,  resetBtn, searchBtn);
-            buttonPane.setHgap(5.0);
-
-            Button importBtn = new Button("Import image");
-            importBtn.disableProperty().bind(resultsTableView.getSelectionModel().selectedItemProperty().isNull());
-            importBtn.setMaxWidth(Double.MAX_VALUE);
-            importBtn.setOnAction(e -> {
-                String[] URIs = resultsTableView.getSelectionModel().getSelectedItems().stream()
-                        .flatMap(item -> {
-                            try {
-                                return OmeroRawBrowserTools.getURIs(item.link.toURI(), client).stream();
-                            } catch (URISyntaxException | IOException ex) {
-                                logger.error("Error while opening " + item.name + ": {}", ex.getLocalizedMessage());
-                            } catch (DSOutOfServiceException | ExecutionException | DSAccessException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                            return null;
-                        })
-                        .map(URI::toString)
-                        .toArray(String[]::new);
-                if (URIs.length > 0) {
-
-                    List<ProjectImageEntry<BufferedImage>> importedImageEntries = promptToImportOmeroImages(URIs);
-
-                    //TODO Find a way to get an OmeroRawObjects.OmeroRawObject
-                    /*for(ProjectImageEntry<BufferedImage> entry : importedImageEntries) {
-                        Optional<OmeroRawObjects.OmeroRawObject> optObj = validObjs.stream()
-                                .filter(obj -> {
-                                    try {
-                                        return obj.getId() == ((OmeroRawImageServer) entry.readImageData().getServer()).getId();
-                                    }catch(IOException ex){
-                                        return false;
-                                    }
-                                })
-                                .findFirst();
-                        optObj.ifPresent(omeroRawObject -> OmeroRawBrowserTools.addContainersAsMetadataFields(entry, omeroRawObject));
-                    }*/
-                }
-                else
-                    Dialogs.showErrorMessage("No image found", "No image found in OMERO object.");
-            });
-            resultsTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-
-
-            int row = 0;
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "The query to search", queryPane);
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, new Separator());
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Restrict by", new Label("Restrict by:"));
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Restrict by", restrictByPane);
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, new Separator());
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Search for", new Label("Search for:"));
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Search for", searchForPane);
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, new Separator());
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, comboPane);
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, buttonPane);
-            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Import selected image", importBtn);
-
-            TableColumn<SearchResult, SearchResult> typeCol = new TableColumn<>("Type");
-            TableColumn<SearchResult, String> nameCol = new TableColumn<>("Name");
-            TableColumn<SearchResult, String> acquisitionCol = new TableColumn<>("Acquired");
-            TableColumn<SearchResult, String> importedCol = new TableColumn<>("Imported");
-            TableColumn<SearchResult, String> groupCol = new TableColumn<>("Group");
-            TableColumn<SearchResult, SearchResult> linkCol = new TableColumn<>("Link");
-
-            typeCol.setCellValueFactory(n -> new ReadOnlyObjectWrapper<>(n.getValue()));
-            typeCol.setCellFactory(n -> new TableCell<>() {
-
-                @Override
-                protected void updateItem(SearchResult item, boolean empty) {
-                    super.updateItem(item, empty);
-                    BufferedImage img = null;
-                    Canvas canvas = new Canvas(prefScale, prefScale);
-
-                    if (item == null || empty) {
-                        setTooltip(null);
-                        setText(null);
-                        return;
-                    }
-
-                    if (item.type.equalsIgnoreCase("project"))
-                        img = omeroIcons.get(OmeroRawObjects.OmeroRawObjectType.PROJECT);
-                    else if (item.type.equalsIgnoreCase("dataset"))
-                        img = omeroIcons.get(OmeroRawObjects.OmeroRawObjectType.DATASET);
-                    else {
-                        // To avoid ConcurrentModificationExceptions
-                        var it = thumbnailBank.keySet().iterator();
-                        synchronized (thumbnailBank) {
-                            while (it.hasNext()) {
-                                var id = it.next();
-                                if (id == item.id) {
-                                    img = thumbnailBank.get(id);
-                                    continue;
-                                }
-                            }
-                        }
-                    }
-
-                    if (img != null) {
-                        var wi = paintBufferedImageOnCanvas(img, canvas, prefScale);
-                        Tooltip tooltip = new Tooltip();
-                        if (item.type.equalsIgnoreCase("image")) {
-                            // Setting tooltips on hover
-                            ImageView imageView = new ImageView(wi);
-                            imageView.setFitHeight(250);
-                            imageView.setPreserveRatio(true);
-                            tooltip.setGraphic(imageView);
-                        } else
-                            tooltip.setText(item.name);
-
-                        setText(null);
-                        setTooltip(tooltip);
-                    }
-
-                    setGraphic(canvas);
-                    setAlignment(Pos.CENTER);
-                }
-            });
-            nameCol.setCellValueFactory(n -> new ReadOnlyStringWrapper(n.getValue().name));
-            acquisitionCol.setCellValueFactory(n -> new ReadOnlyStringWrapper(n.getValue().acquired.toString()));
-            importedCol.setCellValueFactory(n -> new ReadOnlyStringWrapper(n.getValue().imported.toString()));
-            groupCol.setCellValueFactory(n -> new ReadOnlyStringWrapper(n.getValue().group));
-            linkCol.setCellValueFactory(n -> new ReadOnlyObjectWrapper<>(n.getValue()));
-            linkCol.setCellFactory(n -> new TableCell<>() {
-                private final Button button = new Button("Link");
-
-                @Override
-                protected void updateItem(SearchResult item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (item == null) {
-                        setGraphic(null);
-                        return;
-                    }
-
-                    button.setOnAction(e -> QuPathGUI.openInBrowser(item.link.toString()));
-                    setGraphic(button);
-                }
-            });
-
-            resultsTableView.getColumns().add(typeCol);
-            resultsTableView.getColumns().add(nameCol);
-            resultsTableView.getColumns().add(acquisitionCol);
-            resultsTableView.getColumns().add(importedCol);
-            resultsTableView.getColumns().add(groupCol);
-            resultsTableView.getColumns().add(linkCol);
-            resultsTableView.setItems(obsResults);
-            resultsTableView.getColumns().forEach(e -> e.setStyle( "-fx-alignment: CENTER;"));
-
-            resultsTableView.setOnMouseClicked(e -> {
-                if (e.getClickCount() == 2) {
-                    var selectedItem = resultsTableView.getSelectionModel().getSelectedItem();
-                    if (selectedItem != null) {
-                        try {
-                            List<URI> URIs = OmeroRawBrowserTools.getURIs(selectedItem.link.toURI(), client);
-                            var uriStrings = URIs.parallelStream().map(URI::toString).toArray(String[]::new);
-                            if (URIs.size() > 0) {
-                                List<ProjectImageEntry<BufferedImage>> importedImageEntries = promptToImportOmeroImages(uriStrings);
-
-                                //TODO Find a way to get an OmeroRawObjects.OmeroRawObject
-                               /* for(ProjectImageEntry<BufferedImage> entry : afterImport)
-                                    OmeroRawBrowserTools.addContainersAsMetadataFields(client, entry);*/
-                            }
-                            else
-                                Dialogs.showErrorMessage("No image found", "No image found in OMERO object.");
-                        } catch (IOException | URISyntaxException ex) {
-                            logger.error("Error while importing " + selectedItem.name + ": {}", ex.getLocalizedMessage());
-                        } catch (DSOutOfServiceException | ExecutionException | DSAccessException ex) {
-                            throw new RuntimeException(ex);
-                        }
-                    }
-                }
-            });
-
-            resultsTableView.getSelectionModel().selectedItemProperty().addListener((v, o, n) -> {
-                if (n == null)
-                    return;
-
-                if (resultsTableView.getSelectionModel().getSelectedItems().size() == 1)
-                    importBtn.setText("Import " + n.type);
-                else
-                    importBtn.setText("Import OMERO objects");
-            });
-
-
-            searchResultPane.addRow(0,  resultsTableView);
-            searchOptionPane.setVgap(10.0);
-
-            searchPane.setLeft(searchOptionPane);
-            searchPane.setRight(searchResultPane);
-
-            Insets insets = new Insets(10);
-            BorderPane.setMargin(searchOptionPane, insets);
-            BorderPane.setMargin(searchResultPane, insets);
-
-            var dialog = Dialogs.builder().content(searchPane).build();
-            dialog.setOnCloseRequest(e -> {
-                // Make sure we're not still sending requests
-                executorQuery.shutdownNow();
-                executorThumbnail.shutdownNow();
-            });
-            dialog.showAndWait();
-        }
-
-
-        // TODO find where it is called and update it. Advanced Search do not work for the moment
-        private void searchQuery() {
-            List<SearchResult> results = new ArrayList<>();
-
-            List<String> fields = new ArrayList<>();
-            if (restrictedByName.isSelected()) fields.add("field=name");
-            if (restrictedByDesc.isSelected()) fields.add("field=description");
-
-            List<OmeroRawObjects.OmeroRawObjectType> datatypes = new ArrayList<>();
-            if (searchForImages.isSelected()) datatypes.add(OmeroRawObjects.OmeroRawObjectType.IMAGE);
-            if (searchForDatasets.isSelected()) datatypes.add(OmeroRawObjects.OmeroRawObjectType.DATASET);
-            if (searchForProjects.isSelected()) datatypes.add(OmeroRawObjects.OmeroRawObjectType.PROJECT);
-            if (searchForWells.isSelected()) datatypes.add(OmeroRawObjects.OmeroRawObjectType.WELL);
-            if (searchForPlates.isSelected()) datatypes.add(OmeroRawObjects.OmeroRawObjectType.PLATE);
-            if (searchForScreens.isSelected()) datatypes.add(OmeroRawObjects.OmeroRawObjectType.SCREEN);
-
-            OmeroRawObjects.Owner owner = ownedByCombo.getSelectionModel().getSelectedItem();
-            OmeroRawObjects.Group group = groupCombo.getSelectionModel().getSelectedItem();
-
-            String response = null;/*OmeroRequests.requestAdvancedSearch(
-                    serverURI.getScheme(),
-                    serverURI.getHost(),
-                    serverURI.getPort(),
-                    searchTf.getText(),
-                    fields.toArray(new String[0]),
-                    datatypes.stream().map(e -> "datatype=" + e.toURLString()).toArray(String[]::new),
-                    group,
-                    owner
-            );*/
-
-            if (!response.contains("No results found"))
-                results = parseHTML(response);
-
-            populateThumbnailBank(results);
-            updateTableView(results);
-
-        }
-
-        private List<SearchResult> parseHTML(String response) {
-            List<SearchResult> searchResults = new ArrayList<>();
-            Matcher rowMatcher = patternRow.matcher(response);
-            while (rowMatcher.find()) {
-                String[] values = new String[7];
-                String row = rowMatcher.group(0);
-                values[0] = rowMatcher.group(1);
-                values[1] = rowMatcher.group(2);
-                String value = "";
-
-                int nValue = 2;
-                for (var pattern: patterns) {
-                    Matcher matcher = pattern.matcher(row);
-                    if (matcher.find()) {
-                        value = matcher.group(1);
-                        row = row.substring(matcher.end());
-                    }
-                    values[nValue++] = value;
-                }
-
-                try {
-                    SearchResult obj = new SearchResult(values);
-                    searchResults.add(obj);
-                } catch (Exception e) {
-                    logger.error("Could not parse search result. {}", e.getLocalizedMessage());
-                }
-            }
-
-            return searchResults;
-        }
-
-        private void updateTableView(List<SearchResult> results) {
-            resultsTableView.getItems().setAll(results);
-            Platform.runLater(() -> resultsTableView.refresh());
-        }
-
-        /**
-         * Send a request to batch load thumbnails that are not already
-         * stored in {@code thumbnailBank}.
-         * @param results
-         */
-        private void populateThumbnailBank(List<SearchResult> results) {
-
-            List<SearchResult> thumbnailsToQuery = results.parallelStream()
-                    .filter(e -> {
-                        // To avoid ConcurrentModificationExceptions
-                        synchronized (thumbnailBank) {
-                            for (var id: thumbnailBank.keySet()) {
-                                if (id == e.id)
-                                    return false;
-                            }
-                        }
-                        return true;
-                    })
-                    .collect(Collectors.toList());
-
-            if (thumbnailsToQuery.isEmpty())
-                return;
-
-            if (executorThumbnail != null)
-                executorThumbnail.shutdownNow();
-            executorThumbnail = Executors.newSingleThreadExecutor(ThreadTools.createThreadFactory("batch-thumbnail-request", true));
-
-            for (var searchResult: thumbnailsToQuery) {
-                executorThumbnail.submit(() -> {
-                    BufferedImage thumbnail = OmeroRawTools.getThumbnail(client, searchResult.id, imgPrefSize);
-                    if (thumbnail != null) {
-                        thumbnailBank.put((long)searchResult.id, thumbnail);	// 'Put' shouldn't need synchronized key
-                        Platform.runLater(() -> resultsTableView.refresh());
-                    }
-                });
-            }
-        }
-    }
-
-
-    private class SearchResult {
-        private final String type;
-        private final int id;
-        private final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-        private final String name;
-        private final Date acquired;
-        private final Date imported;
-        private final String group;
-        private final URL link;
-
-        private SearchResult(String[] values) throws ParseException, MalformedURLException {
-            this.type = values[0];
-            this.id = Integer.parseInt(values[1]);
-            this.name = values[2];
-            this.acquired = dateFormat.parse(values[3]);
-            this.imported = dateFormat.parse(values[4]);
-            this.group = values[5];
-            this.link = URI.create(serverURI.getScheme() + "://" + serverURI.getHost() + values[6]).toURL();
         }
     }
 
