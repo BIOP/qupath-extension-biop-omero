@@ -13,6 +13,7 @@ import fr.igred.omero.repository.ScreenWrapper;
 import fr.igred.omero.repository.WellSampleWrapper;
 import fr.igred.omero.repository.WellWrapper;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.WritableImage;
@@ -32,6 +33,7 @@ import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.commands.ProjectCommands;
 import qupath.lib.gui.tools.GuiTools;
+import qupath.lib.gui.tools.IconFactory;
 import qupath.lib.images.servers.ImageServerProvider;
 import qupath.lib.projects.ProjectImageEntry;
 
@@ -660,6 +662,16 @@ public class OmeroRawBrowserTools {
     protected static List<ProjectImageEntry<BufferedImage>> promptToImportOmeroImages(QuPathGUI qupath, String... validUris) {
         var builder = ImageServerProvider.getInstalledImageServerBuilders(BufferedImage.class).stream().filter(b -> b instanceof OmeroRawImageServerBuilder).findFirst().orElse(null);
         return ProjectCommands.promptToImportImages(qupath, builder, validUris);
+    }
+
+    /**
+     * Build a colored-coded disk indicating the status of the server connection
+     * @param loggedIn
+     * @return
+     */
+    public static Node createStateNode(boolean loggedIn) {
+        var state = loggedIn ? IconFactory.PathIcons.ACTIVE_SERVER : IconFactory.PathIcons.INACTIVE_SERVER;
+        return IconFactory.createNode(QuPathGUI.TOOLBAR_ICON_SIZE, QuPathGUI.TOOLBAR_ICON_SIZE, state);
     }
 
 
