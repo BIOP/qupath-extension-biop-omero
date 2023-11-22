@@ -477,19 +477,18 @@ public class OmeroRawBrowserTools {
                 .filter(group->group.getId() != 0 && group.getId() != 1)
                 .collect(Collectors.toList())
                 .forEach(group-> {
-                    // initialize lists
-                    List<OmeroRawObjects.Owner> owners = new ArrayList<>();
+                    // Create the group object
                     OmeroRawObjects.Group userGroup = new OmeroRawObjects.Group(group.getId(), group.getName());
 
                     // get all available users for the current group
-                    List<ExperimenterWrapper> users = OmeroRawTools.getGroupUsers(client, group.getId());
+                    List<OmeroRawObjects.Owner> owners = OmeroRawTools.getGroupUsers(client, group.getId())
+                            .stream()
+                            .map(OmeroRawObjects.Owner::new)
+                            .sorted(Comparator.comparing(OmeroRawObjects.Owner::getName))
+                            .collect(Collectors.toList());
 
-                    // convert each user to qupath compatible owners object
-                    for (ExperimenterWrapper user : users)
-                        owners.add(new OmeroRawObjects.Owner(user));
-
-                    // sort in alphabetic order
-                    owners.sort(Comparator.comparing(OmeroRawObjects.Owner::getName));
+                    // Add All members at the beginning of the list
+                    owners.add(0,OmeroRawObjects.Owner.getAllMembersOwner());
                     map.put(userGroup, owners);
                 });
 

@@ -141,10 +141,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     // GUI left
     private ComboBox<OmeroRawObjects.Owner> comboOwner;
     private ComboBox<OmeroRawObjects.Group> comboGroup;
-    private Set<OmeroRawObjects.Owner> owners;
-    private Set<OmeroRawObjects.Group> groups;
-    private OmeroRawObjects.Group defaultGroup;
-    private OmeroRawObjects.Owner defaultOwner;
     private TreeView<OmeroRawObjects.OmeroRawObject> tree;
     private OmeroRawObjects.OrphanedFolder orphanedFolder;
     private TextField filter;
@@ -274,8 +270,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         executorThumbnails = Executors.newFixedThreadPool(PathPrefs.numCommandThreadsProperty().get(), ThreadTools.createThreadFactory("thumbnail-loader", true));
 
         tree = new TreeView<>();
-        owners = new HashSet<>();
-        groups = new HashSet<>();
         comboGroup = new ComboBox<>();
         comboOwner = new ComboBox<>();
         filter = new TextField();
@@ -357,25 +351,31 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
         orphanedFolder.setLoading(false);
 
-        // Initialises the comboboxes with all the available groups and set select the default group and owner
+        // get all the groups <> users
         groupMap = OmeroRawBrowserTools.getGroupUsersMapAvailableForCurrentUser(client);
-        ExperimenterWrapper loggedInUser = client.getLoggedInUser();
-        defaultGroup = new OmeroRawObjects.Group(loggedInUser.getDefaultGroup().getId(),
-                                                 loggedInUser.getDefaultGroup().getName());
-        defaultOwner = new OmeroRawObjects.Owner(loggedInUser);
-        groups=   groupMap.keySet();
 
-        comboGroup.getItems().setAll(groups);
+        // get default user / group object
+        ExperimenterWrapper loggedInUser = client.getLoggedInUser();
+        OmeroRawObjects.Group defaultGroup = new OmeroRawObjects.Group(loggedInUser.getDefaultGroup().getId(),
+                                                                        loggedInUser.getDefaultGroup().getName());
+        OmeroRawObjects.Owner defaultOwner = new OmeroRawObjects.Owner(loggedInUser);
+
+        // initialize group combo box
+        comboGroup.getItems().setAll(groupMap.keySet());
         comboGroup.getSelectionModel().select(defaultGroup);
 
-        owners.add(OmeroRawObjects.Owner.getAllMembersOwner());
+        // initialize owner combo box
         comboOwner.getItems().setAll(groupMap.get(comboGroup.getSelectionModel().getSelectedItem()));
         comboOwner.getSelectionModel().select(defaultOwner);
         comboOwner.setConverter(OmeroRawBrowserTools.getOwnerStringConverter(comboOwner.getItems()));
 
-        // Changing the ComboBox value refreshes the TreeView
+        // Changing the ComboBox value refreshes the TreeView and the available owners
         comboOwner.getSelectionModel().selectedItemProperty().addListener((v, o, n) -> refreshTree());
-        comboGroup.getSelectionModel().selectedItemProperty().addListener((v, o, n) -> refreshTree());
+        comboGroup.getSelectionModel().selectedItemProperty().addListener((v, o, n) -> {
+            List<OmeroRawObjects.Owner> newOwners = new ArrayList<>(groupMap.get(comboGroup.getSelectionModel().getSelectedItem()));
+            updateOwnersComboBox(newOwners, comboOwner.getSelectionModel().getSelectedItem());
+            refreshTree();
+        });
 
         OmeroRawObjectTreeItem root = new OmeroRawObjectTreeItem(new OmeroRawObjects.Server(serverURI));
 
@@ -459,40 +459,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
         // Add the items to the context menu
         tree.setContextMenu(new ContextMenu(moreInfoItem, openBrowserItem, clipboardItem, collapseItem));
-
-
-
-        // If the currently opened image belongs to the server that we are browsing, switch combo to the relevant group
-        /*var imageData = qupath.getImageData();
-
-       if (imageData != null && (imageData.getServer() instanceof OmeroRawImageServer)) {
-            var server = (OmeroRawImageServer)imageData.getServer();
-
-            try {
-                var tempImageURI = server.getURIs().iterator().next();
-                if (OmeroRawTools.getServerURI(tempImageURI).equals(serverURI) && OmeroRawClient.canBeAccessed(tempImageURI, OmeroRawObjects.OmeroRawObjectType.IMAGE)) {
-                    try {
-                        long groupId = client.getGateway().getFacility(BrowseFacility.class).getImage(client.getContext(), server.getId()).getGroupId();
-                        String groupName = client.getGateway().getAdminService(client.getContext()).getGroup(groupId).getName().getValue();
-                        OmeroRawObjects.Group group = new OmeroRawObjects.Group(groupId, groupName);
-
-                        //groups.add(group);
-
-                        //comboGroup.getItems().setAll(groups);
-                        comboGroup.getSelectionModel().select(group);
-                    } catch (Exception ex) {
-                        logger.error("Could not parse OMERO group: {}", ex.getLocalizedMessage());
-                        groups.add(OmeroRawObjects.Group.getAllGroupsGroup());
-                        comboGroup.getItems().setAll(groups);
-                    }
-                } else {
-                    comboGroup.getItems().setAll(groups);
-                }
-            } catch (ConnectException ex) {
-                logger.warn(ex.getLocalizedMessage());
-                logger.info("Will not fetch the current OMERO group.");
-            }
-        }*/
 
         // If nothing is selected (i.e. currently opened image is not from the same server/an error occurred), select first item
         if (comboGroup.getSelectionModel().isEmpty())
@@ -1042,23 +1008,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         }
     }
 
-    private void updateGroupsComboBox(List<OmeroRawObjects.Group> tempGroups){
-        // If we suddenly found more Groups, update the set (shoudn't happen)
-        if (tempGroups.size() > groups.size()) {
-            groups.clear();
-            groups.addAll(tempGroups);
-            // Update comboBox
-            Platform.runLater(() -> {
-                var selectedItem = comboGroup.getSelectionModel().getSelectedItem();
-                comboGroup.getItems().setAll(groups);
-                if (selectedItem == null)
-                    comboGroup.getSelectionModel().selectFirst();
-                else
-                    comboGroup.getSelectionModel().select(selectedItem);
-            });
-        }
-    }
-
     private void updateOwnersComboBox(List<OmeroRawObjects.Owner> tempOwners, OmeroRawObjects.Owner currentOwner){
         if (!new HashSet<>(tempOwners).containsAll(comboOwner.getItems()) || !new HashSet<>(comboOwner.getItems()).containsAll(tempOwners)) {
             Platform.runLater(() -> {
@@ -1067,7 +1016,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 if (tempOwners.contains(currentOwner))
                     comboOwner.getSelectionModel().select(currentOwner);
                 else
-                    comboOwner.getSelectionModel().selectFirst(); // 'All members'
+                    comboOwner.getSelectionModel().selectLast(); // 'All members'
+
             });
         }
     }
@@ -1205,7 +1155,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         public ObservableList<TreeItem<OmeroRawObjects.OmeroRawObject>> getChildren() {
             if (!isLeaf() && !computed) {
                 loadingChildrenLabel.setOpacity(1.0);
-                var filterTemp = filter.getText();
+                String filterTemp = filter == null ? "" : filter.getText();
 
                 // If submitting tasks to a shutdown executor, an Exception is thrown
                 if (executorTable.isShutdown()) {
@@ -1226,28 +1176,14 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         // if selected "all members", get data from all owners
                         if(currentOwner.equals(OmeroRawObjects.Owner.getAllMembersOwner())){
                             // get all available owners
-                            ObservableList<OmeroRawObjects.Owner> allUsers = comboOwner.getItems();
+                            List<OmeroRawObjects.Owner> allUsers = new ArrayList<>(comboOwner.getItems());
+                            allUsers.remove(currentOwner);
                             // remove "all members" owner and get data from others
-                            for(OmeroRawObjects.Owner owner : allUsers.stream().filter(e->!e.equals(currentOwner)).collect(Collectors.toList()))
+                            for(OmeroRawObjects.Owner owner : allUsers)
                                 children.addAll(OmeroRawImageServerBrowserCommand.this.getChildren(parentOmeroObj, currentGroup, owner));
                         }else
                             // get data from the selected owner
                             children = OmeroRawImageServerBrowserCommand.this.getChildren(parentOmeroObj, currentGroup, currentOwner);
-
-                        // get all group/owners maps
-                        Map<OmeroRawObjects.Group, List<OmeroRawObjects.Owner>> newGroupOwnersMap = OmeroRawBrowserTools.getGroupUsersMapAvailableForCurrentUser(client);
-
-                        // update groups comboBox
-                        List<OmeroRawObjects.Group> newGroups = new ArrayList<>(newGroupOwnersMap.keySet()); // do nat add "All groups" => make no sense
-                        OmeroRawImageServerBrowserCommand.this.updateGroupsComboBox(newGroups);
-
-                        // update owners comboBox
-                        List<OmeroRawObjects.Owner> newOwners = new ArrayList<>(newGroupOwnersMap.get(currentGroup));
-                        newOwners.add(0, OmeroRawObjects.Owner.getAllMembersOwner());  // add 'All members' on the top of the list
-                        OmeroRawImageServerBrowserCommand.this.updateOwnersComboBox(newOwners,currentOwner);
-
-                        if (owners.size() == 1)
-                            owners = new HashSet<>(newOwners);
 
                     }else if (parentOmeroObj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER) {
                         children = orphanedImageList;
@@ -1255,8 +1191,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         children = OmeroRawImageServerBrowserCommand.this.getChildren(parentOmeroObj, currentGroup, parentOmeroObj.getOwner());
                     }
 
-                    // convert children into Java Tree items
-                    var items = filterList(children, comboGroup.getSelectionModel().getSelectedItem(), comboOwner.getSelectionModel().getSelectedItem(), filterTemp).stream()
+                    // convert children into Java Tree items and filter them according to the filter
+                    List<OmeroRawObjectTreeItem> items = filterList(children, comboGroup.getSelectionModel().getSelectedItem(),
+                            comboOwner.getSelectionModel().getSelectedItem(), filterTemp)
+                            .stream()
                             .map(OmeroRawObjectTreeItem::new)
                             .collect(Collectors.toList());
 

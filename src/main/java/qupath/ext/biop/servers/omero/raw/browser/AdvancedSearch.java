@@ -160,7 +160,6 @@ class AdvancedSearch {
                 tempMap = OmeroRawBrowserTools.getGroupUsersMapAvailableForCurrentUser(client);
 
                 var tempOwners = new ArrayList<>(tempMap.get(groupCombo.getSelectionModel().getSelectedItem()));
-                tempOwners.add(0, OmeroRawObjects.Owner.getAllMembersOwner());
                 if (!tempOwners.containsAll(ownedByCombo.getItems()) || !ownedByCombo.getItems().containsAll(tempOwners)) {
 
                     ownedByCombo.getItems().setAll(tempOwners);
