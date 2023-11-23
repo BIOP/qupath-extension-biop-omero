@@ -45,11 +45,11 @@ import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
  * OMERO annotations are <b>not</b> similar to QuPath annotations. Rather, they
  * represent some type of metadata visible on the right pane in the OMERO Webclient.
  *
- * Note: Tables annotations are ignored.
+ * Note: Tables annotations are ignored (the Table harmonica in OMERO webclient)
+ * but the OMERO.tables are still fetched.
  *
- * @author Melvin Gelbard
+ * @author Rémy Dornier (based on Melvin Gelbard's work)
  */
-// TODO: Handle Table annotations
 final class OmeroRawAnnotations {
 
     public enum OmeroRawAnnotationType {
@@ -89,22 +89,6 @@ final class OmeroRawAnnotations {
         this.annotations = Objects.requireNonNull(annotations);
         this.type = type;
     }
-
-    /**
-     * Static factory method to get all annotations & experimenters in a single {@code OmeroAnnotations} object.
-     * @param client
-     * @param annotationType
-     * @param annotations
-     * @return
-     * @deprecated use {@link OmeroRawAnnotations#getOmeroAnnotations(OmeroRawAnnotationType, AnnotationList)} instead
-     */
-    @Deprecated
-    public static OmeroRawAnnotations getOmeroAnnotations(OmeroRawClient client, OmeroRawAnnotationType annotationType, List<?> annotations) {
-        AnnotationList annotationList = new AnnotationList();
-        annotationList.addAll((Collection<GenericAnnotationWrapper<?>>)annotations);
-        return getOmeroAnnotations(annotationType, annotationList);
-    }
-
 
     /**
      * Static factory method to get all annotations & experimenters in a single {@code OmeroAnnotations} object.
@@ -377,6 +361,30 @@ final class OmeroRawAnnotations {
             //super.setLink(new OmeroRawObjects.Link(owner));
         }
     }
+
+    /*
+     *
+     *
+     *                                           Deprecated methods
+     *
+     *
+     */
+
+    /**
+     * Static factory method to get all annotations & experimenters in a single {@code OmeroAnnotations} object.
+     * @param client
+     * @param annotationType
+     * @param annotations
+     * @return
+     * @deprecated use {@link OmeroRawAnnotations#getOmeroAnnotations(OmeroRawAnnotationType, AnnotationList)} instead
+     */
+    @Deprecated
+    public static OmeroRawAnnotations getOmeroAnnotations(OmeroRawClient client, OmeroRawAnnotationType annotationType, List<?> annotations) {
+        AnnotationList annotationList = new AnnotationList();
+        annotationList.addAll((Collection<GenericAnnotationWrapper<?>>)annotations);
+        return getOmeroAnnotations(annotationType, annotationList);
+    }
+
 }
 
 

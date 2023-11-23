@@ -51,6 +51,7 @@ import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -73,6 +74,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.BorderPane;
@@ -89,14 +91,14 @@ import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.prefs.PathPrefs;
 import qupath.fx.utils.GridPaneUtils;
+import qupath.lib.gui.tools.GuiTools;
 import qupath.lib.projects.ProjectImageEntry;
 
 /**
- * Command to browse a specified OMERO server.
+ * Command to browse a specified OMERO server and import images from that server
  *
- * @author Melvin Gelbard
+ * @author Rémy Dornier (based on Melvin Gelbard's work)
  */
-// TODO: If switching users while the browser is opened, nothing will load (but everything stays clickable).
 public class OmeroRawImageServerBrowserCommand implements Runnable {
     private static final String BOLD = "-fx-font-weight: bold";
     private final QuPathGUI qupath;
@@ -193,14 +195,12 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             "Pixel size Z",
             "Pixel type"};
 
-    //TODO see if we can put it public
     public OmeroRawImageServerBrowserCommand(QuPathGUI qupath, OmeroRawClient client) {
         this.qupath = qupath;
         this.client = Objects.requireNonNull(client);
         this.serverURI = client.getServerURI();
     }
 
-    //TODO see if we can put it public
     public Stage getStage() {
         return dialog;
     }
@@ -277,7 +277,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
          *
          */
         // get all the groups <> users
-        groupMap = OmeroRawBrowserTools.getGroupUsersMapAvailableForCurrentUser(client);
+        groupMap = OmeroRawBrowserTools.getAvailableGroupUsersMap(client);
 
         // get default user / group object
         ExperimenterWrapper loggedInUser = client.getLoggedInUser();
@@ -422,6 +422,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         attributeCol.prefWidthProperty().bind(description.widthProperty().divide(4));
         valueCol.prefWidthProperty().bind(description.widthProperty().multiply(0.75));
 
+        // add description attributes (left column)
         attributeCol.setCellValueFactory(cellData -> {
             var selectedItems = tree.getSelectionModel().getSelectedItems();
             if (cellData != null && selectedItems.size() == 1 && selectedItems.get(0).getValue() != null) {
@@ -444,6 +445,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             return new ReadOnlyObjectWrapper<>("");
 
         });
+
+        // add description values (right column)
         valueCol.setCellValueFactory(cellData -> {
             var selectedItems = tree.getSelectionModel().getSelectedItems();
             if (cellData != null && selectedItems.size() == 1 && selectedItems.get(0).getValue() != null)
@@ -484,7 +487,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     if (selectedItems.get(0) != null && selectedItems.get(0).getValue().getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE) {
                         // Check if thumbnail was previously cached, get it and show it
                         if (thumbnailBank.containsKey(selectedObjectLocal.getId()))
-                            OmeroRawBrowserTools.paintBufferedImageOnCanvas(thumbnailBank.get(selectedObjectLocal.getId()), canvas, imgPrefSize);
+                            paintBufferedImageOnCanvas(thumbnailBank.get(selectedObjectLocal.getId()), canvas, imgPrefSize);
                         else {
                             // Get thumbnail from OMERO in separate thread
                             loadingThumbnailLabel.setOpacity(1.0);
@@ -495,7 +498,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
                                 if (img != null) {
                                     thumbnailBank.put(selectedObjectLocal.getId(), img);
-                                    OmeroRawBrowserTools.paintBufferedImageOnCanvas(thumbnailBank.get(selectedObjectLocal.getId()), canvas, imgPrefSize);
+                                    paintBufferedImageOnCanvas(thumbnailBank.get(selectedObjectLocal.getId()), canvas, imgPrefSize);
                                 }
                                 Platform.runLater(() -> loadingThumbnailLabel.setOpacity(0));
                             });
@@ -703,17 +706,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         dialog.showAndWait();
     }
 
-    /**
-     * Build a colored-coded disk indicating the status of the server connection
-     * @param loggedIn
-     * @return
-     * @deprecated use {@link OmeroRawBrowserTools#createStateNode(boolean)} instead
-     */
-    @Deprecated
-    public static Node createStateNode(boolean loggedIn) {
-        return OmeroRawBrowserTools.createStateNode(loggedIn);
-    }
-
 
     /**
      * If something else than an image is selected in the browser, then it lists all images contained the selected container.
@@ -755,11 +747,11 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
      * @return list of parentObj's children
      */
     private List<OmeroRawObjects.OmeroRawObject> getChildren(OmeroRawObjects.OmeroRawObject parentObj, OmeroRawObjects.Group group, OmeroRawObjects.Owner owner) {
-        // Check if we already have the children for this OmeroObject (avoid sending request)
+        // Check if we already have the children for this OmeroObject (avoid sending request to the server)
         if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.SERVER && groupOwnersChildrenMap.containsKey(group) && groupOwnersChildrenMap.get(group).containsKey(owner))
             return groupOwnersChildrenMap.get(group).get(owner);
-        else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER && orphanedFolderMap.containsKey(owner)/*orphanedImageList.size() > 0*/)
-            return orphanedFolderMap.get(owner);//orphanedImageList;//((OmeroRawObjects.OrphanedFolder)parentObj).getImageList();
+        else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER && orphanedFolderMap.containsKey(owner))
+            return orphanedFolderMap.get(owner);
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.PROJECT && projectMap.containsKey(parentObj))
             return projectMap.get(parentObj);
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.SCREEN && screenMap.containsKey(parentObj))
@@ -776,7 +768,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         // Read children and populate maps
         List<OmeroRawObjects.OmeroRawObject> children = OmeroRawBrowserTools.readOmeroObjectsItems(parentObj, this.client, group, owner);
 
-        // If parentObj is a Server, add all the orphaned datasets (orphaned images are in 'Orphaned images' folder)
+        // If parentObj is a Server, add all the screens, projects, orphaned datasets to the same map
+        // Orphaned images are handled separately
         if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.SERVER) {
             // update the list of already loaded items
             if(groupOwnersChildrenMap.containsKey(group))
@@ -999,6 +992,33 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     }
 
     /**
+     * Paint the specified image onto the specified canvas (of the preferred size).
+     * Additionally, it returns the {@code WritableImage} for further use.
+     * @param img
+     * @param canvas
+     * @param prefSize
+     * @return writable image
+     */
+    protected static WritableImage paintBufferedImageOnCanvas(BufferedImage img, Canvas canvas, int prefSize) {
+        canvas.setWidth(prefSize);
+        canvas.setHeight(prefSize);
+
+        // Color the canvas in black, in case no new image can be painted
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+        if (img == null)
+            return null;
+
+        var wi =  SwingFXUtils.toFXImage(img, null);
+        if (wi == null)
+            return wi;
+
+        GuiTools.paintImage(canvas, wi);
+        return wi;
+    }
+
+    /**
      * Return whether the image type is supported by QuPath.
      * @param omeroObj
      * @return isSupported
@@ -1092,7 +1112,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             setOpacity(1.0);
             disableProperty().unbind();
             setDisable(false);
-            OmeroRawBrowserTools.paintBufferedImageOnCanvas(null, tooltipCanvas, 0);
+            paintBufferedImageOnCanvas(null, tooltipCanvas, 0);
 
             String name;
             Tooltip tooltip = new Tooltip();
@@ -1127,14 +1147,14 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 tooltip.setOnShowing(e -> {
                     // Image tooltip shows the thumbnail (could show icon for other items, but icon is very low quality)
                     if (thumbnailBank.containsKey(item.getId()))
-                        OmeroRawBrowserTools.paintBufferedImageOnCanvas(thumbnailBank.get(item.getId()), tooltipCanvas, 100);
+                        paintBufferedImageOnCanvas(thumbnailBank.get(item.getId()), tooltipCanvas, 100);
                     else {
                         // Get thumbnail from OMERO in separate thread
                         executorThumbnails.submit(() -> {
                             var loadedImg = OmeroRawTools.getThumbnail(client, item.getId(), imgPrefSize);
                             if (loadedImg != null) {
                                 thumbnailBank.put(item.getId(), loadedImg);
-                                Platform.runLater(() -> OmeroRawBrowserTools.paintBufferedImageOnCanvas(loadedImg, tooltipCanvas, 100));
+                                Platform.runLater(() -> paintBufferedImageOnCanvas(loadedImg, tooltipCanvas, 100));
                             }
                         });
                     }
@@ -1150,7 +1170,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
             // Paint icon
             if (icon != null) {
-                OmeroRawBrowserTools.paintBufferedImageOnCanvas(icon, iconCanvas, 15);
+                paintBufferedImageOnCanvas(icon, iconCanvas, 15);
                 setGraphic(iconCanvas);
             }
 
@@ -1279,5 +1299,24 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             Set<Object> seen = ConcurrentHashMap.newKeySet();
             return t -> seen.add(keyExtractor.apply(t));
         }
+    }
+
+    /*
+     *
+     *
+     *                                           Deprecated methods
+     *
+     *
+     */
+
+    /**
+     * Build a colored-coded disk indicating the status of the server connection
+     * @param loggedIn
+     * @return
+     * @deprecated use {@link OmeroRawBrowserTools#createStateNode(boolean)} instead
+     */
+    @Deprecated
+    public static Node createStateNode(boolean loggedIn) {
+        return OmeroRawBrowserTools.createStateNode(loggedIn);
     }
 }

@@ -59,8 +59,6 @@ import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.GenericRepositoryObjectWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.PlateWrapper;
-import fr.igred.omero.repository.ProjectWrapper;
-import fr.igred.omero.repository.ScreenWrapper;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataLevel;
 import ome.formats.OMEROMetadataStoreClient;
@@ -422,9 +420,10 @@ public final class OmeroRawTools {
      * @param client the client {@link OmeroRawClient} object
      * @param userId
      * @return List orphaned of datasets
+     * @deprecated user {@link OmeroRawTools#readOrphanedDatasets(OmeroRawClient, ExperimenterWrapper)}
      */
     @Deprecated
-    public static Collection<DatasetData> readOmeroOrphanedDatasetsPerOwner(OmeroRawClient client, long userId) {
+    public static Collection<DatasetData> readOrphanedDatasets(OmeroRawClient client, long userId) {
         try {
             // query orphaned dataset
             List<IObject> datasetObjects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select dataset from Dataset as dataset " +
@@ -463,7 +462,7 @@ public final class OmeroRawTools {
      * @param user
      * @return List orphaned of datasets
      */
-    public static Collection<DatasetWrapper> readOmeroOrphanedDatasetsPerOwner(OmeroRawClient client, ExperimenterWrapper user)
+    public static Collection<DatasetWrapper> readOrphanedDatasets(OmeroRawClient client, ExperimenterWrapper user)
             throws ServiceException, OMEROServerError, AccessException, ExecutionException {
         // query orphaned dataset
         List<IObject> datasetObjects = client.getSimpleClient().findByQuery("select dataset from Dataset as dataset " +
@@ -487,7 +486,7 @@ public final class OmeroRawTools {
      *
      * @param client
      * @return List of orphaned datasets
-     * @deprecated user {@link OmeroRawTools#readOmeroOrphanedDatasetsPerOwner(OmeroRawClient, ExperimenterWrapper)}
+     * @deprecated user {@link OmeroRawTools#readOrphanedDatasets(OmeroRawClient, ExperimenterWrapper)}
      */
     @Deprecated
     public static Collection<DatasetData> readOmeroOrphanedDatasets(OmeroRawClient client)  {
@@ -531,10 +530,10 @@ public final class OmeroRawTools {
      * @param client
      * @param userId
      * @return List of orphaned images
-     * @deprecated use {@link OmeroRawTools#readOmeroOrphanedImagesPerUser(OmeroRawClient, ExperimenterWrapper) instead}
+     * @deprecated use {@link OmeroRawTools#readOrphanedImages(OmeroRawClient, ExperimenterWrapper) instead}
      */
     @Deprecated
-    public static Collection<ImageData> readOmeroOrphanedImagesPerUser(OmeroRawClient client, long userId) {
+    public static Collection<ImageData> readOrphanedImages(OmeroRawClient client, long userId) {
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getOrphanedImages(client.getSimpleClient().getCtx(), userId);
         } catch (ExecutionException e) {
@@ -552,7 +551,7 @@ public final class OmeroRawTools {
      * @param user
      * @return List of orphaned images
      */
-    public static Collection<ImageWrapper> readOmeroOrphanedImagesPerUser(OmeroRawClient client, ExperimenterWrapper user)
+    public static Collection<ImageWrapper> readOrphanedImages(OmeroRawClient client, ExperimenterWrapper user)
             throws ExecutionException {
             return client.getSimpleClient()
                     .getGateway()

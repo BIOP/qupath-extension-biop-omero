@@ -30,13 +30,17 @@ import qupath.lib.gui.QuPathGUI;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * Class that handles the More info dialog to make appear all the annotations linked to the selected image / container
+ *
+ * @author Rémy Dornier (based on Melvin Gelbard's work)
+ */
 class AdvancedObjectInfo {
     private static final String BOLD = "-fx-font-weight: bold";
     final private static Logger logger = LoggerFactory.getLogger(AdvancedObjectInfo.class);
     private final OmeroRawObjects.OmeroRawObject obj;
     private final OmeroRawAnnotations tags;
     private final OmeroRawAnnotations keyValuePairs;
-    //		private final OmeroRawAnnotations tables;
     private final OmeroRawAnnotations attachments;
     private final OmeroRawAnnotations comments;
     private final OmeroRawAnnotations ratings;
@@ -53,7 +57,6 @@ class AdvancedObjectInfo {
 
         this.tags = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotations.OmeroRawAnnotationType.TAG, annotations);
         this.keyValuePairs = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotations.OmeroRawAnnotationType.MAP, annotations);
-//			this.tables = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotationType.TABLE, annotations);
         this.attachments = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotations.OmeroRawAnnotationType.ATTACHMENT, annotations);
         this.comments = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotations.OmeroRawAnnotationType.COMMENT, annotations);
         this.ratings = OmeroRawAnnotations.getOmeroAnnotations(OmeroRawAnnotations.OmeroRawAnnotationType.RATING, annotations);
@@ -74,7 +77,6 @@ class AdvancedObjectInfo {
         GridPaneUtils.addGridRow(gp, row++, 0, null, new TitledPane(obj.getType().toString() + " Details", createObjectDetailsPane(obj)));
         GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Tags (" + tags.getSize() + ")", tags));
         GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Key-Value Pairs (" + keyValuePairs.getSize() + ")", keyValuePairs));
-//			GridPaneUtils.addGridRow(gp, row++, 0, "Tables", new TitledPane("Tables", createAnnotationsPane(tables)));
         GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Attachments (" + attachments.getSize() + ")", attachments));
         GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Comments (" + comments.getSize() + ")", comments));
         GridPaneUtils.addGridRow(gp, row++, 0, "Ratings", createAnnotationsPane("Ratings (" + ratings.getSize() + ")", ratings));

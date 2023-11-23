@@ -24,8 +24,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-import omero.gateway.exception.DSAccessException;
-import omero.gateway.exception.DSOutOfServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
@@ -37,10 +35,8 @@ import qupath.lib.gui.QuPathGUI;
 import qupath.lib.projects.ProjectImageEntry;
 
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -50,14 +46,16 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * Class that handles the advanced search dialog to make a deeper research of which image to import.
+ * Note: This feature is not implemented anymore.
+ */
 class AdvancedSearch {
     private final TableView<SearchResult> resultsTableView = new TableView<>();
     private final ObservableList<SearchResult> obsResults = FXCollections.observableArrayList();
@@ -157,7 +155,7 @@ class AdvancedSearch {
         groupCombo.getSelectionModel().selectedItemProperty().addListener((v, o, n) -> {
             Platform.runLater(() -> {
                 Map<OmeroRawObjects.Group, List<OmeroRawObjects.Owner>> tempMap = null;
-                tempMap = OmeroRawBrowserTools.getGroupUsersMapAvailableForCurrentUser(client);
+                tempMap = OmeroRawBrowserTools.getAvailableGroupUsersMap(client);
 
                 var tempOwners = new ArrayList<>(tempMap.get(groupCombo.getSelectionModel().getSelectedItem()));
                 if (!tempOwners.containsAll(ownedByCombo.getItems()) || !ownedByCombo.getItems().containsAll(tempOwners)) {
@@ -312,7 +310,7 @@ class AdvancedSearch {
                 }
 
                 if (img != null) {
-                    var wi = OmeroRawBrowserTools.paintBufferedImageOnCanvas(img, canvas, prefScale);
+                    var wi = OmeroRawImageServerBrowserCommand.paintBufferedImageOnCanvas(img, canvas, prefScale);
                     Tooltip tooltip = new Tooltip();
                     if (item.type.equalsIgnoreCase("image")) {
                         // Setting tooltips on hover

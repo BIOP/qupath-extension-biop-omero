@@ -12,11 +12,7 @@ import fr.igred.omero.repository.ProjectWrapper;
 import fr.igred.omero.repository.ScreenWrapper;
 import fr.igred.omero.repository.WellSampleWrapper;
 import fr.igred.omero.repository.WellWrapper;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Node;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.WritableImage;
 import javafx.util.StringConverter;
 import omero.gateway.exception.DSAccessException;
 import omero.gateway.exception.DSOutOfServiceException;
@@ -32,7 +28,6 @@ import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.commands.ProjectCommands;
-import qupath.lib.gui.tools.GuiTools;
 import qupath.lib.gui.tools.IconFactory;
 import qupath.lib.images.servers.ImageServerProvider;
 import qupath.lib.projects.ProjectImageEntry;
@@ -57,6 +52,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * Utility class grouping static methods in relation to the browser command
+ *
+ * @author Rémy Dornier
+ */
 public class OmeroRawBrowserTools {
     final private static Logger logger = LoggerFactory.getLogger(OmeroRawBrowserTools.class);
 
@@ -129,7 +129,7 @@ public class OmeroRawBrowserTools {
 
                 // read orphaned images
                 try {
-                    list.add(readOrphanedImagesItem(client, parent, user, userGroup));
+                    list.add(getOrphanedFolderItem(client, parent, user, userGroup));
                 }catch(Exception e){
                     Dialogs.showErrorNotification("Reading orphaned images",
                             "Impossible to retrieve orphaned images from your account");
@@ -243,7 +243,7 @@ public class OmeroRawBrowserTools {
                                                                        ExperimenterWrapper user, GroupWrapper userGroup)
             throws AccessException, ServiceException, OMEROServerError, ExecutionException {
         List<OmeroRawObjects.OmeroRawObject> ophDatasetsList = new ArrayList<>();
-        OmeroRawTools.readOmeroOrphanedDatasetsPerOwner(client, user).forEach(datasetWrapper -> {
+        OmeroRawTools.readOrphanedDatasets(client, user).forEach(datasetWrapper -> {
             ophDatasetsList.add(new OmeroRawObjects.Dataset(datasetWrapper, datasetWrapper.getId(),
                     OmeroRawObjects.OmeroRawObjectType.DATASET, parent, user, userGroup));
         });
@@ -260,7 +260,7 @@ public class OmeroRawBrowserTools {
      * @param userGroup
      * @return
      */
-    public static OmeroRawObjects.OmeroRawObject readOrphanedImagesItem(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
+    private static OmeroRawObjects.OmeroRawObject getOrphanedFolderItem(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
                                                                         ExperimenterWrapper user, GroupWrapper userGroup)
             throws ExecutionException {
         // create an orphaned folder item
@@ -268,7 +268,7 @@ public class OmeroRawBrowserTools {
         List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
 
         // read orphaned images for the current user
-        OmeroRawTools.readOmeroOrphanedImagesPerUser(client, user).forEach( e ->
+        OmeroRawTools.readOrphanedImages(client, user).forEach(e ->
                 list.add(new OmeroRawObjects.Image(e, e.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE, orphanedFolder, user, userGroup))
         );
 
@@ -437,40 +437,6 @@ public class OmeroRawBrowserTools {
         return wellItems;
     }
 
-    /**
-     * Build an {@link OmeroRawObjects.Owner} object based on the OMERO {@link ExperimenterData} user
-     *
-     * @param user
-     * @return
-     */
-    @Deprecated
-    public static OmeroRawObjects.Owner getOwnerItem(Experimenter user){
-        ExperimenterWrapper experimenterWrapper = new ExperimenterWrapper(new ExperimenterData(user));
-        return new OmeroRawObjects.Owner(experimenterWrapper);
-    }
-
-    /**
-     * Return the {@link OmeroRawObjects.Owner} object corresponding to the logged-in user on the current OMERO session
-     *
-     * @param client
-     * @return
-     */
-    @Deprecated
-    public static OmeroRawObjects.Owner getDefaultOwnerItem(OmeroRawClient client)  {
-        return new OmeroRawObjects.Owner(client.getLoggedInUser());
-    }
-
-
-    /**
-     * Return the group object corresponding to the default group attributed to the logged in user
-     * @param client
-     * @return
-     */
-    @Deprecated
-    public static OmeroRawObjects.Group getDefaultGroupItem(OmeroRawClient client) {
-        GroupWrapper userGroup = client.getLoggedInUser().getDefaultGroup();
-        return new OmeroRawObjects.Group(userGroup, userGroup.getId(), userGroup.getName());
-    }
 
     /**
      * Return a map of available groups with its attached users.
@@ -478,8 +444,7 @@ public class OmeroRawBrowserTools {
      * @param client
      * @return available groups for the current user
      */
-    public static Map<OmeroRawObjects.Group,List<OmeroRawObjects.Owner>> getGroupUsersMapAvailableForCurrentUser(OmeroRawClient client) {
-        // final map
+    public static Map<OmeroRawObjects.Group,List<OmeroRawObjects.Owner>> getAvailableGroupUsersMap(OmeroRawClient client) {
         Map<OmeroRawObjects.Group,List<OmeroRawObjects.Owner>> map = new HashMap<>();
 
         // get all available groups for the current user according to his admin rights
@@ -512,54 +477,6 @@ public class OmeroRawBrowserTools {
         return new TreeMap<>(map);
     }
 
-
-    /**
-     * Get all the orphaned images from the server for a certain user as list of {@link OmeroRawObjects.OmeroRawObject}
-     *
-     * @param client
-     * @param group
-     * @param owner
-     * @return
-     */
-    @Deprecated
-    public static List<OmeroRawObjects.OmeroRawObject> readOrphanedImagesItem(OmeroRawClient client, OmeroRawObjects.Group group, OmeroRawObjects.Owner owner){
-        List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
-        try{
-            // get orphaned datasets
-            Collection<ImageWrapper> orphanedImages = OmeroRawTools.readOmeroOrphanedImagesPerUser(client, owner.getWrapper());
-
-            // get OMERO user and group
-            ExperimenterWrapper user = OmeroRawTools.getUser(client, owner.getId());
-            GroupWrapper userGroup = OmeroRawTools.getGroup(client, group.getId());
-
-            // convert dataset to OmeroRawObject
-            orphanedImages.forEach( e ->
-                list.add(new OmeroRawObjects.Image(e, e.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE, new OmeroRawObjects.Server(client.getServerURI()), user, userGroup))
-            );
-        } catch (ExecutionException e) {
-            Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+owner.getId());
-            logger.error(String.valueOf(e));
-            logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-
-        return list;
-    }
-
-
-    /**
-     * Request the {@code OmeroRawAnnotations} object of type {@code category} associated with
-     * the {@code OmeroRawObject} specified.
-     *
-     * @param client
-     * @param obj
-     * @param category
-     * @return omeroRawAnnotations object
-     */
-    @Deprecated
-    public static OmeroRawAnnotations readAnnotationsItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject obj, OmeroRawAnnotations.OmeroRawAnnotationType category) {
-        return OmeroRawAnnotations.getOmeroAnnotations(category, OmeroRawTools.readOmeroAnnotations(client, obj.getWrapper()));
-    }
 
     /**
      * Adds the OMERO object hierarchy as QuPath metadata fields
@@ -648,34 +565,6 @@ public class OmeroRawBrowserTools {
     }
 
     /**
-     * Paint the specified image onto the specified canvas (of the preferred size).
-     * Additionally, it returns the {@code WritableImage} for further use.
-     * @param img
-     * @param canvas
-     * @param prefSize
-     * @return writable image
-     */
-    protected static WritableImage paintBufferedImageOnCanvas(BufferedImage img, Canvas canvas, int prefSize) {
-        canvas.setWidth(prefSize);
-        canvas.setHeight(prefSize);
-
-        // Color the canvas in black, in case no new image can be painted
-        GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-
-        if (img == null)
-            return null;
-
-        var wi =  SwingFXUtils.toFXImage(img, null);
-        if (wi == null)
-            return wi;
-
-        GuiTools.paintImage(canvas, wi);
-        return wi;
-    }
-
-
-    /**
      * Prompt to import images, specifying the {@link OmeroRawImageServerBuilder} if possible.
      * @param validUris
      * @return
@@ -695,6 +584,13 @@ public class OmeroRawBrowserTools {
         return IconFactory.createNode(QuPathGUI.TOOLBAR_ICON_SIZE, QuPathGUI.TOOLBAR_ICON_SIZE, state);
     }
 
+    /*
+     *
+     *
+     *                                           Deprecated methods
+     *
+     *
+     */
 
     /**
      * Return a list of valid URIs from the given URI. If no valid URI can be parsed
@@ -707,6 +603,7 @@ public class OmeroRawBrowserTools {
      * @param client
      * @return list
      * @throws IOException
+     * @deprecated Method removed
      */
     @Deprecated
     public static List<URI> getURIs(URI uri, OmeroRawClient client) throws IOException, DSOutOfServiceException, ExecutionException, DSAccessException {
@@ -754,6 +651,17 @@ public class OmeroRawBrowserTools {
         throw new IOException("URI not recognized: " + uri);
     }
 
+    /**
+     *
+     * @param uri
+     * @param client
+     * @return
+     * @throws IOException
+     * @throws ExecutionException
+     * @throws DSOutOfServiceException
+     * @throws DSAccessException
+     * @deprecated Method removed
+     */
     @Deprecated
     public static URI getStandardURI(URI uri, OmeroRawClient client) throws IOException, ExecutionException, DSOutOfServiceException, DSAccessException {
         List<String> ids = new ArrayList<>();
@@ -840,6 +748,7 @@ public class OmeroRawBrowserTools {
      * @param uri
      * @param type
      * @return Id
+     * @deprecated Method removed
      */
     @Deprecated
     public static int parseOmeroRawObjectId(URI uri, OmeroRawObjects.OmeroRawObjectType type) {
@@ -880,6 +789,7 @@ public class OmeroRawBrowserTools {
      *
      * @param uri
      * @return omeroRawObjectType
+     * @deprecated Method removed
      */
     @Deprecated
     public static OmeroRawObjects.OmeroRawObjectType parseOmeroRawObjectType(URI uri) {
@@ -896,4 +806,105 @@ public class OmeroRawBrowserTools {
         }
         return OmeroRawObjects.OmeroRawObjectType.UNKNOWN;
     }
+
+    /**
+     * Request the {@code OmeroRawAnnotations} object of type {@code category} associated with
+     * the {@code OmeroRawObject} specified.
+     *
+     * @param client
+     * @param obj
+     * @param category
+     * @return omeroRawAnnotations object
+     * @deprecated Internal method ; not public anymore
+     */
+    @Deprecated
+    public static OmeroRawAnnotations readAnnotationsItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject obj, OmeroRawAnnotations.OmeroRawAnnotationType category) {
+        return OmeroRawAnnotations.getOmeroAnnotations(category, OmeroRawTools.readOmeroAnnotations(client, obj.getWrapper()));
+    }
+
+    /**
+     * Get all the orphaned images from the server for a certain user as list of {@link OmeroRawObjects.OmeroRawObject}
+     *
+     * @param client
+     * @param group
+     * @param owner
+     * @return
+     * @deprecated Internal method ; not public anymore
+     */
+    @Deprecated
+    public static List<OmeroRawObjects.OmeroRawObject> getOrphanedFolderItem(OmeroRawClient client, OmeroRawObjects.Group group, OmeroRawObjects.Owner owner){
+        List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
+        try{
+            // get orphaned datasets
+            Collection<ImageWrapper> orphanedImages = OmeroRawTools.readOrphanedImages(client, owner.getWrapper());
+
+            // get OMERO user and group
+            ExperimenterWrapper user = OmeroRawTools.getUser(client, owner.getId());
+            GroupWrapper userGroup = OmeroRawTools.getGroup(client, group.getId());
+
+            // convert dataset to OmeroRawObject
+            orphanedImages.forEach( e ->
+                    list.add(new OmeroRawObjects.Image(e, e.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE, new OmeroRawObjects.Server(client.getServerURI()), user, userGroup))
+            );
+        } catch (ExecutionException e) {
+            Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+owner.getId());
+            logger.error(String.valueOf(e));
+            logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+
+        return list;
+    }
+
+
+    /**
+     * Build an {@link OmeroRawObjects.Owner} object based on the OMERO {@link ExperimenterData} user
+     *
+     * @param user
+     * @return
+     * @deprecated Method removed
+     */
+    @Deprecated
+    public static OmeroRawObjects.Owner getOwnerItem(Experimenter user){
+        ExperimenterWrapper experimenterWrapper = new ExperimenterWrapper(new ExperimenterData(user));
+        return new OmeroRawObjects.Owner(experimenterWrapper);
+    }
+
+    /**
+     * Return the {@link OmeroRawObjects.Owner} object corresponding to the logged-in user on the current OMERO session
+     *
+     * @param client
+     * @return
+     * @deprecated Method removed
+     */
+    @Deprecated
+    public static OmeroRawObjects.Owner getDefaultOwnerItem(OmeroRawClient client)  {
+        return new OmeroRawObjects.Owner(client.getLoggedInUser());
+    }
+
+
+    /**
+     * Return the group object corresponding to the default group attributed to the logged in user
+     * @param client
+     * @return
+     * @deprecated Method removed
+     */
+    @Deprecated
+    public static OmeroRawObjects.Group getDefaultGroupItem(OmeroRawClient client) {
+        GroupWrapper userGroup = client.getLoggedInUser().getDefaultGroup();
+        return new OmeroRawObjects.Group(userGroup, userGroup.getId(), userGroup.getName());
+    }
+
+    /**
+     * Return a map of available groups with its attached users.
+     *
+     * @param client
+     * @return available groups for the current user
+     * @deprecated use {@link OmeroRawBrowserTools#getAvailableGroupUsersMap(OmeroRawClient)} instead
+     */
+    @Deprecated
+    public static Map<OmeroRawObjects.Group,List<OmeroRawObjects.Owner>> getGroupUsersMapAvailableForCurrentUser(OmeroRawClient client) {
+        return getAvailableGroupUsersMap(client);
+    }
+
 }

@@ -24,10 +24,8 @@ package qupath.ext.biop.servers.omero.raw.browser;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import fr.igred.omero.meta.ExperimenterWrapper;
 import fr.igred.omero.meta.GroupWrapper;
@@ -42,19 +40,11 @@ import fr.igred.omero.repository.WellWrapper;
 import omero.gateway.model.PixelsData;
 import omero.gateway.model.DataObject;
 
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.collections.ObservableList;
-import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
-
 
 /**
- * Class regrouping all OMERO objects (most of which will be instantiated through deserialization) that represent
- * OMERO objects or data.
+ * Class regrouping all OMERO objects used to create the browser.
  *
- * @author Melvin Gelbard
+ * @author Rémy Dornier (based on Melvin Gelbard's work)
  */
 final class OmeroRawObjects {
 
@@ -268,19 +258,6 @@ final class OmeroRawObjects {
     }
 
 
-    /**
-     * The {@code Orphaned folder} class differs from other in this class as it
-     * is never created through deserialization of JSON objects. Note that it should only
-     * contain orphaned images, <b>not</b> orphaned datasets (like the OMERO webclient).
-     * <p>
-     * It should only be used once per {@code OmeroRawImageServerBrowser}, with its children objects loaded
-     * in an executor (see {@link OmeroRawTools#readOmeroOrphanedImagesPerUser}). This class keeps track of:
-     * <li>Total child count: total amount of orphaned images on the server.</li>
-     * <li>Current child count: what is displayed in the current {@code OmeroRawServerImageBrowser}, which depends on what is loaded and the current Group/Owner.</li>
-     * <li>Child count: total amount of orphaned images currently loaded (always smaller than total child count).</li>
-     * <li>{@code isLoading} property: defines whether QuPath is still loading its children objects.</li>
-     * <li>List of orphaned image objects.</li>
-     */
     protected static class OrphanedFolder extends OmeroRawObject {
         private List<OmeroRawObject> orphanedImageList = new ArrayList<>();
 
