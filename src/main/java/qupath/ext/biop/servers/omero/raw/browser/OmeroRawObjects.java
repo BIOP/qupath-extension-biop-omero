@@ -24,6 +24,7 @@ package qupath.ext.biop.servers.omero.raw.browser;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -281,66 +282,31 @@ final class OmeroRawObjects {
      * <li>List of orphaned image objects.</li>
      */
     protected static class OrphanedFolder extends OmeroRawObject {
+        private List<OmeroRawObject> orphanedImageList = new ArrayList<>();
 
-        /**
-         * Number of children currently to display (based on Group/Owner and loaded objects)
-         */
-        private final IntegerProperty currentChildCount;
-
-        /**
-         * Number of children objects loaded
-         */
-        private final AtomicInteger loadedChildCount;
-
-        /**
-         * Total number of children (loaded + unloaded)
-         */
-        private final AtomicInteger totalChildCount;
-
-        private final BooleanProperty isLoading;
-        private final ObservableList<OmeroRawObject> orphanedImageList;
-
-        protected OrphanedFolder(ObservableList<OmeroRawObject> orphanedImageList) {
-            this.name = "Orphaned Images";
-            this.type = OmeroRawObjectType.ORPHANED_FOLDER.toString();
-            this.currentChildCount = new SimpleIntegerProperty(0);
-            this.loadedChildCount = new AtomicInteger(0);
-            this.totalChildCount = new AtomicInteger(-1);
-            this.isLoading = new SimpleBooleanProperty(true);
-            this.orphanedImageList = orphanedImageList;
+        protected OrphanedFolder(OmeroRawObject parent,
+                                 ExperimenterWrapper user, GroupWrapper group) {
+            super.setWrapper(null);
+            super.setDescription("This is a virtual container with orphaned images. These images are not linked anywhere.");
+            super.setId(-1);
+            super.setName("Orphaned Images");
+            super.setType(OmeroRawObjectType.ORPHANED_FOLDER.toString());
+            super.setParent(parent);
+            super.setOwner(user == null ? Owner.ALL_MEMBERS : new Owner(user));
+            super.setGroup(new Group(group, group.getId(), group.getName()));
         }
 
-        IntegerProperty getCurrentCountProperty() {
-            return currentChildCount;
+        List<OmeroRawObject> getImageList() {
+            return this.orphanedImageList;
         }
 
-        int incrementAndGetLoadedCount() {
-            return loadedChildCount.incrementAndGet();
-        }
-
-        void setTotalChildCount(int newValue) {
-            totalChildCount.set(newValue);
-        }
-
-        int getTotalChildCount() {
-            return totalChildCount.get();
-        }
-
-        BooleanProperty getLoadingProperty() {
-            return isLoading;
-        }
-
-        void setLoading(boolean value) {
-            isLoading.set(value);
-        }
-
-        ObservableList<OmeroRawObject> getImageList() {
-            return orphanedImageList;
+        void addOrphanedImages(List<OmeroRawObject> images){
+            this.orphanedImageList.addAll(images);
         }
 
         @Override
         int getNChildren() {
-            return currentChildCount.get();
+            return orphanedImageList.size();
         }
     }
 
@@ -364,7 +330,7 @@ final class OmeroRawObjects {
             super.setType(type.toString());
             super.setParent(parent);
             super.setOwner(new Owner(user));
-            super.setGroup(new Group(group.getId(), group.getName()));
+            super.setGroup(new Group(group, group.getId(), group.getName()));
         }
     }
 
@@ -388,7 +354,7 @@ final class OmeroRawObjects {
             super.setType(type.toString());
             super.setParent(parent);
             super.setOwner(new Owner(user));
-            super.setGroup(new Group(group.getId(), group.getName()));
+            super.setGroup(new Group(group, group.getId(), group.getName()));
         }
     }
 
@@ -412,7 +378,7 @@ final class OmeroRawObjects {
             super.setType(type.toString());
             super.setParent(parent);
             super.setOwner(new Owner(user));
-            super.setGroup(new Group(group.getId(), group.getName()));
+            super.setGroup(new Group(group, group.getId(), group.getName()));
         }
     }
 
@@ -439,7 +405,7 @@ final class OmeroRawObjects {
             super.setType(type.toString());
             super.setParent(parent);
             super.setOwner(new Owner(user));
-            super.setGroup(new Group(group.getId(), group.getName()));
+            super.setGroup(new Group(group, group.getId(), group.getName()));
         }
     }
 
@@ -465,7 +431,7 @@ final class OmeroRawObjects {
             super.setType(type.toString());
             super.setParent(parent);
             super.setOwner(new Owner(user));
-            super.setGroup(new Group(group.getId(), group.getName()));
+            super.setGroup(new Group(group, group.getId(), group.getName()));
         }
     }
 
@@ -496,7 +462,7 @@ final class OmeroRawObjects {
             super.setType(type.toString());
             super.setParent(parent);
             super.setOwner(new Owner(user));
-            super.setGroup(new Group(group.getId(), group.getName()));
+            super.setGroup(new Group(group, group.getId(), group.getName()));
         }
     }
 
@@ -535,7 +501,7 @@ final class OmeroRawObjects {
             super.setType(type.toString());
             super.setParent(parent);
             super.setOwner(new Owner(user));
-            super.setGroup(new Group(group.getId(), group.getName()));
+            super.setGroup(new Group(group, group.getId(), group.getName()));
         }
     }
 
@@ -627,13 +593,15 @@ final class OmeroRawObjects {
     protected static class Group implements Comparable {
         private final long id;
         private final String name;
+        private final GroupWrapper wrapper;
 
         // Singleton (with static factory)
-        private static final Group ALL_GROUPS = new Group(-1, "All groups");
+        private static final Group ALL_GROUPS = new Group(null, -1, "All groups");
 
-        protected Group(long id, String name) {
+        protected Group(GroupWrapper groupWrapper, long id, String name) {
             this.id = id;
             this.name = name;
+            this.wrapper = groupWrapper;
         }
 
         /**
@@ -652,6 +620,9 @@ final class OmeroRawObjects {
             return id;
         }
 
+        protected GroupWrapper getWrapper(){
+            return this.wrapper;
+        }
         @Override
         public String toString() {
             return name;

@@ -44,9 +44,9 @@ import java.util.stream.Collectors;
 
 import fr.igred.omero.meta.ExperimenterWrapper;
 
+import fr.igred.omero.meta.GroupWrapper;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
-import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -96,7 +96,6 @@ import qupath.lib.projects.ProjectImageEntry;
  *
  * @author Melvin Gelbard
  */
-// TODO: Orphaned folder is still 'selectable' via arrow keys (despite being disabled), which looks like a JavaFX bug..
 // TODO: If switching users while the browser is opened, nothing will load (but everything stays clickable).
 public class OmeroRawImageServerBrowserCommand implements Runnable {
     private static final String BOLD = "-fx-font-weight: bold";
@@ -111,7 +110,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     private ComboBox<OmeroRawObjects.Owner> comboOwner;
     private ComboBox<OmeroRawObjects.Group> comboGroup;
     private TreeView<OmeroRawObjects.OmeroRawObject> tree;
-    private OmeroRawObjects.OrphanedFolder orphanedFolder;
     private TextField filter;
 
     // GUI right
@@ -122,8 +120,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     // GUI top and down
     private Label loadingChildrenLabel;
     private Label loadingThumbnailLabel;
-    private Label loadingOrphanedLabel;
-    private Button importBtn;
 
     // Other
     private Map<OmeroRawObjects.OmeroRawObjectType, BufferedImage> omeroIcons;
@@ -132,17 +128,19 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
     // Browser data 'storage'
     private Map<OmeroRawObjects.Group, Map<OmeroRawObjects.Owner, List<OmeroRawObjects.OmeroRawObject>>> groupOwnersChildrenMap;
-    private ObservableList<OmeroRawObjects.OmeroRawObject> orphanedImageList;
     private Map<OmeroRawObjects.Group, List<OmeroRawObjects.Owner>> groupMap;
     private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> projectMap;
     private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> screenMap;
     private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> plateMap;
     private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> wellMap;
     private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> datasetMap;
+    private Map<OmeroRawObjects.Owner, List<OmeroRawObjects.OmeroRawObject>> orphanedFolderMap;
     private Map<Long, BufferedImage> thumbnailBank;
-    private IntegerProperty currentOrphanedCount;
 
-    private final String[] orphanedAttributes = new String[] {"Name"};
+    private final String[] orphanedAttributes = new String[] {
+            "Name",
+            "Description",
+            "Num. images"};
     private final String[] projectAttributes = new String[] {
             "Name",
             "Id",
@@ -222,11 +220,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
          *
          */
         groupOwnersChildrenMap = new ConcurrentHashMap<>();
-        orphanedImageList = FXCollections.observableArrayList();
-        orphanedFolder = new OmeroRawObjects.OrphanedFolder(orphanedImageList);
-        currentOrphanedCount = orphanedFolder.getCurrentCountProperty();
         thumbnailBank = new ConcurrentHashMap<>();
         projectMap = new ConcurrentHashMap<>();
+        orphanedFolderMap = new ConcurrentHashMap<>();
         screenMap = new ConcurrentHashMap<>();
         plateMap = new ConcurrentHashMap<>();
         wellMap = new ConcurrentHashMap<>();
@@ -248,12 +244,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         progressThumbnail.setPrefSize(15, 15);
         loadingThumbnailLabel = new Label("Loading thumbnail", progressThumbnail);
         loadingThumbnailLabel.setOpacity(0.0);
-
-        ProgressIndicator progressOrphaned = new ProgressIndicator();
-        progressOrphaned.setPrefSize(15.0, 15.0);
-        loadingOrphanedLabel = new Label();
-        loadingOrphanedLabel.setGraphic(progressOrphaned);
-
 
         // Info about the server to display at the top
         Label hostLabel = new Label(serverURI.getHost());
@@ -281,23 +271,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         // Get OMERO icons (project and dataset icons)
         omeroIcons = OmeroRawBrowserTools.getOmeroIcons();
 
-        currentOrphanedCount.bind(Bindings.createIntegerBinding(() -> Math.toIntExact(filterList(orphanedImageList,
-                        comboGroup.getSelectionModel().getSelectedItem(),
-                        comboOwner.getSelectionModel().getSelectedItem(),
-                        null).size()),
-                // Binding triggered when the following change: loadingProperty/selected Group/selected Owner
-                orphanedFolder.getLoadingProperty(), comboGroup.getSelectionModel().selectedItemProperty(), comboOwner.getSelectionModel().selectedItemProperty())
-        );
-
-
-        // Bind the top label to the amount of orphaned images
-        loadingOrphanedLabel.textProperty().bind(Bindings.when(orphanedFolder.getLoadingProperty()).then(Bindings.concat("Loading image list (")
-                .concat(Bindings.size(orphanedFolder.getImageList()))
-                .concat("/"+ orphanedFolder.getTotalChildCount() + ")")).otherwise(Bindings.concat("")));
-        loadingOrphanedLabel.opacityProperty().bind(Bindings.createDoubleBinding(() -> orphanedFolder.getLoadingProperty().get() ? 1.0 : 0, orphanedFolder.getLoadingProperty()));
-
-        orphanedFolder.setLoading(false);
-
         /*
          *
          * handle groups / users in combo box
@@ -308,8 +281,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
         // get default user / group object
         ExperimenterWrapper loggedInUser = client.getLoggedInUser();
-        OmeroRawObjects.Group defaultGroup = new OmeroRawObjects.Group(loggedInUser.getDefaultGroup().getId(),
-                                                                        loggedInUser.getDefaultGroup().getName());
+        GroupWrapper userGroup = loggedInUser.getDefaultGroup();
+        OmeroRawObjects.Group defaultGroup = new OmeroRawObjects.Group(userGroup, userGroup.getId(), userGroup.getName());
         OmeroRawObjects.Owner defaultOwner = new OmeroRawObjects.Owner(loggedInUser);
 
         // initialize group combo box
@@ -557,7 +530,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
          * Handle the image import
          *
          */
-        importBtn = new Button("Import image");
+        Button importBtn = new Button("Import image");
 
         // Text on button will change according to OMERO object selected
         importBtn.textProperty().bind(Bindings.createStringBinding(() -> {
@@ -641,7 +614,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
          */
         GridPane loadingInfoPane = new GridPane();
         GridPaneUtils.addGridRow(loadingInfoPane, 0, 0, "OMERO objects are loaded in the background", loadingChildrenLabel);
-        //GridPaneUtils.addGridRow(loadingInfoPane, 1, 0, "OMERO objects are loaded in the background", loadingOrphanedLabel);
         GridPaneUtils.addGridRow(loadingInfoPane, 2, 0, "Thumbnails are loaded in the background", loadingThumbnailLabel);
 
         GridPane serverAttributePane = new GridPane();
@@ -740,17 +712,17 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     /**
      * If something else than an image is selected in the browser, then it lists all images contained the selected container.
      *
-     * @param uri
+     * @param parent
      * @param group
      * @param owner
      * @return List of available images in the selected container
      */
-    private List<OmeroRawObjects.OmeroRawObject> listAllImagesToImport(OmeroRawObjects.OmeroRawObject uri, OmeroRawObjects.Group group, OmeroRawObjects.Owner owner){
-        switch (uri.getType()){
+    private List<OmeroRawObjects.OmeroRawObject> listAllImagesToImport(OmeroRawObjects.OmeroRawObject parent, OmeroRawObjects.Group group, OmeroRawObjects.Owner owner){
+        switch (parent.getType()){
             case PROJECT:
             case SCREEN:
             case PLATE:
-                var temp = getChildren(uri, group, owner);
+                var temp = getChildren(parent, group, owner);
                 List<OmeroRawObjects.OmeroRawObject> out = new ArrayList<>();
                 for (var subTemp: temp) {
                     out.addAll(listAllImagesToImport(subTemp, group, owner));
@@ -758,10 +730,11 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 return out;
             case DATASET:
             case WELL:
+                return getChildren(parent, group, owner);
             case ORPHANED_FOLDER:
-                return getChildren(uri, group, owner);
+                return ((OmeroRawObjects.OrphanedFolder)parent).getImageList();
             default:
-                return Collections.singletonList(uri);
+                return Collections.singletonList(parent);
         }
     }
 
@@ -779,8 +752,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         // Check if we already have the children for this OmeroObject (avoid sending request)
         if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.SERVER && groupOwnersChildrenMap.containsKey(group) && groupOwnersChildrenMap.get(group).containsKey(owner))
             return groupOwnersChildrenMap.get(group).get(owner);
-        else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER && orphanedImageList.size() > 0)
-            return orphanedImageList;//((OmeroRawObjects.OrphanedFolder)parentObj).getImageList();
+        else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER && orphanedFolderMap.containsKey(owner)/*orphanedImageList.size() > 0*/)
+            return orphanedFolderMap.get(owner);//orphanedImageList;//((OmeroRawObjects.OrphanedFolder)parentObj).getImageList();
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.PROJECT && projectMap.containsKey(parentObj))
             return projectMap.get(parentObj);
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.SCREEN && screenMap.containsKey(parentObj))
@@ -796,10 +769,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
         List<OmeroRawObjects.OmeroRawObject> children;
 
-        // If orphaned folder, return all orphaned images
-        if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER)
-            return orphanedImageList;
-
         // switch the client to the current group
         if(this.client.getSimpleClient().getCurrentGroupId() != group.getId())
             this.client.switchGroup(group.getId());
@@ -809,9 +778,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
         // If parentObj is a Server, add all the orphaned datasets (orphaned images are in 'Orphaned images' folder)
         if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.SERVER) {
-            // read orphaned images
-            orphanedImageList.addAll(OmeroRawBrowserTools.readOrphanedImagesItem(client, group, owner));
-
             // update the list of already loaded items
             if(groupOwnersChildrenMap.containsKey(group))
                 groupOwnersChildrenMap.get(group).put(owner, children);
@@ -820,6 +786,12 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 ownerMap.put(owner, children);
                 groupOwnersChildrenMap.put(group, ownerMap);
             }
+            orphanedFolderMap.put(owner, children.stream()
+                    .filter(e->e.getType().equals(OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER))
+                    .map(OmeroRawObjects.OrphanedFolder.class::cast)
+                    .findFirst()
+                    .get()
+                    .getImageList());
         } else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.PROJECT) {
             projectMap.put(parentObj, children);
         } else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.DATASET) {
@@ -949,7 +921,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
         // special cases
         if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER){
-            outString = new String[]{name};
+            String nChildren = String.valueOf(omeroObject.getNChildren());
+            outString = new String[]{name, description, nChildren};
         } else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE) {
             OmeroRawObjects.Image obj = (OmeroRawObjects.Image)omeroObject;
             String acquisitionDate = obj.getAcquisitionDate() == -1 ? "-" : new Date(obj.getAcquisitionDate()).toString();
@@ -1130,21 +1103,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     item.getType() == OmeroRawObjects.OmeroRawObjectType.DATASET ||
                     item.getType() == OmeroRawObjects.OmeroRawObjectType.PLATE ||
                     item.getType() == OmeroRawObjects.OmeroRawObjectType.SCREEN ||
-                    item.getType() == OmeroRawObjects.OmeroRawObjectType.WELL)
+                    item.getType() == OmeroRawObjects.OmeroRawObjectType.WELL ||
+                    item.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER)
                 name = item.getName() + " (" + item.getNChildren() + ")";
-            else if (item.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER) {
-                name = item.getName() + " (" + item.getNChildren() + ")";
-                Label label = new Label("", iconCanvas);
-
-                // Bind the label property to display the total amount of loaded orphaned images (for this Group/Owner)
-                label.textProperty().bind(
-                        Bindings.when(orphanedFolder.getLoadingProperty())
-                                .then(Bindings.concat(item.getName(), " (loading...)"))
-                                .otherwise(Bindings.concat(item.getName(), " (", currentOrphanedCount, ")")));
-
-                // If orphaned images are still loading, disable the cell (prevent weird and unnecessary errors)
-                disableProperty().bind(orphanedFolder.getLoadingProperty());
-            } else if (item.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE) {
+            else if (item.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE) {
                 name = item.getName();
                 GridPane gp = new GridPane();
                 gp.addRow(0, tooltipCanvas, new Label(name));
@@ -1255,12 +1217,24 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             // remove "all members" owner and get data from others
                             for(OmeroRawObjects.Owner owner : allUsers)
                                 children.addAll(OmeroRawImageServerBrowserCommand.this.getChildren(parentOmeroObj, currentGroup, owner));
+
+                            List<OmeroRawObjects.OrphanedFolder> orphanedFolders = children.stream()
+                                    .filter(e -> e.getType().equals(OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER))
+                                    .map(OmeroRawObjects.OrphanedFolder.class::cast)
+                                    .collect(Collectors.toList());
+
+                            OmeroRawObjects.OrphanedFolder sharedOrphanedFolder = new OmeroRawObjects.OrphanedFolder(parentOmeroObj,
+                                    currentOwner.getWrapper(), currentGroup.getWrapper());
+                            orphanedFolders.forEach(e->sharedOrphanedFolder.addOrphanedImages(e.getImageList()));
+                            children.removeAll(orphanedFolders);
+                            children.add(sharedOrphanedFolder);
+
                         }else
                             // get data from the selected owner
                             children = OmeroRawImageServerBrowserCommand.this.getChildren(parentOmeroObj, currentGroup, currentOwner);
 
                     }else if (parentOmeroObj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER) {
-                        children = orphanedImageList;
+                        children = ((OmeroRawObjects.OrphanedFolder)parentOmeroObj).getImageList();
                     } else {
                         children = OmeroRawImageServerBrowserCommand.this.getChildren(parentOmeroObj, currentGroup, parentOmeroObj.getOwner());
                     }
@@ -1271,10 +1245,6 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             .stream()
                             .map(OmeroRawObjectTreeItem::new)
                             .collect(Collectors.toList());
-
-                    // Add an 'Orphaned Images' tree item to the server's children
-                    if (parentOmeroObj.getType() == OmeroRawObjects.OmeroRawObjectType.SERVER && (filter == null || filterTemp.isEmpty()))
-                        items.add(new OmeroRawObjectTreeItem(orphanedFolder));
 
                     Platform.runLater(() -> {
                         super.getChildren().setAll(items);

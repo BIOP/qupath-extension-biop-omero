@@ -552,8 +552,8 @@ public final class OmeroRawTools {
      * @param user
      * @return List of orphaned images
      */
-    public static Collection<ImageWrapper> readOmeroOrphanedImagesPerUser(OmeroRawClient client, ExperimenterWrapper user) {
-        try {
+    public static Collection<ImageWrapper> readOmeroOrphanedImagesPerUser(OmeroRawClient client, ExperimenterWrapper user)
+            throws ExecutionException {
             return client.getSimpleClient()
                     .getGateway()
                     .getFacility(BrowseFacility.class)
@@ -561,12 +561,6 @@ public final class OmeroRawTools {
                     .stream()
                     .map(ImageWrapper::new)
                     .collect(Collectors.toList());
-        } catch (ExecutionException e) {
-            Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+user.getUserName());
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
     }
 
     /**
