@@ -297,7 +297,13 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         // Changing the ComboBox value refreshes the TreeView and the available owners
         comboOwner.getSelectionModel().selectedItemProperty().addListener((v, o, n) -> refreshTree());
         comboGroup.getSelectionModel().selectedItemProperty().addListener((v, o, n) -> {
-            List<OmeroRawObjects.Owner> newOwners = new ArrayList<>(groupMap.get(comboGroup.getSelectionModel().getSelectedItem()));
+            OmeroRawObjects.Group group = comboGroup.getSelectionModel().getSelectedItem();
+            List<OmeroRawObjects.Owner> newOwners = new ArrayList<>(groupMap.get(group));
+
+            // switch the client to the current group
+            if(this.client.getSimpleClient().getCurrentGroupId() != group.getId())
+                this.client.switchGroup(group.getId());
+
             updateOwnersComboBox(newOwners, comboOwner.getSelectionModel().getSelectedItem());
             refreshTree();
         });
@@ -767,14 +773,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE)
             return new ArrayList<>();
 
-        List<OmeroRawObjects.OmeroRawObject> children;
-
-        // switch the client to the current group
-        if(this.client.getSimpleClient().getCurrentGroupId() != group.getId())
-            this.client.switchGroup(group.getId());
-
         // Read children and populate maps
-        children = OmeroRawBrowserTools.readOmeroObjectsItems(parentObj, this.client, group, owner);
+        List<OmeroRawObjects.OmeroRawObject> children = OmeroRawBrowserTools.readOmeroObjectsItems(parentObj, this.client, group, owner);
 
         // If parentObj is a Server, add all the orphaned datasets (orphaned images are in 'Orphaned images' folder)
         if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.SERVER) {
