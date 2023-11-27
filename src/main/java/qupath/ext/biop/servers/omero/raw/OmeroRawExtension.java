@@ -141,7 +141,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 			var activeServers = OmeroRawClients.getAllClients();
 
 			// Populate the menu with each unique active servers
-			for (var client: activeServers) {
+			for (OmeroRawClient client : activeServers) {
 				if (client == null)
 					continue;
 				MenuItem item = new MenuItem(client.getServerURI() + "...");
@@ -165,15 +165,15 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 
 				GridPane gp = new GridPane();
 				gp.setVgap(5.0);
-				TextField tf = new TextField(defaultOmeroServer==null ? "": defaultOmeroServer);
+				TextField tf = new TextField(defaultOmeroServer == null ? "" : defaultOmeroServer);
 				tf.setPrefWidth(400);
 				GridPaneUtils.addGridRow(gp, 0, 0, "Enter OMERO URL", new Label("Enter an OMERO server URL to browse (e.g. http://idr.openmicroscopy.org/):"));
 				GridPaneUtils.addGridRow(gp, 1, 0, "Enter OMERO URL", tf, tf);
-				var confirm = Dialogs.showConfirmDialog("Enter OMERO URL", gp);
+				boolean confirm = Dialogs.showConfirmDialog("Enter OMERO URL", gp);
 				if (!confirm)
 					return;
 
-				var path = tf.getText();
+				String path = tf.getText();
 				if (path == null || path.isEmpty())
 					return;
 				try {
@@ -190,11 +190,11 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 						throw new MalformedURLException("Could not parse server from " + uri);
 
 					// create the txt containing the default omero server
-					if(defaultOmeroServer == null)
+					if (defaultOmeroServer == null)
 						createOmeroDefaultServerFile(uriServer.toString());
 
 					// Check if client exist and if browser is already opened
-					var client = OmeroRawClients.getClientFromServerURI(uriServer);
+					OmeroRawClient client = OmeroRawClients.getClientFromServerURI(uriServer);
 					if (client == null)
 						client = OmeroRawClients.createClientAndLogin(uriServer);
 
@@ -207,11 +207,11 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 						browser = new OmeroRawImageServerBrowserCommand(qupath, client);
 						rawBrowsers.put(client, browser);
 						browser.run();
-					} else	// Request focus for already-existing browser
+					} else    // Request focus for already-existing browser
 						browser.getStage().requestFocus();
 
 				} catch (FileNotFoundException ex) {
-					Dialogs.showErrorMessage("OMERO-RAW server", String.format("An error occured when trying to reach %s: %s\"", path, ex.getLocalizedMessage()));
+					Dialogs.showErrorMessage("OMERO-RAW server", String.format("An error occurred when trying to reach %s: %s\"", path, ex.getLocalizedMessage()));
 				} catch (IOException | URISyntaxException ex) {
 					Dialogs.showErrorMessage("OMERO-RAW server", ex.getLocalizedMessage());
 					return;

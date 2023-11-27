@@ -126,7 +126,7 @@ public class OmeroRawClientsCommand implements Runnable {
     }
 
 
-    //TODO have to look to the issue when mulptiple servers are connected
+    // TODO have to look to the issue when mulptiple servers are connected
     private void refreshServerGrid() {
         mainPane.getChildren().clear();
         var allClients = OmeroRawClients.getAllClients();

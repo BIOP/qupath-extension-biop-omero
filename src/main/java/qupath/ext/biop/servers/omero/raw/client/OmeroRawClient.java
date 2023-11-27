@@ -26,7 +26,9 @@ import fr.igred.omero.meta.ExperimenterWrapper;
 import fr.igred.omero.meta.GroupWrapper;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
@@ -39,8 +41,6 @@ import omero.gateway.Gateway;
 import omero.gateway.LoginCredentials;
 import omero.gateway.SecurityContext;
 import omero.gateway.exception.DSOutOfServiceException;
-import omero.gateway.model.ExperimenterData;
-import omero.log.SimpleLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawExtension;
@@ -68,9 +68,9 @@ import java.util.Objects;
 public class OmeroRawClient {
 
     final private static Logger logger = LoggerFactory.getLogger(OmeroRawClient.class);
-    private int port = 4064;
-    private boolean isAdminUser = false;
-    private Client simpleClient;
+    private final IntegerProperty port;
+    private final BooleanProperty isAdminUser;
+    private final Client simpleClient;
 
     /**
      * List of all URIs supported by this client.
@@ -106,85 +106,29 @@ public class OmeroRawClient {
         this.serverURI = serverUri;
         this.username = new SimpleStringProperty("");
         this.loggedIn = new SimpleBooleanProperty(false);
+        this.isAdminUser = new SimpleBooleanProperty(false);
+        this.port = new SimpleIntegerProperty(4064);
+        this.simpleClient = new Client();
     }
-
-    /*/**
-     * Attempt to access the OMERO object given by the provided {@code uri} and {@code type}.
-     * <p>
-     * N.B. being logged on the server doesn't necessarily mean that the user has
-     * permission to access all the objects on the server.
-     * @param uri
-     * @param type
-     * @return success
-     * @throws IllegalArgumentException
-     * @throws ConnectException
-     */
-   /*static boolean canBeAccessed(URI uri, OmeroRawObjects.OmeroRawObjectType type) throws IllegalArgumentException, ConnectException {
-        try {
-            logger.debug("Attempting to access {}...", type.toString().toLowerCase());
-            int id = OmeroRawTools.parseOmeroRawObjectId(uri, type);
-            if (id == -1)
-                throw new NullPointerException("No object ID found in: " + uri);
-
-            // Implementing this as a switch because of future plates/wells/.. implementations
-            String query;
-            switch (type) {
-                case PROJECT:
-                case DATASET:
-                case IMAGE:
-                    query = String.format("/api/v0/m/%s/", type.toURLString());
-                    break;
-                case ORPHANED_FOLDER:
-                case UNKNOWN:
-                    throw new IllegalArgumentException();
-                default:
-                    throw new OperationNotSupportedException("Type not supported: " + type);
-            }
-
-            URL url = new URL(uri.getScheme(), uri.getHost(), uri.getPort(), query + id);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestMethod("GET");
-            connection.setDoInput(true);
-            int response = connection.getResponseCode();
-            connection.disconnect();
-            return response == 200;
-        } catch (IOException | OperationNotSupportedException ex) {
-            logger.warn("Error attempting to access OMERO object", ex.getLocalizedMessage());
-            return false;
-        }
-    }*/
 
     private boolean authenticate(final PasswordAuthentication authentication) throws Exception {
         String userName = authentication.getUserName();
         String password = String.valueOf(authentication.getPassword());
 
         // If the port is unset, use the default one
-        if (serverURI.getPort() != -1) port = serverURI.getPort();
+        if (this.serverURI.getPort() != -1) this.port.set(this.serverURI.getPort());
 
         //Omero Connect with credentials and simpleLogger
         LoginCredentials credentials = new LoginCredentials();
-
-        credentials.getServer().setHost(serverURI.getHost());
-        credentials.getServer().setPort(port);
+        credentials.getServer().setHost(this.serverURI.getHost());
+        credentials.getServer().setPort(this.port.get());
         credentials.getUser().setUsername(userName);
         credentials.getUser().setPassword(password);
 
-        SimpleLogger simpleLogger = new SimpleLogger();
-        Gateway gateway = new Gateway(simpleLogger);
-        gateway.connect(credentials);
+        this.simpleClient.connect(credentials);
+        this.isAdminUser.setValue(this.simpleClient.getUser().isAdmin(this.simpleClient));
 
-        // Pick up securityContext
-        ExperimenterData exp = gateway.getLoggedInUser();
-        long groupID = exp.getGroupId();
-
-        SecurityContext securityContext = new SecurityContext(groupID);
-        ExperimenterWrapper loggedInUser = new ExperimenterWrapper(gateway.getLoggedInUser());
-        this.simpleClient = new Client(gateway, securityContext, loggedInUser);
-
-        this.isAdminUser = loggedInUser.isAdmin(this.simpleClient);
-
-        return gateway.isConnected();
+        return this.simpleClient.isConnected();
     }
 
 
@@ -200,7 +144,7 @@ public class OmeroRawClient {
                 .anyMatch(e -> e == groupId);
 
         // if member, change the group
-        if (canUserAccessGroup || this.isAdminUser)
+        if (canUserAccessGroup || this.isAdminUser.get())
             this.simpleClient.switchGroup(groupId);
     }
 
@@ -212,7 +156,7 @@ public class OmeroRawClient {
     public boolean isLoggedIn() { return this.simpleClient.isConnected(); }
     public ExperimenterWrapper getLoggedInUser() { return this.simpleClient.getUser(); }
     public boolean isAdmin() {
-        return this.isAdminUser;
+        return this.isAdminUser.get();
     }
     public StringProperty usernameProperty() {
         return username;
@@ -224,8 +168,7 @@ public class OmeroRawClient {
         return username.get();
     }
     public Client getSimpleClient(){return this.simpleClient;}
-    public int getPort(){return this.port;}
-
+    public int getPort(){return this.port.get();}
     private Gateway getGateway() {
         return this.simpleClient.getGateway();
     }
@@ -302,12 +245,12 @@ public class OmeroRawClient {
                 return false;
 
             // get omero port
-            port = OmeroAuthenticatorFX.getPort();
+            this.port.set(OmeroAuthenticatorFX.getPort());
             boolean result = authenticate(authentication);
 
             Arrays.fill(authentication.getPassword(), (char)0);
 
-            // If we have previous URIs and the the username was different
+            // If we have previous URIs and the username was different
             if (uris.size() > 0 && usernameOld != null && !usernameOld.isEmpty() && !usernameOld.equals(authentication.getUserName())) {
                 Dialogs.showInfoNotification("OMERO login", String.format("OMERO account switched from \"%s\" to \"%s\" for %s", usernameOld, authentication.getUserName(), serverURI));
             } else if (uris.size() == 0 || usernameOld == null || usernameOld.isEmpty())
@@ -338,7 +281,7 @@ public class OmeroRawClient {
      * Log out this client from the server.
      */
     public void logOut() {
-        //TODO add this feature to simple-oero-client
+        //TODO add this feature to simple-omero-client
         getGateway().closeConnector(getContext());
         this.simpleClient.disconnect();
 

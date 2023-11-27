@@ -26,13 +26,9 @@ import loci.common.DataTools;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.formats.FormatException;
-import loci.formats.MetadataTools;
-import loci.formats.meta.IMetadata;
-import loci.formats.meta.MetadataStore;
 import omero.ServerError;
 import omero.api.RawPixelsStorePrx;
 import omero.api.ResolutionDescription;
-import omero.gateway.SecurityContext;
 import omero.gateway.exception.DSAccessException;
 import omero.gateway.exception.DSOutOfServiceException;
 import omero.gateway.facility.MetadataFacility;
@@ -180,7 +176,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 * @param args
 	 * @throws IOException
 	 */
-	OmeroRawImageServer(URI uri, OmeroRawClient client, String...args) throws IOException, ServiceException, ServerError, DSOutOfServiceException, DependencyException, ExecutionException, FormatException, DSAccessException, URISyntaxException {
+	OmeroRawImageServer(URI uri, OmeroRawClient client, String...args) throws IOException, ServerError, DSOutOfServiceException, ExecutionException, DSAccessException, URISyntaxException {
 		super();
 
 
@@ -934,7 +930,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			 * @throws FormatException
 			 * @throws IOException
 			 */
-			public synchronized RawPixelsStorePrx getReaderForThread( final Long pixelsId,  OmeroRawClient client , SecurityContext ctx) throws IOException, ServerError, DSOutOfServiceException, ExecutionException, DSAccessException, URISyntaxException {
+			public synchronized RawPixelsStorePrx getReaderForThread( final Long pixelsId,  OmeroRawClient client) throws ServerError, DSOutOfServiceException, ExecutionException, DSAccessException, URISyntaxException {
 
 				LocalReaderWrapper wrapper = localReader.get();
 
@@ -950,7 +946,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				}
 
 				// Create a new reader
-				wrapper = createReader( pixelsId, null, client);
+				wrapper = createReader( pixelsId,  client);
 
 				// Store wrapped reference with associated cleaner
 				localReader.set(wrapper);
@@ -984,8 +980,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			 * @throws FormatException
 			 * @throws IOException
 			 */
-			synchronized LocalReaderWrapper createPrimaryReader(final Long pixelsID, IMetadata metadata, OmeroRawClient client) throws IOException, ServerError, DSOutOfServiceException, URISyntaxException {
-				return createReader(pixelsID, metadata == null ? MetadataTools.createOMEXMLMetadata() : metadata, client);
+			synchronized LocalReaderWrapper createPrimaryReader(final Long pixelsID,  OmeroRawClient client) throws ServerError, DSOutOfServiceException, URISyntaxException {
+				return createReader(pixelsID,  client);
 			}
 
 
@@ -1007,7 +1003,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					}
 				}*/
 
-				LocalReaderWrapper reader = createPrimaryReader( pixelsID, null, client);
+				LocalReaderWrapper reader = createPrimaryReader( pixelsID, client);
 				//primaryReaders.add(reader);
 				return reader;
 			}
@@ -1017,11 +1013,10 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			 * Create a new {@code}, with memoization if necessary.
 			 *
 			 * @param imageID 		file path for the image.
-			 * @param store 	optional MetadataStore; this will be set in the reader if needed.
 			 * @return the {@code IFormatReader}
 			 * @throws IOException
 			 */
-			private synchronized LocalReaderWrapper createReader(final Long imageID, final MetadataStore store, OmeroRawClient client) throws DSOutOfServiceException, ServerError {
+			private synchronized LocalReaderWrapper createReader(final Long imageID, OmeroRawClient client) throws DSOutOfServiceException, ServerError {
 				logger.info("Create new OMERO reader for image ID : "+imageID);
 				OmeroRawClient currentClient = client;
 
