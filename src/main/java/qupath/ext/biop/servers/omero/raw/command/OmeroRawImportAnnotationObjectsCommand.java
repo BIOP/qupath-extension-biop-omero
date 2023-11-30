@@ -9,6 +9,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
@@ -108,7 +109,7 @@ public class OmeroRawImportAnnotationObjectsCommand implements Runnable{
         // read ROIs from OMERO
         Collection<PathObject> roiFromOmero;
         try {
-            roiFromOmero = ((OmeroRawImageServer) imageServer).readPathObjects(user);
+            roiFromOmero = OmeroRawScripting.getROIs(omeroServer, user, true);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

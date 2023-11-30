@@ -25,7 +25,12 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import fr.igred.omero.exception.AccessException;
+import fr.igred.omero.exception.OMEROServerError;
+import fr.igred.omero.exception.ServiceException;
+import fr.igred.omero.roi.ROIWrapper;
 import javafx.scene.control.CheckBox;
 import javafx.scene.text.Font;
 import omero.gateway.model.FileAnnotationData;
@@ -138,11 +143,17 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
             return;
 
         // get the current ROIs and tables
-        List<ROIData> tmpRoiList = new ArrayList<>();
+        List<ROIWrapper> tmpRoiList = new ArrayList<>();
         List<FileAnnotationData> tmpFileList = new ArrayList<>();
         if(deletePreviousExperiments){
             tmpFileList = OmeroRawTools.readAttachments(omeroServer.getClient(), omeroServer.getId());
-            tmpRoiList = OmeroRawTools.readOmeroROIs(omeroServer.getClient(), omeroServer.getId());
+            try {
+                tmpRoiList = OmeroRawTools.fetchROIs(omeroServer.getClient(), omeroServer.getId());
+            }catch(ServiceException | AccessException | ExecutionException e){
+                String message = "Cannot get ROIs from image '"+omeroServer.getId();
+                String header = "Fetching ROIs";
+                Dialogs.showErrorNotification(header, message);
+            }
         }
 
         // send annotations to OMERO
@@ -193,13 +204,25 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
 
             // remove only ROIs owned by the logged in user
             //TODO donot put OMERO RawShape public
-            List<ROIData> filteredTmpRois = OmeroRawShapes.filterByOwner(omeroServer.getClient(), tmpRoiList, currentLoggedInUser);
-            OmeroRawTools.deleteOmeroROIs(omeroServer.getClient(), filteredTmpRois);
+            List<ROIWrapper> filteredTmpRois = OmeroRawShapes.filterByOwner(omeroServer.getClient(), tmpRoiList, currentLoggedInUser);
+            try {
+                OmeroRawTools.deleteROIs(omeroServer.getClient(), filteredTmpRois);
+            }catch(ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e){
+                String message = "Cannot delete ROIs from image '"+omeroServer.getId()+"' for the owner '"+currentLoggedInUser+"'";
+                String header = "Delete ROIs";
+               Dialogs.showErrorNotification(header, message);
+            }
 
             if(!deleteOnlyFilesIOwn) {
                 // remove all ROIs that are don't own by the logged in user
                 tmpRoiList.removeAll(filteredTmpRois);
-                OmeroRawTools.deleteOmeroROIs(omeroServer.getClient(), tmpRoiList);
+                try {
+                    OmeroRawTools.deleteROIs(omeroServer.getClient(), tmpRoiList);
+                }catch(ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e){
+                    String message = "Cannot delete ROIs from image '"+omeroServer.getId()+"' for the owner '"+currentLoggedInUser+"'";
+                    String header = "Delete ROIs";
+                    Dialogs.showErrorNotification(header, message);
+                }
             }
         }
 

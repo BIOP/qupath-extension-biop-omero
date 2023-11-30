@@ -38,6 +38,14 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import fr.igred.omero.meta.ExperimenterWrapper;
+import fr.igred.omero.roi.EllipseWrapper;
+import fr.igred.omero.roi.GenericShapeWrapper;
+import fr.igred.omero.roi.LineWrapper;
+import fr.igred.omero.roi.PointWrapper;
+import fr.igred.omero.roi.PolygonWrapper;
+import fr.igred.omero.roi.PolylineWrapper;
+import fr.igred.omero.roi.ROIWrapper;
+import fr.igred.omero.roi.RectangleWrapper;
 import javafx.collections.ObservableList;
 import omero.gateway.model.EllipseData;
 import omero.gateway.model.LineData;
@@ -191,12 +199,12 @@ public class OmeroRawShapes {
      * For annotations, it takes into account complex ROIs (with multiple shapes) by applying a XOR operation to reduce the dimensionality. <br>
      * For detections, no complex ROIs are possible (i.e. one shape = one ROI)
      *
-     * @param roiDatum OMERO ROI to convert
+     * @param roiWrapper OMERO ROI to convert
      * @return QuPath ROI
      */
-    public static ROI convertOmeroROIsToQuPathROIs(ROIData roiDatum) {
+    public static ROI convertOmeroROIsToQuPathROIs(ROIWrapper roiWrapper) {
         // Convert OMERO ROIs into QuPath ROIs
-        List<ROI> roi = convertOmeroShapesToQuPathROIs(roiDatum);
+        List<ROI> roi = convertOmeroShapesToQuPathROIs(roiWrapper);
 
         if (!roi.isEmpty()) {
             // get the number of ROI "Point" in all shapes attached the current ROI
@@ -252,12 +260,12 @@ public class OmeroRawShapes {
      * only the first slice/frame is taken into account (meaning that roi are only visible on the first slice/frame) <br>
      * ****************************************************************
      *
-     * @param roiData OMERO Roi to convert
+     * @param roiWrapper OMERO Roi to convert
      * @return List of QuPath ROIs (one OMERO shape = one QuPath ROI)
      */
-    private static List<ROI> convertOmeroShapesToQuPathROIs(ROIData roiData){
+    private static List<ROI> convertOmeroShapesToQuPathROIs(ROIWrapper roiWrapper){
         // get the ROI
-        Roi omeROI = (Roi) roiData.asIObject();
+        Roi omeROI = (Roi) roiWrapper.asDataObject().asIObject();
 
         // get the shapes contained in the ROI (i.e. holes or something else)
         List<Shape> shapes = omeROI.copyShapes();
@@ -353,13 +361,13 @@ public class OmeroRawShapes {
      * @param parentID pathObject parent's ID
      * @return list of OMERO shapes
      */
-    public static List<ShapeData> convertQuPathRoiToOmeroRoi(PathObject src, String objectID, String parentID) {
+    public static List<GenericShapeWrapper<? extends ShapeData>> convertQuPathRoiToOmeroRoi(PathObject src, String objectID, String parentID) {
         ROI roi = src.getROI();
 
-        List<ShapeData> shapes = new ArrayList<>();
+        List<GenericShapeWrapper<? extends ShapeData>> shapes = new ArrayList<>();
         if (roi instanceof RectangleROI) {
             // Build the OMERO object
-            RectangleData rectangle = new RectangleData(roi.getBoundsX(), roi.getBoundsY(), roi.getBoundsWidth(), roi.getBoundsHeight());
+            RectangleWrapper rectangle = new RectangleWrapper(roi.getBoundsX(), roi.getBoundsY(), roi.getBoundsWidth(), roi.getBoundsHeight());
             // Write in comments the type of PathObject as well as the assigned class if there is one
             rectangle.setText(setRoiComment(src, objectID, parentID));
 
@@ -370,7 +378,7 @@ public class OmeroRawShapes {
             shapes.add(rectangle);
 
         } else if (roi instanceof EllipseROI) {
-            EllipseData ellipse = new EllipseData(roi.getCentroidX(), roi.getCentroidY(), roi.getBoundsWidth()/2, roi.getBoundsHeight()/2);
+            EllipseWrapper ellipse = new EllipseWrapper(roi.getCentroidX(), roi.getCentroidY(), roi.getBoundsWidth()/2, roi.getBoundsHeight()/2);
             ellipse.setText(setRoiComment(src, objectID, parentID));
             ellipse.setC(roi.getC());
             ellipse.setT(roi.getT());
@@ -379,7 +387,7 @@ public class OmeroRawShapes {
 
         } else if (roi instanceof LineROI) {
             LineROI lineRoi = (LineROI)roi;
-            LineData line = new LineData(lineRoi.getX1(), lineRoi.getY1(), lineRoi.getX2(), lineRoi.getY2());
+            LineWrapper line = new LineWrapper(lineRoi.getX1(), lineRoi.getY1(), lineRoi.getX2(), lineRoi.getY2());
             line.setText(setRoiComment(src, objectID, parentID));
             line.setC(roi.getC());
             line.setT(roi.getT());
@@ -389,7 +397,7 @@ public class OmeroRawShapes {
         } else if (roi instanceof PolylineROI) {
             List<Point2D.Double> points = new ArrayList<>();
             roi.getAllPoints().forEach(point2->points.add(new Point2D.Double(point2.getX(), point2.getY())));
-            PolylineData polyline = new PolylineData(points);
+            PolylineWrapper polyline = new PolylineWrapper(points);
             polyline.setText(setRoiComment(src, objectID, parentID));
             polyline.setC(roi.getC());
             polyline.setT(roi.getT());
@@ -399,7 +407,7 @@ public class OmeroRawShapes {
         } else if (roi instanceof PolygonROI) {
             List<Point2D.Double> points = new ArrayList<>();
             roi.getAllPoints().forEach(point2->points.add(new Point2D.Double(point2.getX(), point2.getY())));
-            PolygonData polygon = new PolygonData(points);
+            PolygonWrapper polygon = new PolygonWrapper(points);
             polygon.setText(setRoiComment(src, objectID, parentID));
             polygon.setC(roi.getC());
             polygon.setT(roi.getT());
@@ -410,7 +418,7 @@ public class OmeroRawShapes {
             List<Point2> roiPoints = roi.getAllPoints();
 
             for (Point2 roiPoint : roiPoints) {
-                PointData point = new PointData(roiPoint.getX(), roiPoint.getY());
+                PointWrapper point = new PointWrapper(roiPoint.getX(), roiPoint.getY());
                 point.setText(setRoiComment(src, objectID, parentID));
                 point.setC(roi.getC());
                 point.setT(roi.getT());
@@ -509,35 +517,36 @@ public class OmeroRawShapes {
      * @param pathObjects
      * @return List of OMERO ROIs
      */
-    protected static List<ROIData> createOmeroROIsFromPathObjects(Collection<PathObject> pathObjects){
-        List<ROIData> omeroRois = new ArrayList<>();
+    protected static List<ROIWrapper> createOmeroROIsFromPathObjects(Collection<PathObject> pathObjects){
+        List<ROIWrapper> omeroRois = new ArrayList<>();
         Map<PathObject,String> idObjectMap = new LinkedHashMap<>();
-        Map<String,List<ROIData>> pathClassROIsMap = new TreeMap<>(Comparator.naturalOrder());
+        Map<String,List<ROIWrapper>> pathClassROIsMap = new TreeMap<>(Comparator.naturalOrder());
 
         // create unique ID for each object
         pathObjects.forEach(pathObject -> idObjectMap.put(pathObject, pathObject.getID().toString()));
 
         pathObjects.forEach(pathObject -> {
             // computes OMERO-readable ROIs
-            List<ShapeData> shapes = OmeroRawShapes.convertQuPathRoiToOmeroRoi(pathObject, idObjectMap.get(pathObject), pathObject.getParent() == null ? "NoParent" : idObjectMap.get(pathObject.getParent()));
+            List<GenericShapeWrapper<? extends ShapeData>> shapes = OmeroRawShapes.convertQuPathRoiToOmeroRoi(pathObject,
+                    idObjectMap.get(pathObject), pathObject.getParent() == null ? "NoParent" : idObjectMap.get(pathObject.getParent()));
             if (!(shapes == null) && !(shapes.isEmpty())) {
                 PathClass pathClass = pathObject.getPathClass();
                 // set the ROI color according to the class assigned to the corresponding PathObject
                 shapes.forEach(shape -> {
-                    shape.getShapeSettings().setStroke(pathClass == null ? Color.YELLOW : new Color(pathClass.getColor()));
-                    shape.getShapeSettings().setFill(!QPEx.getQuPath().getOverlayOptions().getFillAnnotations() ? null : pathClass == null ? ColorToolsAwt.getMoreTranslucentColor(Color.YELLOW) : ColorToolsAwt.getMoreTranslucentColor(new Color(pathClass.getColor())));
+                    shape.setStroke(pathClass == null ? Color.YELLOW : new Color(pathClass.getColor()));
+                    shape.setFill(!QPEx.getQuPath().getOverlayOptions().getFillAnnotations() ? null : pathClass == null ? ColorToolsAwt.getMoreTranslucentColor(Color.YELLOW) : ColorToolsAwt.getMoreTranslucentColor(new Color(pathClass.getColor())));
                 });
-                ROIData roiData = new ROIData();
-                shapes.forEach(roiData::addShapeData);
+                ROIWrapper roiWrapper = new ROIWrapper();
+                shapes.forEach(roiWrapper::addShape);
 
-                List<ROIData> tmp;
+                List<ROIWrapper> tmp;
                 String pathKey = pathClass == null ? "null" : pathClass.toString();
                 if(pathClassROIsMap.containsKey(pathKey)){
                     tmp = pathClassROIsMap.get(pathKey);
                 }else{
                     tmp = new ArrayList<>();
                 }
-                tmp.add(roiData);
+                tmp.add(roiWrapper);
                 pathClassROIsMap.put(pathKey, tmp);
             }
         });
@@ -550,16 +559,16 @@ public class OmeroRawShapes {
     /**
      * Convert OMERO ROIs into QuPath pathObjects
      *
-     * @param roiData
+     * @param roiWrapperList
      * @return List of QuPath pathObjects
      */
-    protected static Collection<PathObject> createPathObjectsFromOmeroROIs(List<ROIData> roiData){
+    protected static Collection<PathObject> createPathObjectsFromOmeroROIs(List<ROIWrapper> roiWrapperList){
         Map<Double,Double> idParentIdMap = new HashMap<>();
         Map<Double,PathObject> idObjectMap = new HashMap<>();
 
-        for (ROIData roiDatum : roiData) {
+        for (ROIWrapper roiWrapper : roiWrapperList) {
             // get the comment attached to OMERO ROIs
-            List<String> roiCommentsList = getROIComment(roiDatum);
+            List<String> roiCommentsList = getROIComment(roiWrapper);
 
             // check that all comments are identical for all the shapes attached to the same ROI.
             // if there are different, a warning is thrown because they should be identical.
@@ -582,7 +591,7 @@ public class OmeroRawShapes {
             double parentId = Double.parseDouble(roiCommentParsed[3]);
 
             // convert OMERO ROIs to QuPath ROIs
-            ROI qpROI = OmeroRawShapes.convertOmeroROIsToQuPathROIs(roiDatum);
+            ROI qpROI = OmeroRawShapes.convertOmeroROIsToQuPathROIs(roiWrapper);
 
             // convert QuPath ROI to QuPath Annotation or detection Object (according to type).
             idObjectMap.put(roiId, OmeroRawShapes.createPathObjectFromQuPathRoi(qpROI, roiType, roiClass));
@@ -609,12 +618,12 @@ public class OmeroRawShapes {
     /**
      * Read the comments attach to an OMERO ROI (i.e. read each comment attached to each shape of the ROI)
      *
-     * @param roiData
+     * @param roiWrapper
      * @return List of comments
      */
-    protected static List<String> getROIComment(ROIData roiData) {
+    protected static List<String> getROIComment(ROIWrapper roiWrapper) {
         // get the ROI
-        Roi omeROI = (Roi) roiData.asIObject();
+        Roi omeROI = (Roi) roiWrapper.asDataObject().asIObject();
 
         // get the shapes contained in the ROI (i.e. holes or something else)
         List<Shape> shapes = omeROI.copyShapes();
@@ -781,14 +790,14 @@ public class OmeroRawShapes {
      * @param owner
      * @return the list of all ROIs created by the specified owner
      */
-    public static List<ROIData> filterByOwner(OmeroRawClient client, List<ROIData> roiData, String owner){
-        List<ROIData> filteredROI = new ArrayList<>();
+    public static List<ROIWrapper> filterByOwner(OmeroRawClient client, List<ROIWrapper> roiData, String owner){
+        List<ROIWrapper> filteredROI = new ArrayList<>();
         Map<Long, String> ownerMap = new HashMap<>();
 
-        if(owner == null || owner.isEmpty())
+        if(owner == null || owner.isEmpty() || owner.equals(Utils.ALL_USERS))
             return roiData;
 
-        for(ROIData roi : roiData){
+        for(ROIWrapper roi : roiData){
             // get the ROI's owner ID
             long ownerId = roi.getOwner().getId();
             String roiOwner;

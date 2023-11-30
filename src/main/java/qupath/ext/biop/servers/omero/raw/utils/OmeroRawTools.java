@@ -49,6 +49,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import fr.igred.omero.Client;
+import fr.igred.omero.GenericObjectWrapper;
 import fr.igred.omero.annotations.AnnotationList;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
@@ -59,6 +60,7 @@ import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.GenericRepositoryObjectWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.PlateWrapper;
+import fr.igred.omero.roi.ROIWrapper;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataLevel;
 import ome.formats.OMEROMetadataStoreClient;
@@ -97,7 +99,6 @@ import omero.gateway.model.PixelsData;
 import omero.gateway.model.PlateData;
 import omero.gateway.model.ProjectData;
 import omero.gateway.model.ROIData;
-import omero.gateway.model.ROIResult;
 import omero.gateway.model.ScreenData;
 import omero.gateway.model.TableData;
 import omero.gateway.model.TagAnnotationData;
@@ -1093,7 +1094,7 @@ public final class OmeroRawTools {
      * @return The corresponding OMERO.Table
      */
     public static TableData convertMeasurementTableToOmeroTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, OmeroRawClient client, long imageId) {
-        return UtilityTools.buildOmeroTableFromMeasurementTable(pathObjects, ob, client, imageId);
+        return Utils.buildOmeroTableFromMeasurementTable(pathObjects, ob, client, imageId);
     }
 
     /**
@@ -1536,7 +1537,7 @@ public final class OmeroRawTools {
      * @return CSV file of measurement table.
      */
     public static File buildCSVFileFromMeasurementTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, long imageId, String name, String path) {
-        return UtilityTools.buildCSVFileFromMeasurementTable(pathObjects, ob, imageId, name);
+        return Utils.buildCSVFileFromMeasurementTable(pathObjects, ob, imageId, name);
     }
 
 
@@ -1545,11 +1546,13 @@ public final class OmeroRawTools {
      *
      * @param client
      * @param imageId
+     * @deprecated use {@link OmeroRawTools#deleteROIs(OmeroRawClient, Collection)} e} instead
      */
+    @Deprecated
     public static void deleteAllOmeroROIs(OmeroRawClient client, long imageId) {
         try {
             // extract ROIData
-            List<IObject> roiData = readOmeroROIs(client, imageId).stream().map(ROIData::asIObject).collect(Collectors.toList());
+            List<IObject> roiData = fetchROIs(client, imageId).stream().map(ROIWrapper::asDataObject).map(ROIData::asIObject).collect(Collectors.toList());
 
             // delete ROis
             if(client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), roiData) == null)
@@ -1571,7 +1574,9 @@ public final class OmeroRawTools {
      *
      * @param client
      * @param roisToDelete
+     * @deprecated use {@link OmeroRawTools#deleteROIs(OmeroRawClient, Collection)} e} instead
      */
+    @Deprecated
     public static void deleteOmeroROIs(OmeroRawClient client, Collection<ROIData> roisToDelete) {
         try {
             // Convert to IObject
@@ -1592,6 +1597,17 @@ public final class OmeroRawTools {
         }
     }
 
+    /**
+     * Delete the specified ROIs on OMERO that are linked to an image, specified by its id.
+     *
+     * @param client
+     * @param roisToDelete
+     */
+    public static void deleteROIs(OmeroRawClient client, Collection<ROIWrapper> roisToDelete)
+            throws AccessException, ServiceException, OMEROServerError, ExecutionException, InterruptedException {
+        if(!(roisToDelete.isEmpty()))
+            client.getSimpleClient().delete(roisToDelete);
+    }
 
     /**
      * Send ROIs to OMERO server and attached them to the specified image.
@@ -1600,7 +1616,9 @@ public final class OmeroRawTools {
      * @param imageId
      * @param omeroRois
      * @return Sending status (True if sent ; false with error message otherwise)
+     * @deprecated use {@link OmeroRawTools#addROIs(OmeroRawClient, long, List)} instead
      */
+    @Deprecated
     public static boolean writeOmeroROIs(OmeroRawClient client, long imageId, List<ROIData> omeroRois) {
         boolean roiSaved = false;
 
@@ -1627,40 +1645,37 @@ public final class OmeroRawTools {
     }
 
     /**
+     * Send ROIs to OMERO server and attached them to the specified image.
+     *
+     * @param client
+     * @param imageId
+     * @param omeroRois
+     * @return Sending status (True if sent ; false with error message otherwise)
+     */
+    public static boolean addROIs(OmeroRawClient client, long imageId, List<ROIWrapper> omeroRois)
+            throws AccessException, ServiceException, ExecutionException {
+
+        List<ROIWrapper> uploaded = new ArrayList<>();
+        if (!(omeroRois.isEmpty())) {
+            ImageWrapper imageWrapper = client.getSimpleClient().getImage(imageId);
+            uploaded = imageWrapper.saveROIs(client.getSimpleClient(), omeroRois);
+        } else {
+            logger.warn("There is no Annotations to upload on OMERO");
+        }
+
+        return uploaded.isEmpty();
+    }
+
+    /**
      * Read ROIs from OMERO server attached to an image specified by its id.
      *
      * @param client
      * @param imageId
      * @return Image's list of OMERO ROIs
      */
-    public static List<ROIData> readOmeroROIs(OmeroRawClient client, long imageId){
-        List<ROIResult> roiList;
-
-        // get ROIs from OMERO
-        try {
-            roiList = client.getSimpleClient().getGateway().getFacility(ROIFacility.class).loadROIs(client.getSimpleClient().getCtx(), imageId);
-        } catch (DSOutOfServiceException | ExecutionException e) {
-            Dialogs.showErrorNotification("ROI reading","Error during reading ROIs from OMERO.");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return new ArrayList<>();
-        } catch (DSAccessException e){
-            Dialogs.showErrorNotification("ROI reading","You don't have the right to read ROIs from OMERO on the image "+imageId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return new ArrayList<>();
-         }
-
-        if(roiList == null || roiList.isEmpty())
-            return new ArrayList<>();
-
-        // Convert them into ROIData
-        List<ROIData> roiData = new ArrayList<>();
-        for (ROIResult roiResult : roiList) {
-            roiData.addAll(roiResult.getROIs());
-        }
-
-        return roiData;
+    public static List<ROIWrapper> fetchROIs(OmeroRawClient client, long imageId)
+            throws AccessException, ServiceException, ExecutionException {
+        return client.getSimpleClient().getImage(imageId).getROIs(client.getSimpleClient());
     }
 
     /**
@@ -1668,19 +1683,23 @@ public final class OmeroRawTools {
      *
      * @param pathObjects
      * @return List of OMERO ROIs
+     * @deprecated Method removed
      */
-    public static List<ROIData> createOmeroROIsFromPathObjects(Collection<PathObject> pathObjects){
+    @Deprecated
+    public static List<ROIWrapper> createOmeroROIsFromPathObjects(Collection<PathObject> pathObjects){
         return OmeroRawShapes.createOmeroROIsFromPathObjects(pathObjects);
     }
 
     /**
      * Convert OMERO ROIs into QuPath pathObjects
      *
-     * @param roiData
+     * @param roiWrapperList
      * @return List of QuPath pathObjects
+     * @deprecated Method removed
      */
-    public static Collection<PathObject> createPathObjectsFromOmeroROIs(List<ROIData> roiData){
-        return OmeroRawShapes.createPathObjectsFromOmeroROIs(roiData);
+    @Deprecated
+    public static Collection<PathObject> createPathObjectsFromOmeroROIs(List<ROIWrapper> roiWrapperList){
+        return OmeroRawShapes.createPathObjectsFromOmeroROIs(roiWrapperList);
     }
 
     /**
@@ -1688,7 +1707,9 @@ public final class OmeroRawTools {
      *
      * @param shape
      * @return The shape comment
+     * @deprecated Method removed
      */
+    @Deprecated
     public static String getROIComment(Shape shape){
         return OmeroRawShapes.getROIComment(shape);
     }
@@ -1698,9 +1719,11 @@ public final class OmeroRawTools {
      *
      * @param roiData
      * @return List of comments
+     * @deprecated Method removed
      */
+    @Deprecated
     public static List<String> getROIComment(ROIData roiData) {
-        return OmeroRawShapes.getROIComment(roiData);
+        return OmeroRawShapes.getROIComment(new ROIWrapper(roiData));
     }
 
     /**
@@ -1708,7 +1731,9 @@ public final class OmeroRawTools {
      *
      * @param comment
      * @return The split comment
+     * @deprecated Method removed
      */
+    @Deprecated
     public static String[] parseROIComment(String comment) {
         return OmeroRawShapes.parseROIComment(comment);
     }

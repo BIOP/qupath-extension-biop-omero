@@ -21,7 +21,9 @@
 
 package qupath.ext.biop.servers.omero.raw;
 
+import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.meta.GroupWrapper;
+import fr.igred.omero.roi.ROIWrapper;
 import loci.common.DataTools;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
@@ -46,8 +48,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClients;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawShapes;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
+import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.lib.color.ColorModelFactory;
 import qupath.lib.common.ColorTools;
 import qupath.lib.common.GeneralTools;
@@ -516,7 +520,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 			return builder.build();
 		}
-
 	}
 
 	@Override
@@ -840,7 +843,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 */
 	@Override
 	public Collection<PathObject> readPathObjects() {
-		return readPathObjects(null);
+		return OmeroRawScripting.getROIs(this, Utils.ALL_USERS, true);
 	}
 
 	/**
@@ -854,18 +857,13 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 * only the first slice/frame is taken into account (meaning that roi are only visible on the first slice/frame)<br>
 	 * ****************************************************************
 	 *
-	 * @param omeroRoiOwner
+	 * @param owner
 	 * @return list of path objects
+	 * @deprecated use {@link OmeroRawScripting#getROIs(OmeroRawImageServer, String, boolean)} instead
 	 */
-	public Collection<PathObject> readPathObjects(String omeroRoiOwner) {
-		List<ROIData> roiData = OmeroRawTools.readOmeroROIs(this.getClient(), this.imageID);
-
-		if(roiData.isEmpty())
-			return new ArrayList<>();
-
-		List<ROIData> filteredROIs = OmeroRawShapes.filterByOwner(getClient(), roiData, omeroRoiOwner);
-
-		return OmeroRawTools.createPathObjectsFromOmeroROIs(filteredROIs);
+	@Deprecated
+	public Collection<PathObject> readPathObjects(String owner) {
+		return OmeroRawScripting.getROIs(this, owner, true);
 	}
 
 
