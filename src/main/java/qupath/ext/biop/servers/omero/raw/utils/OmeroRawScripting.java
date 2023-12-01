@@ -234,7 +234,7 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendPathObjectsToOmero(OmeroRawImageServer imageServer, Collection<PathObject> pathObjects) {
-        return sendPathObjectsToOmero(imageServer, pathObjects, false, null);
+        return sendPathObjectsToOmero(imageServer, pathObjects, false, Utils.ALL_USERS, true);
     }
 
     /**
@@ -281,14 +281,6 @@ public class OmeroRawScripting {
     /**
      * Send a collection of pathObjects to OMERO.
      *
-     * <p>
-     * <ul>
-     * <li> Convert pathObjects to OMERO ROIs </li>
-     * <li> Delete all current ROIs on OMERO if explicitly asked </li>
-     * <li> Send ROIs to the current image on OMERO </li>
-     * </ul>
-     * <p>
-     *
      * @param imageServer ImageServer of an image loaded from OMERO
      * @param pathObjects QuPath annotations or detections objects
      * @param deleteROIsOnOMERO Boolean to keep or delete ROIs on the current image on OMERO
@@ -316,7 +308,7 @@ public class OmeroRawScripting {
             try {
                 existingROIs = OmeroRawTools.fetchROIs(client, imageId);
             }catch(ServiceException | AccessException | ExecutionException e){
-                String message = "Cannot get ROIs from image '"+imageId+"' for the owner '"+owner+"'";
+                String message = "Cannot get ROIs from image '"+imageId;
                 String header = "Fetching ROIs";
                 if(qpNotif) Dialogs.showErrorNotification(header, message);
                 logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
@@ -327,7 +319,7 @@ public class OmeroRawScripting {
             try {
                 hasBeenWritten = OmeroRawTools.addROIs(client, imageId, omeroROIs);
             }catch(ServiceException | AccessException | ExecutionException e){
-                String message = "Cannot add ROIs from image '"+imageId+"' for the owner '"+owner+"'";
+                String message = "Cannot add ROIs on image '"+imageId;
                 String header = "Adding ROIs";
                 if(qpNotif) Dialogs.showErrorNotification(header, message);
                 logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
@@ -352,7 +344,7 @@ public class OmeroRawScripting {
             try {
                 return OmeroRawTools.addROIs(client, imageId, omeroROIs);
             }catch(ServiceException | AccessException | ExecutionException e){
-                String message = "Cannot add ROIs from image '"+imageId+"' for the owner '"+owner+"'";
+                String message = "Cannot add ROIs on image '"+imageId;
                 String header = "Adding ROIs";
                 if(qpNotif) Dialogs.showErrorNotification(header, message);
                 logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
@@ -1836,7 +1828,7 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendPathObjectsToOmero(OmeroRawImageServer imageServer, Collection<PathObject> pathObjects, boolean deleteROIsOnOMERO) {
-        return sendPathObjectsToOmero(imageServer, pathObjects, deleteROIsOnOMERO, null);
+        return sendPathObjectsToOmero(imageServer, pathObjects, deleteROIsOnOMERO, Utils.ALL_USERS);
     }
 
 
@@ -1851,7 +1843,7 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendDetectionsToOmero(OmeroRawImageServer imageServer, boolean deleteROIsOnOMERO) {
-        return sendDetectionsToOmero(imageServer, deleteROIsOnOMERO, null);
+        return sendDetectionsToOmero(imageServer, deleteROIsOnOMERO, Utils.ALL_USERS);
     }
 
     /**
@@ -1865,7 +1857,7 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendAnnotationsToOmero(OmeroRawImageServer imageServer, boolean deleteROIsOnOMERO) {
-        return sendAnnotationsToOmero(imageServer, deleteROIsOnOMERO, null);
+        return sendAnnotationsToOmero(imageServer, deleteROIsOnOMERO, Utils.ALL_USERS);
     }
 
     /**
@@ -1880,7 +1872,7 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendPathObjectsToOmero(OmeroRawImageServer imageServer, boolean deleteROIsOnOMERO) {
-        return sendPathObjectsToOmero(imageServer, deleteROIsOnOMERO, null);
+        return sendPathObjectsToOmero(imageServer, deleteROIsOnOMERO, Utils.ALL_USERS);
     }
 
     /**

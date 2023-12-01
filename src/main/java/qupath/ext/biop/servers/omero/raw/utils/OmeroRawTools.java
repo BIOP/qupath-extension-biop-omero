@@ -1663,7 +1663,7 @@ public final class OmeroRawTools {
             logger.warn("There is no Annotations to upload on OMERO");
         }
 
-        return uploaded.isEmpty();
+        return !uploaded.isEmpty();
     }
 
     /**

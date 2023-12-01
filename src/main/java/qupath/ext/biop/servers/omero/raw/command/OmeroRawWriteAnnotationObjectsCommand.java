@@ -43,6 +43,7 @@ import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawShapes;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
+import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.fx.utils.GridPaneUtils;
@@ -132,7 +133,7 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
         }
 
         // Confirm
-        var omeroServer = (OmeroRawImageServer) server;
+        OmeroRawImageServer omeroServer = (OmeroRawImageServer) server;
         URI uri = server.getURIs().iterator().next();
         String objectString = "object" + (objs.size() == 1 ? "" : "s");
         pane = new GridPane();
@@ -143,21 +144,18 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
             return;
 
         // get the current ROIs and tables
-        List<ROIWrapper> tmpRoiList = new ArrayList<>();
         List<FileAnnotationData> tmpFileList = new ArrayList<>();
         if(deletePreviousExperiments){
             tmpFileList = OmeroRawTools.readAttachments(omeroServer.getClient(), omeroServer.getId());
-            try {
-                tmpRoiList = OmeroRawTools.fetchROIs(omeroServer.getClient(), omeroServer.getId());
-            }catch(ServiceException | AccessException | ExecutionException e){
-                String message = "Cannot get ROIs from image '"+omeroServer.getId();
-                String header = "Fetching ROIs";
-                Dialogs.showErrorNotification(header, message);
-            }
         }
 
+        String ownerToDelete;
+        if(deleteOnlyFilesIOwn)
+            ownerToDelete = omeroServer.getClient().getLoggedInUser().getUserName();
+        else ownerToDelete = Utils.ALL_USERS;
+
         // send annotations to OMERO
-        boolean hasBeenSaved = OmeroRawScripting.sendPathObjectsToOmero(omeroServer, objs);
+        boolean hasBeenSaved = OmeroRawScripting.sendPathObjectsToOmero(omeroServer, objs, deletePreviousExperiments, ownerToDelete, false);
         if(hasBeenSaved)
             Dialogs.showInfoNotification(StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully written to OMERO server",
                     objs.size(),
@@ -201,29 +199,6 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
 
             OmeroRawScripting.deleteAnnotationFiles(omeroServer, tmpFileList, currentLoggedInUser);
             OmeroRawScripting.deleteDetectionFiles(omeroServer, tmpFileList, currentLoggedInUser);
-
-            // remove only ROIs owned by the logged in user
-            //TODO donot put OMERO RawShape public
-            List<ROIWrapper> filteredTmpRois = OmeroRawShapes.filterByOwner(omeroServer.getClient(), tmpRoiList, currentLoggedInUser);
-            try {
-                OmeroRawTools.deleteROIs(omeroServer.getClient(), filteredTmpRois);
-            }catch(ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e){
-                String message = "Cannot delete ROIs from image '"+omeroServer.getId()+"' for the owner '"+currentLoggedInUser+"'";
-                String header = "Delete ROIs";
-               Dialogs.showErrorNotification(header, message);
-            }
-
-            if(!deleteOnlyFilesIOwn) {
-                // remove all ROIs that are don't own by the logged in user
-                tmpRoiList.removeAll(filteredTmpRois);
-                try {
-                    OmeroRawTools.deleteROIs(omeroServer.getClient(), tmpRoiList);
-                }catch(ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e){
-                    String message = "Cannot delete ROIs from image '"+omeroServer.getId()+"' for the owner '"+currentLoggedInUser+"'";
-                    String header = "Delete ROIs";
-                    Dialogs.showErrorNotification(header, message);
-                }
-            }
         }
 
         if(detectionMap || annotationMap)
