@@ -155,15 +155,18 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
         else ownerToDelete = Utils.ALL_USERS;
 
         // send annotations to OMERO
-        boolean hasBeenSaved = OmeroRawScripting.sendPathObjectsToOmero(omeroServer, objs, deletePreviousExperiments, ownerToDelete, false);
-        if(hasBeenSaved)
-            Dialogs.showInfoNotification(StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully written to OMERO server",
+        List<ROIWrapper> roiWrappers = OmeroRawScripting.sendPathObjectsToOmero(omeroServer, objs, deletePreviousExperiments, ownerToDelete, false);
+        if(roiWrappers == null){
+            Dialogs.showErrorMessage("Sending annotations", "Cannot send annotations to OMERO. Please look at the log console to know more (View->Show log).");
+            return;
+        } else if(roiWrappers.isEmpty()){
+            Dialogs.showWarningNotification("Sending annotations", "No annotations to send");
+        } else {
+            Dialogs.showInfoNotification(StringUtils.capitalize(objectString) + " written successfully",
+                    String.format("%d %s %s successfully written to OMERO server",
                     objs.size(),
                     objectString,
                     (objs.size() == 1 ? "was" : "were")));
-        else {
-            Dialogs.showErrorMessage("Sending annotations", "Cannot send annotations to OMERO. Please look at the log console to know more (View->Show log).");
-            return;
         }
 
         int nWrittenTables = 0;

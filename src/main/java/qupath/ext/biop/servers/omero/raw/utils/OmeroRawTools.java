@@ -1652,7 +1652,7 @@ public final class OmeroRawTools {
      * @param omeroRois
      * @return Sending status (True if sent ; false with error message otherwise)
      */
-    public static boolean addROIs(OmeroRawClient client, long imageId, List<ROIWrapper> omeroRois)
+    public static List<ROIWrapper> addROIs(OmeroRawClient client, long imageId, List<ROIWrapper> omeroRois)
             throws AccessException, ServiceException, ExecutionException {
 
         List<ROIWrapper> uploaded = new ArrayList<>();
@@ -1663,7 +1663,7 @@ public final class OmeroRawTools {
             logger.warn("There is no Annotations to upload on OMERO");
         }
 
-        return !uploaded.isEmpty();
+        return uploaded;
     }
 
     /**
