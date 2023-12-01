@@ -568,8 +568,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             // get all image Objects from the selected item
             List<OmeroRawObjects.OmeroRawObject> validObjs = selected.parallelStream()
                     .flatMap(item -> listAllImagesToImport(item.getValue(),
-                            comboGroup.getSelectionModel().getSelectedItem(),
-                            comboOwner.getSelectionModel().getSelectedItem()).parallelStream())
+                            item.getValue().getGroup(),
+                            item.getValue().getOwner()).parallelStream())
                     .filter(OmeroRawImageServerBrowserCommand::isSupported)
                     .collect(Collectors.toList());
 
@@ -819,8 +819,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         comboGroup.getSelectionModel().getSelectedItem(), comboOwner.getSelectionModel().getSelectedItem(), null);
                 URIs.addAll(filteredList.stream().map(this::createObjectURI).collect(Collectors.toList()));
             } else{
-                List<OmeroRawObjects.OmeroRawObject> flatImagesList = listAllImagesToImport(obj, comboGroup.getSelectionModel().getSelectedItem(),
-                        comboOwner.getSelectionModel().getSelectedItem());
+                List<OmeroRawObjects.OmeroRawObject> flatImagesList = listAllImagesToImport(obj,
+                        obj.getGroup(),
+                        obj.getOwner());
                 URIs.addAll(flatImagesList.stream().map(this::createObjectURI).collect(Collectors.toList()));
             }
         }
