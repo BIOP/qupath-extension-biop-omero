@@ -21,19 +21,15 @@
 
 package qupath.ext.biop.servers.omero.raw;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
+import javafx.beans.property.StringProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,13 +52,13 @@ import qupath.ext.biop.servers.omero.raw.command.OmeroRawWriteChannelSettingsCom
 import qupath.ext.biop.servers.omero.raw.command.OmeroRawWriteMetadataCommand;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.lib.common.Version;
-import qupath.lib.gui.UserDirectoryManager;
 import qupath.lib.gui.actions.ActionTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.extensions.GitHubProject;
 import qupath.lib.gui.extensions.QuPathExtension;
 import qupath.lib.gui.tools.MenuTools;
+import qupath.lib.gui.prefs.PathPrefs;
 import qupath.fx.utils.GridPaneUtils;
 
 /**
@@ -77,7 +73,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 	 */
 	private static final Map<OmeroRawClient, OmeroRawImageServerBrowserCommand> rawBrowsers = new HashMap<>();
 
-	private static final String defaultOmeroServerFilename = "DefaultOmeroServer.txt";
+	private static StringProperty omeroDefaultServerAddress;
 
 	private static boolean alreadyInstalled = false;
 	
@@ -119,6 +115,10 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 		);
 
 		createRawServerListMenu(qupath, browseRawServerMenu);
+
+		// Add the default OMERO server address to the QuPath Preferences
+		omeroDefaultServerAddress = PathPrefs.createPersistentPreference("omeroDefaultServer", "https://omero-server.epfl.ch");
+
 	}
 	
 
@@ -161,11 +161,11 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 			MenuItem customServerItem = new MenuItem("New server...");
 			customServerItem.setOnAction(e2 -> {
 				// get default server
-				String defaultOmeroServer = getDefaultOmeroServer();
+				String defaultOmeroServer = omeroDefaultServerAddress.get();
 
 				GridPane gp = new GridPane();
 				gp.setVgap(5.0);
-				TextField tf = new TextField(defaultOmeroServer == null ? "" : defaultOmeroServer);
+				TextField tf = new TextField(defaultOmeroServer);
 				tf.setPrefWidth(400);
 				GridPaneUtils.addGridRow(gp, 0, 0, "Enter OMERO URL", new Label("Enter an OMERO server URL to browse (e.g. http://idr.openmicroscopy.org/):"));
 				GridPaneUtils.addGridRow(gp, 1, 0, "Enter OMERO URL", tf, tf);
@@ -177,6 +177,9 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 				if (path == null || path.isEmpty())
 					return;
 				try {
+					// Update preferences
+					omeroDefaultServerAddress.set(path);
+
 					if (!path.startsWith("http:") && !path.startsWith("https:"))
 						throw new IOException("The input URL must contain a scheme (e.g. \"https://\")!");
 
@@ -188,10 +191,6 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 
 					if (uriServer == null)
 						throw new MalformedURLException("Could not parse server from " + uri);
-
-					// create the txt containing the default omero server
-					if (defaultOmeroServer == null)
-						createOmeroDefaultServerFile(uriServer.toString());
 
 					// Check if client exist and if browser is already opened
 					OmeroRawClient client = OmeroRawClients.getClientFromServerURI(uriServer);
@@ -223,62 +222,6 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 		// Ensure the menu is populated (every time the parent menu is opened)
 		browseServerMenu.getParentMenu().setOnShowing(validationHandler);
 		return browseServerMenu;
-	}
-
-	/**
-	 * read the txt file where the omero server is stored. If there is no file, or if the file is corrupted,
-	 * then it returns an empty string.
-	 *
-	 * @return
-	 */
-	private static String getDefaultOmeroServer(){
-		Path extensionPath = UserDirectoryManager.getInstance().getExtensionsPath();
-		if(extensionPath == null)
-			return null;
-
-		File dir  = extensionPath.toFile();
-		File[] fileList = dir.listFiles();
-
-		if(fileList == null)
-			return null;
-
-		String omeroServer = null;
-		for(File item : fileList){
-			if(item.isFile() && item.getName().equals(defaultOmeroServerFilename))
-			{
-				try (BufferedReader br = new BufferedReader(new FileReader(item))){
-					String st = br.readLine();
-					if (st != null)
-						omeroServer = st;
-				}catch (IOException e){
-					Dialogs.showWarningNotification("Load OMERO User preferences","Unable to find your default OMERO server");
-					logger.error(String.valueOf(e));
-					logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
-				}
-				break;
-			}
-		}
-
-		return omeroServer;
-	}
-
-	/**
-	 * create a txt file with the omero server entered by the user.
-	 * This is to avoid typing it each time you want to connect to OMERO server
-	 *
-	 * @param omeroDefaultServer
-	 */
-	private static void createOmeroDefaultServerFile(String omeroDefaultServer) {
-		Path extensionPath = UserDirectoryManager.getInstance().getExtensionsPath();
-		if(extensionPath == null || !extensionPath.toFile().exists()) return;
-
-		try (FileWriter myWriter = new FileWriter(extensionPath + File.separator + defaultOmeroServerFilename)){
-			myWriter.write(omeroDefaultServer);
-		} catch (IOException e) {
-			Dialogs.showWarningNotification("Create default Omero server file","An error occurred during File creation");
-			logger.error(String.valueOf(e));
-			logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
-		}
 	}
 
 	/**
