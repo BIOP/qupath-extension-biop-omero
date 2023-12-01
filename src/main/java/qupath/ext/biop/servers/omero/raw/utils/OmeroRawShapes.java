@@ -593,11 +593,13 @@ public class OmeroRawShapes {
             // convert OMERO ROIs to QuPath ROIs
             ROI qpROI = OmeroRawShapes.convertOmeroROIsToQuPathROIs(roiWrapper);
 
-            // convert QuPath ROI to QuPath Annotation or detection Object (according to type).
-            idObjectMap.put(roiId, OmeroRawShapes.createPathObjectFromQuPathRoi(qpROI, roiType, roiClass));
+            if(qpROI != null) {
+                // convert QuPath ROI to QuPath Annotation or detection Object (according to type).
+                idObjectMap.put(roiId, OmeroRawShapes.createPathObjectFromQuPathRoi(qpROI, roiType, roiClass));
 
-            // populate parent map with current_object/parent ids
-            idParentIdMap.put(roiId,parentId);
+                // populate parent map with current_object/parent ids
+                idParentIdMap.put(roiId, parentId);
+            }
         }
 
         // set the parent/child hierarchy and add objects without any parent to the final list

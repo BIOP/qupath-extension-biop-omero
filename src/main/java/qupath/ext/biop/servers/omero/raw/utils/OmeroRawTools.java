@@ -1546,7 +1546,7 @@ public final class OmeroRawTools {
      *
      * @param client
      * @param imageId
-     * @deprecated use {@link OmeroRawTools#deleteROIs(OmeroRawClient, Collection)} e} instead
+     * @deprecated use {@link OmeroRawTools#deleteROIs(OmeroRawClient, Collection)} instead
      */
     @Deprecated
     public static void deleteAllOmeroROIs(OmeroRawClient client, long imageId) {
