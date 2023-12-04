@@ -18,7 +18,7 @@ import java.util.Map;
 
 
 /**
- * Command to import QuPath metatdata to OMERO server where the
+ * Command to import QuPath metadata to OMERO server where the
  * current image is hosted. Metadata are added as a new key-value pair.
  *
  * @author Rémy Dornier (parts of the code are taken from {@link OmeroRawWriteAnnotationObjectsCommand}.
@@ -40,7 +40,7 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
 
         // Check if OMERO server
         if (!(imageServer instanceof OmeroRawImageServer)) {
-            Dialogs.showErrorMessage(title, "The current image is not from OMERO!");
+            Utils.errorLog(title, "The current image is not from OMERO!", true);
             return;
         }
 
@@ -93,7 +93,7 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
             if (!confirm)
                 return;
         }else{
-            Dialogs.showWarningNotification(title, "The current image does not contain any metadata");
+            Utils.warnLog(title, "The current image does not contain any metadata", true);
             return;
         }
 
@@ -102,17 +102,17 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
         Map<String, String> tags = metadataSent.get(Utils.TAG_KEY);
         Map<String, String> kvps = metadataSent.get(Utils.KVP_KEY);
         if(!tags.isEmpty())
-            Dialogs.showInfoNotification(StringUtils.capitalize("TAG"+ (tags.size() == 1 ? "":"s")) + " written successfully",
-                    String.format("%d %s %s successfully sent to OMERO server",
-                            tags.size(),
-                            ("TAG"+ (tags.size() == 1 ? "":"s")),
-                            (tags.size() == 1 ? "was" : "were")));
+            Utils.infoLog("TAG"+ (tags.size() == 1 ? "":"s") + " written successfully", String.format("%d %s %s successfully sent to OMERO server",
+                    tags.size(),
+                    ("TAG"+ (tags.size() == 1 ? "":"s")),
+                    (tags.size() == 1 ? "was" : "were")), true);
+
 
         if(!kvps.isEmpty())
-            Dialogs.showInfoNotification(StringUtils.capitalize("KVP"+ (kvps.size() == 1 ? "":"s")) + " written successfully",
+            Utils.infoLog("KVP"+ (kvps.size() == 1 ? "":"s") + " written successfully",
                     String.format("%d %s %s successfully sent to OMERO server",
                             kvps.size(),
                             ("KVP"+ (kvps.size() == 1 ? "":"s")),
-                            (kvps.size() == 1 ? "was" : "were")));
+                            (kvps.size() == 1 ? "was" : "were")), true);
     }
 }

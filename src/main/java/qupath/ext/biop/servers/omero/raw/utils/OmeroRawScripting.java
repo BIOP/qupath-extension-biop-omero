@@ -75,21 +75,18 @@ public class OmeroRawScripting {
      * get ROIs owned by the specified owner and linked to the current image from OMERO to QuPath
      *
      * @param client Omero client that handles the connection
-     * @param id OMERO image ID
+     * @param imageId OMERO image ID
      * @param owner owner of the ROis to filter
      * @param qpNotif true to display a QuPath notification
      *
      * @return The list of OMERO rois converted into pathObjects
      */
-    public static Collection<PathObject> getROIs(OmeroRawClient client, long id, String owner, boolean qpNotif) {
+    public static Collection<PathObject> getROIs(OmeroRawClient client, long imageId, String owner, boolean qpNotif) {
         List<ROIWrapper> roiWrappers;
         try{
-            roiWrappers = OmeroRawTools.fetchROIs(client, id);
+            roiWrappers = OmeroRawTools.fetchROIs(client, imageId);
         }catch(fr.igred.omero.exception.ServiceException | AccessException | ExecutionException e){
-            String message = "Impossible to get OMERO ROIs from your account";
-            String header = "Reading path objects";
-            if(qpNotif) Dialogs.showErrorNotification(header, message);
-            logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+            Utils.errorLog("OMERO - ROIs", "Cannot get ROIs from image '"+imageId, e, qpNotif);
             return Collections.emptyList();
         }
 
@@ -177,10 +174,7 @@ public class OmeroRawScripting {
             try {
                 existingROIs = OmeroRawTools.fetchROIs(client, imageId);
             }catch(ServiceException | AccessException | ExecutionException e){
-                String message = "Cannot get ROIs from image '"+imageId;
-                String header = "Fetching ROIs";
-                if(qpNotif) Dialogs.showErrorNotification(header, message);
-                logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                Utils.errorLog("OMERO - ROIs", "Cannot get ROIs from image '"+imageId, e, qpNotif);
                 return null;
             }
 
@@ -188,10 +182,7 @@ public class OmeroRawScripting {
             try {
                 omeroROIs = OmeroRawTools.addROIs(client, imageId, omeroROIs);
             }catch(ServiceException | AccessException | ExecutionException e){
-                String message = "Cannot add ROIs on image '"+imageId;
-                String header = "Adding ROIs";
-                if(qpNotif) Dialogs.showErrorNotification(header, message);
-                logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                Utils.errorLog("OMERO - ROIs", "Cannot add ROIs from image '"+imageId, e, qpNotif);
                 return null;
             }
 
@@ -202,10 +193,7 @@ public class OmeroRawScripting {
             try {
                 OmeroRawTools.deleteROIs(client, filteredROIs);
             }catch(ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e){
-                String message = "Cannot delete ROIs from image '"+imageId+"' for the owner '"+owner+"'";
-                String header = "Delete ROIs";
-                if(qpNotif) Dialogs.showErrorNotification(header, message);
-                logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                Utils.errorLog("OMERO - ROIs", "Cannot delete ROIs from image '"+imageId+"' for the owner '"+owner+"'", e, qpNotif);
             }
 
             return omeroROIs;
@@ -213,10 +201,7 @@ public class OmeroRawScripting {
             try {
                 return OmeroRawTools.addROIs(client, imageId, omeroROIs);
             }catch(ServiceException | AccessException | ExecutionException e){
-                String message = "Cannot add ROIs on image '"+imageId;
-                String header = "Adding ROIs";
-                if(qpNotif) Dialogs.showErrorNotification(header, message);
-                logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                Utils.errorLog("OMERO - ROIs", "Cannot add ROIs on image '"+imageId, e, qpNotif);
                 return null;
             }
         }
@@ -280,7 +265,7 @@ public class OmeroRawScripting {
         try {
             omeroKVPsWrapperList = imageServer.getImageWrapper().getMapAnnotations(imageServer.getClient().getSimpleClient());
         }catch(ServiceException | AccessException | ExecutionException e){
-            Utils.errorLog("OMERO - KVPs", "Cannot get KVPs to the image '"+imageServer.getId()+"'",e, qpNotif);
+            Utils.errorLog("OMERO - KVPs", "Cannot get KVPs to the image '"+imageServer.getId()+"'", e, qpNotif);
             return false;
         }
 
@@ -332,7 +317,7 @@ public class OmeroRawScripting {
             try{
                 imageServer.getImageWrapper().link(imageServer.getClient().getSimpleClient(), newOmeroAnnotationMap);
             }catch(ServiceException | AccessException | ExecutionException e){
-                Utils.errorLog("OMERO - KVPs", "Cannot add KVPs to the image '"+imageServer.getId()+"'",e, qpNotif);
+                Utils.errorLog("OMERO - KVPs", "Cannot add KVPs to the image '"+imageServer.getId()+"'", e, qpNotif);
                 return false;
             }
         }else{
@@ -344,7 +329,7 @@ public class OmeroRawScripting {
             try{
                 imageServer.getClient().getSimpleClient().delete(omeroKVPsWrapperList);
             }catch(OMEROServerError | InterruptedException | ServiceException | AccessException | ExecutionException e){
-                Utils.errorLog("OMERO - KVPs", "Cannot delete KVPs to the image '"+imageServer.getId()+"'",e, qpNotif);
+                Utils.errorLog("OMERO - KVPs", "Cannot delete KVPs to the image '"+imageServer.getId()+"'", e, qpNotif);
             }
         }
 
@@ -368,7 +353,7 @@ public class OmeroRawScripting {
         try {
             omeroTagAnnotations = imageServer.getImageWrapper().getTags(imageServer.getClient().getSimpleClient());
         }catch(ServiceException | AccessException | ExecutionException e){
-            Utils.errorLog("OMERO - tags", "Cannot get tags to the image '"+imageServer.getId()+"'",e, qpNotif);
+            Utils.errorLog("OMERO - tags", "Cannot get tags to the image '"+imageServer.getId()+"'", e, qpNotif);
             return false;
         }
         List<String> currentTags = omeroTagAnnotations.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList());
@@ -387,7 +372,7 @@ public class OmeroRawScripting {
             groupTags= imageServer.getClient().getSimpleClient().getTags();
         }catch(ServiceException  | OMEROServerError e){
             Utils.errorLog("OMERO - tags",
-                    "Cannot read tags from the current user '"+imageServer.getClient().getSimpleClient().getUser().getUserName()+"'",e, qpNotif);
+                    "Cannot read tags from the current user '"+imageServer.getClient().getSimpleClient().getUser().getUserName()+"'", e, qpNotif);
             return false;
         }
 
@@ -408,10 +393,7 @@ public class OmeroRawScripting {
         try {
             imageServer.getImageWrapper().link(imageServer.getClient().getSimpleClient(), tagsToAdd.toArray(TagAnnotationWrapper[]::new));
         }catch(ServiceException | AccessException | ExecutionException e){
-            String message = "Cannot add tags to the image '"+imageServer.getId()+"'";
-            String header = "OMERO - tags";
-            if(qpNotif) Dialogs.showErrorNotification(header, message);
-            logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+            Utils.errorLog("OMERO - tags", "Cannot add tags to the image '"+imageServer.getId()+"'", e, qpNotif);
             return false;
         }
 
