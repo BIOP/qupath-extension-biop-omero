@@ -23,6 +23,7 @@ package qupath.ext.biop.servers.omero.raw;
 
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.meta.GroupWrapper;
+import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 import loci.common.DataTools;
 import loci.common.services.DependencyException;
@@ -146,6 +147,11 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	private OmeroRawClient client; //not final anymore because we need to update the client for the image when we use sudo connection
 
 	/**
+	 * Image Omero Wrapper
+	 */
+	private ImageWrapper imageWrapper;
+
+	/**
 	 * Main reader for metadata and all that jazz
 	 */
 	private OmeroReaderManager.LocalReaderWrapper readerWrapper;
@@ -241,6 +247,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		RawPixelsStorePrx reader = readerWrapper.getReader();
 		PixelsData meta = readerWrapper.getPixelsData();
 		this.client = readerWrapper.getClient();
+		this.imageWrapper = this.client.getSimpleClient().getImage(imageID);
 
 		// There is just one series per image ID
 		synchronized (reader) {
@@ -788,6 +795,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	public Long getId() {
 		return imageID;
 	}
+
+	public ImageWrapper getImageWrapper() {return imageWrapper;}
 	
 	/**
 	 * Return the URI host used by this image server

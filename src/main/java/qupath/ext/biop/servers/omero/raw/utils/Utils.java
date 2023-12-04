@@ -1,8 +1,10 @@
 package qupath.ext.biop.servers.omero.raw.utils;
 
+import fr.igred.omero.annotations.MapAnnotationWrapper;
 import omero.gateway.model.ImageData;
 import omero.gateway.model.TableData;
 import omero.gateway.model.TableDataColumn;
+import omero.model.NamedValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
@@ -24,6 +26,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Private class regrouping all tools that are not restricted to OMERO.
@@ -34,6 +37,68 @@ public class Utils {
     protected static final String IMAGE_ID_HEADER = NUMERIC_FIELD_ID + "Image_ID";
 
     public static final String ALL_USERS = "all_users";
+    public final static String TAG_KEY = "tags";
+    public final static String KVP_KEY = "key-values";
+
+    public enum UpdatePolicy {
+        /** Keep all existing keys without updating */
+        KEEP_KEYS,
+
+        /** Update all existing key with new values */
+        UPDATE_KEYS,
+
+        /** Delete all existing keys */
+        DELETE_KEYS
+    }
+
+    /**
+     * Utils to convert the MapAnnotationWrapper object into a map of the OMERO key-values
+     *
+     * @param mapAnnotationWrapper
+     * @return
+     */
+    protected static Map<String, String> convertMapAnnotationWrapperToMap(MapAnnotationWrapper mapAnnotationWrapper){
+        return mapAnnotationWrapper.getContent()
+                .stream()
+                .collect(Collectors.toMap(e->e.name, e->e.value));
+    }
+
+    /**
+     * Create one single MapAnnotationWrapper object from a list of them
+     *
+     * @param mapAnnotationWrappers
+     * @return
+     */
+    protected static MapAnnotationWrapper flattenMapAnnotationWrapperList(List<MapAnnotationWrapper> mapAnnotationWrappers){
+        return new MapAnnotationWrapper(mapAnnotationWrappers
+                .stream()
+                .flatMap(e-> e.getContent().stream())
+                .collect(Collectors.toList()));
+    }
+
+    /**
+     * Try to solve an error in OMERO regarding the keys creation.
+     * On OMERO, it is possible to have two identical keys with a different value. This should normally never append.
+     * This method checks if all keys are unique and output false if there is at least two identical keys.
+     *
+     * @param keyValues
+     * @return Check status (True if all keys unique ; false otherwise)
+     */
+    protected static boolean checkUniqueKeyInAnnotationMap(List<NamedValue> keyValues){ // not possible to have a map because it allows only unique keys
+        boolean uniqueKey = true;
+
+        for(int i = 0; i < keyValues.size()-1;i++){
+            for(int j = i+1;j < keyValues.size();j++){
+                if(keyValues.get(i).name.equals(keyValues.get(j).name)){
+                    uniqueKey = false;
+                    break;
+                }
+            }
+            if(!uniqueKey)
+                break;
+        }
+        return uniqueKey;
+    }
 
     /**
      * Convert a map < header, list_of_values > into a CSV file

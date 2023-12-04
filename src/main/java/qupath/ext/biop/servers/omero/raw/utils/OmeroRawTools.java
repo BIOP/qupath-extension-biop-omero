@@ -49,8 +49,10 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import fr.igred.omero.Client;
-import fr.igred.omero.GenericObjectWrapper;
 import fr.igred.omero.annotations.AnnotationList;
+import fr.igred.omero.annotations.GenericAnnotationWrapper;
+import fr.igred.omero.annotations.MapAnnotationWrapper;
+import fr.igred.omero.annotations.TagAnnotationWrapper;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
@@ -126,6 +128,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.common.GeneralTools;
 import qupath.fx.dialogs.Dialogs;
@@ -1775,17 +1778,18 @@ public final class OmeroRawTools {
      * @param client
      * @param imageId
      * @return List of Key-Value pairs as annotation objects
+     * @deprecated use {@link ImageWrapper#getMapAnnotations(Client)} instead
      */
+    @Deprecated
     public static List<MapAnnotationData> readKeyValues(OmeroRawClient client, long imageId) {
-        List<AnnotationData> annotations;
+        List<MapAnnotationData> annotations;
 
         try {
             // get current image from OMERO
-            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
-
+            ImageWrapper imageWrapper = client.getSimpleClient().getImage(imageId);
             // read annotations linked to the image
-            annotations = client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), imageData);
-
+            List<MapAnnotationWrapper> annotationWrappers = imageWrapper.getMapAnnotations(client.getSimpleClient());
+            annotations = annotationWrappers.stream().map(MapAnnotationWrapper::asDataObject).collect(Collectors.toList());
         }catch(ExecutionException | DSOutOfServiceException | DSAccessException e) {
             Dialogs.showErrorNotification("Reading OMERO key value pairs", "Cannot get key values from OMERO");
             logger.error(String.valueOf(e));
@@ -1794,10 +1798,7 @@ public final class OmeroRawTools {
         }
 
         // filter key values
-        return annotations.stream()
-                .filter(MapAnnotationData.class::isInstance)
-                .map(MapAnnotationData.class::cast)
-                .collect(Collectors.toList());
+        return annotations;
     }
 
 
@@ -2021,7 +2022,9 @@ public final class OmeroRawTools {
      * @param client
      * @param imageId
      * @return List of NamedValue objects.
+     * @deprecated use {@link MapAnnotationWrapper#getContent()} instead
      */
+    @Deprecated
     public static List<NamedValue> readKeyValuesAsNamedValue(OmeroRawClient client, long imageId) {
         return readKeyValues(client, imageId).stream()
                 .flatMap(e->((List<NamedValue>)(e.getContent())).stream())
@@ -2031,26 +2034,25 @@ public final class OmeroRawTools {
     /**
      * Unlink tags from an image on OMERO
      *
-     * @param client
-     * @param imageId
+     * @param imageServer
      */
-    protected static void unlinkTags(OmeroRawClient client, long imageId){
+    protected static void unlinkTags(OmeroRawImageServer imageServer){
         try{
-            List<TagAnnotationData> tags = readTags(client, imageId);
+            List<TagAnnotationWrapper> tags = imageServer.getImageWrapper().getTags(imageServer.getClient().getSimpleClient());
             List<IObject> oss = new ArrayList<>();
-            for(TagAnnotationData tag : tags) {
-                oss.addAll(client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select link from ImageAnnotationLink" +
-                        " link where link.parent = " + imageId +
-                        " and link.child = " + tag.getId(), null));
+            for(TagAnnotationWrapper tag : tags) {
+                oss.addAll(imageServer.getClient().getSimpleClient().findByQuery("select link from ImageAnnotationLink" +
+                        " link where link.parent = " + imageServer.getId() +
+                        " and link.child = " + tag.getId()));
             }
-            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), oss).block(500);
+            imageServer.getClient().getSimpleClient().getDm().delete(imageServer.getClient().getSimpleClient().getCtx(), oss).block(500);
 
         }catch(ExecutionException | DSOutOfServiceException | ServerError | InterruptedException e) {
-            Dialogs.showErrorNotification("Unlink tags", "Cannot unlink tags for the image "+imageId);
+            Dialogs.showErrorNotification("Unlink tags", "Cannot unlink tags for the image "+imageServer.getId());
             logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }catch(DSAccessException e) {
-            Dialogs.showErrorNotification("Unlink tags", "You don't have the right to unlink tags for image "+imageId);
+            Dialogs.showErrorNotification("Unlink tags", "You don't have the right to unlink tags for image "+imageServer.getId());
             logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
@@ -2063,16 +2065,17 @@ public final class OmeroRawTools {
      * @param client
      * @param imageId
      * @return Sending status (True if sent ; false with error message otherwise)
+     * @deprecated use {@link ImageWrapper#link(Client, GenericAnnotationWrapper)} instead
      */
+    @Deprecated
     public static boolean addKeyValuesOnOmero(MapAnnotationData keyValuePairs, OmeroRawClient client, long imageId) {
         boolean wasAdded = true;
         try {
             // get current image from OMERO
-            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
+            ImageWrapper imageWrapper = client.getSimpleClient().getImage(imageId);
 
             // send key-values to OMERO
-            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).attachAnnotation(client.getSimpleClient().getCtx(), keyValuePairs, imageData);
-
+            imageWrapper.link(client.getSimpleClient(), new MapAnnotationWrapper(keyValuePairs));
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Adding OMERO KeyValues", "Cannot add new key values on OMERO");
             logger.error(String.valueOf(e));
@@ -2143,21 +2146,11 @@ public final class OmeroRawTools {
      *
      * @param keyValues
      * @return Check status (True if all keys unique ; false otherwise)
+     * @deprecated method moved with a non-public access
      */
-    public static boolean checkUniqueKeyInAnnotationMap(List<NamedValue> keyValues){ // not possible to have a map because it allows only unique keys
-        boolean uniqueKey = true;
-
-        for(int i = 0; i < keyValues.size()-1;i++){
-            for(int j = i+1;j < keyValues.size();j++){
-                if(keyValues.get(i).name.equals(keyValues.get(j).name)){
-                    uniqueKey = false;
-                    break;
-                }
-            }
-            if(!uniqueKey)
-                break;
-        }
-        return uniqueKey;
+    @Deprecated
+    public static boolean checkUniqueKeyInAnnotationMap(List<NamedValue> keyValues){
+      return Utils.checkUniqueKeyInAnnotationMap(keyValues);
     }
 
 
