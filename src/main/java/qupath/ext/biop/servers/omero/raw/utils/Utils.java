@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
  */
 public class Utils {
     private final static Logger logger = LoggerFactory.getLogger(Utils.class);
-    protected static final String NUMERIC_FIELD_ID = "\\$";
-    protected static final String IMAGE_ID_HEADER = NUMERIC_FIELD_ID + "Image_ID";
+    private static final String NUMERIC_FIELD_ID = "\\$";
+    private static final String IMAGE_ID_HEADER = NUMERIC_FIELD_ID + "Image_ID";
 
     public static final String ALL_USERS = "all_users";
     public final static String TAG_KEY = "tags";
@@ -74,6 +74,36 @@ public class Utils {
                 .stream()
                 .flatMap(e-> e.getContent().stream())
                 .collect(Collectors.toList()));
+    }
+
+    public static void infoLog(String header, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showInfoNotification(header, message);
+        logger.info(header + "---" + message);
+    }
+
+    public static void infoLog(String header, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showInfoNotification(header, message);
+        logger.info(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+    }
+
+    public static void errorLog(String header, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(header, message);
+        logger.error(header + "---" + message);
+    }
+
+    public static void errorLog(String header, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(header, message);
+        logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+    }
+
+    public static void warnLog(String header, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(header, message);
+        logger.error(header + "---" + message);
+    }
+
+    public static void warnLog(String header, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(header, message);
+        logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
     }
 
     /**

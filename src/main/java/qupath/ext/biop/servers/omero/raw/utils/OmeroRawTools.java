@@ -2065,7 +2065,7 @@ public final class OmeroRawTools {
      * @param client
      * @param imageId
      * @return Sending status (True if sent ; false with error message otherwise)
-     * @deprecated use {@link ImageWrapper#link(Client, GenericAnnotationWrapper)} instead
+     * @deprecated use {@link GenericRepositoryObjectWrapper#link(Client, GenericAnnotationWrapper)} instead
      */
     @Deprecated
     public static boolean addKeyValuesOnOmero(MapAnnotationData keyValuePairs, OmeroRawClient client, long imageId) {
@@ -2096,7 +2096,9 @@ public final class OmeroRawTools {
      * @param keyValuePairs
      * @param client
      * @return Updating status (True if updated ; false with error message otherwise)
+     * @deprecated method removed
      */
+    @Deprecated
     public static boolean updateKeyValuesOnOmero(List<MapAnnotationData> keyValuePairs, OmeroRawClient client) {
         boolean wasUpdated = true;
         try {
@@ -2122,7 +2124,9 @@ public final class OmeroRawTools {
      * @param keyValuePairs
      * @param client
      * @return Deleting status (True if deleted ; false with error message otherwise)
+     * @deprecated use {@link GenericRepositoryObjectWrapper#link(Client, GenericAnnotationWrapper[])} instead
      */
+    @Deprecated
     public static boolean deleteKeyValuesOnOmero(List<MapAnnotationData> keyValuePairs, OmeroRawClient client) {
         boolean wasDeleted = true;
         try {

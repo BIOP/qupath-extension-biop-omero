@@ -7,6 +7,7 @@ import javafx.scene.layout.GridPane;
 import org.apache.commons.lang3.StringUtils;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
+import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
@@ -70,9 +71,12 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
             return;
 
         // get user choice
-        boolean replaceMetadata = rbReplaceMetadata.isSelected();
-        boolean deleteMetadata = rbDeleteMetadata.isSelected();
-        boolean keepMetadata = rbKeepMetadata.isSelected();
+        Utils.UpdatePolicy policy;
+        if(rbReplaceMetadata.isSelected())
+            policy = Utils.UpdatePolicy.UPDATE_KEYS;
+       else if (rbDeleteMetadata.isSelected())
+            policy = Utils.UpdatePolicy.DELETE_KEYS;
+       else policy = Utils.UpdatePolicy.KEEP_KEYS;
 
         // get keys
         ProjectImageEntry<BufferedImage> entry = this.qupath.getProject().getEntry(this.qupath.getImageData());
@@ -93,21 +97,22 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
             return;
         }
 
-        String objectString = "KVP" + (keyValues.keySet().size() == 1 ? "" : "s") + "/tag" + (keyValues.keySet().size() == 1 ? "" : "s");
-        boolean wasSaved = true;
-
         // send metadata to OMERO
-        if(deleteMetadata)
-            wasSaved = OmeroRawScripting.sendMetadataOnOmeroAndDeleteKeyValues(keyValues,(OmeroRawImageServer)imageServer);
-        if(keepMetadata)
-            wasSaved = OmeroRawScripting.sendMetadataOnOmero(keyValues,(OmeroRawImageServer)imageServer);
-        if(replaceMetadata)
-            wasSaved = OmeroRawScripting.sendMetadataOnOmeroAndUpdateKeyValues(keyValues,(OmeroRawImageServer)imageServer);
+        Map<String, Map<String, String>> metadataSent = OmeroRawScripting.sendQPMetadataToOmero(keyValues, (OmeroRawImageServer) imageServer, policy, true);
+        Map<String, String> tags = metadataSent.get(Utils.TAG_KEY);
+        Map<String, String> kvps = metadataSent.get(Utils.KVP_KEY);
+        if(!tags.isEmpty())
+            Dialogs.showInfoNotification(StringUtils.capitalize("TAG"+ (tags.size() == 1 ? "":"s")) + " written successfully",
+                    String.format("%d %s %s successfully sent to OMERO server",
+                            tags.size(),
+                            ("TAG"+ (tags.size() == 1 ? "":"s")),
+                            (tags.size() == 1 ? "was" : "were")));
 
-        if(wasSaved)
-            Dialogs.showInfoNotification(StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully sent to OMERO server",
-                    keyValues.keySet().size(),
-                    objectString,
-                    (keyValues.keySet().size() == 1 ? "was" : "were")));
+        if(!kvps.isEmpty())
+            Dialogs.showInfoNotification(StringUtils.capitalize("KVP"+ (kvps.size() == 1 ? "":"s")) + " written successfully",
+                    String.format("%d %s %s successfully sent to OMERO server",
+                            kvps.size(),
+                            ("KVP"+ (kvps.size() == 1 ? "":"s")),
+                            (kvps.size() == 1 ? "was" : "were")));
     }
 }

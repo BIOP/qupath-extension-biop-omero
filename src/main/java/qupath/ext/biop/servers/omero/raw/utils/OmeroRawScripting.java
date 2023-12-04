@@ -235,6 +235,7 @@ public class OmeroRawScripting {
      * @param imageServer ImageServer of an image loaded from OMERO
      * @param policy replacement policy you choose to replace annotations on OMERO
      * @param qpNotif true to display a QuPath notification
+     *
      * @return a map containing the key-values / tags sent. Use {@link Utils#KVP_KEY} and {@link Utils#TAG_KEY} to access
      * the corresponding map. For tag, the returned map has identical key:value
      */
@@ -279,24 +280,21 @@ public class OmeroRawScripting {
         try {
             omeroKVPsWrapperList = imageServer.getImageWrapper().getMapAnnotations(imageServer.getClient().getSimpleClient());
         }catch(ServiceException | AccessException | ExecutionException e){
-            String message = "Cannot get KVPs from the image '"+imageServer.getId()+"'";
-            String header = "OMERO - KVPs";
-            if(qpNotif) Dialogs.showErrorNotification(header, message);
-            logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+            Utils.errorLog("OMERO - KVPs", "Cannot get KVPs to the image '"+imageServer.getId()+"'",e, qpNotif);
             return false;
         }
 
-        // check if OMERO keys are unique or not
+        // check if OMERO keys are unique and store them in a map
         MapAnnotationWrapper flattenMapWrapper = Utils.flattenMapAnnotationWrapperList(omeroKVPsWrapperList);
-        if(!policy.equals(Utils.UpdatePolicy.DELETE_KEYS)){
-            boolean areKeysUnique = Utils.checkUniqueKeyInAnnotationMap(flattenMapWrapper.getContent());
-            if(!areKeysUnique){
-                Dialogs.showErrorMessage("Keys not unique", "There are at least two identical keys on OMERO. Please make each key unique");
+        Map<String, String> omeroKVPs = new HashMap<>();
+        try {
+            omeroKVPs = Utils.convertMapAnnotationWrapperToMap(flattenMapWrapper);
+        }catch(IllegalStateException e){
+            if(!policy.equals(Utils.UpdatePolicy.DELETE_KEYS)){
+                Utils.errorLog("OMERO - KVPs", "Keys not unique on OMERO. Please make them unique", qpNotif);
                 return false;
             }
         }
-
-        Map<String, String> omeroKVPs = Utils.convertMapAnnotationWrapperToMap(flattenMapWrapper);
 
         // convert key value pairs to omero-compatible object NamedValue
         List<NamedValue> newNV = new ArrayList<>();
@@ -306,11 +304,13 @@ public class OmeroRawScripting {
                 List<Map<String,String> > splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(omeroKVPs, qpMetadataKVP);
                 Map<String,String>  newKV = splitKeyValues.get(1);
                 Map<String, String> existingKV = splitKeyValues.get(0);
-                omeroKVPs.forEach((keyToUpdate, valueToUpdate) -> {
+
+                for(String keyToUpdate : omeroKVPs.keySet()){
+                    String valueToUpdate = omeroKVPs.get(keyToUpdate);
                     for (String updated : existingKV.keySet())
                         if (keyToUpdate.equals(updated))
                             omeroKVPs.replace(keyToUpdate, valueToUpdate, existingKV.get(keyToUpdate));
-                });
+                }
 
                 omeroKVPs.forEach((key,value)-> newNV.add(new NamedValue(key,value)));
                 newKV.forEach((key,value)-> newNV.add(new NamedValue(key,value)));
@@ -332,14 +332,11 @@ public class OmeroRawScripting {
             try{
                 imageServer.getImageWrapper().link(imageServer.getClient().getSimpleClient(), newOmeroAnnotationMap);
             }catch(ServiceException | AccessException | ExecutionException e){
-                String message = "Cannot add KVPs to the image '"+imageServer.getId()+"'";
-                String header = "OMERO - KVPs";
-                if(qpNotif) Dialogs.showErrorNotification(header, message);
-                logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                Utils.errorLog("OMERO - KVPs", "Cannot add KVPs to the image '"+imageServer.getId()+"'",e, qpNotif);
                 return false;
             }
         }else{
-            Dialogs.showInfoNotification("Save metadata on OMERO", "No key values to send");
+            Utils.warnLog("OMERO - KVPs", "No key values to send", qpNotif);
         }
 
         // delete current keyValues
@@ -347,217 +344,80 @@ public class OmeroRawScripting {
             try{
                 imageServer.getClient().getSimpleClient().delete(omeroKVPsWrapperList);
             }catch(OMEROServerError | InterruptedException | ServiceException | AccessException | ExecutionException e){
-                String message = "Cannot delete KVPs from the image '"+imageServer.getId()+"'";
-                String header = "OMERO - KVPs";
-                if(qpNotif) Dialogs.showErrorNotification(header, message);
-                logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                Utils.errorLog("OMERO - KVPs", "Cannot delete KVPs to the image '"+imageServer.getId()+"'",e, qpNotif);
             }
         }
 
         return true;
     }
 
-
-
     /**
-     * Send QuPath metadata to OMERO as Key-Value pairs. Check if OMERO keys are unique. If they are not, metadata are not sent
-     * <br>
-     * Existing keys on OMERO are :
-     * <p>
-     * <ul>
-     * <li> deleted : NO </li>
-     * <li> updated : NO </li>
-     * </ul>
-     * <p>
+     * Send a list of tags to OMERO. If tags are already attached to the image, these tags are not sent.
      *
-     * @param qpMetadata Map of key-value
+     * @param tags List of tags to add to the image
      * @param imageServer ImageServer of an image loaded from OMERO
-     * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
+     * @return Sending status (true if tags have been sent ; false if there were troubles during the sending process)
      */
-    public static boolean sendMetadataOnOmero(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
-        // read OMERO key-values and check if they are unique
-        Map<String,String> omeroKeyValuePairs = importOmeroKeyValues(imageServer);
-        if(omeroKeyValuePairs == null)
-            return false;
-
-        // Extract tags
-        List<String> qpMetadataTags = new ArrayList<>();
-        Map<String, String> qpMetadataKVP = new HashMap<>();
-        for(String key:qpMetadata.keySet()) {
-            if(key.equalsIgnoreCase(qpMetadata.get(key))){
-                qpMetadataTags.add(key);
-            }else{
-                qpMetadataKVP.put(key, qpMetadata.get(key));
-            }
-        }
-
-        // split QuPath metadata into those that already exist on OMERO and those that need to be added
-        List<Map<String,String> > splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(omeroKeyValuePairs, qpMetadataKVP);
-        Map<String,String>  newKV = splitKeyValues.get(1);
-
-        // convert key value pairs to omero-compatible object NamedValue
-        List<NamedValue> newNV = new ArrayList<>();
-        newKV.forEach((key,value)-> newNV.add(new NamedValue(key,value)));
-
-        // if all keys already exist, do not write an empty list
-        boolean wasAdded = true;
-        if(!newNV.isEmpty()) {
-            // set annotation map
-            MapAnnotationData newOmeroAnnotationMap = new MapAnnotationData();
-            newOmeroAnnotationMap.setContent(newNV);
-            newOmeroAnnotationMap.setNameSpace(DEFAULT_KVP_NAMESPACE);
-
-            // add key value on OMERO
-            wasAdded = OmeroRawTools.addKeyValuesOnOmero(newOmeroAnnotationMap, imageServer.getClient(), imageServer.getId());
-        }else{
-            Dialogs.showInfoNotification("Save metadata on OMERO", "All metadata already exist on OMERO");
-        }
-
-        // add tags on OMERO
-        wasAdded = wasAdded && sendTagsToOmero(qpMetadataTags, imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
-
-        return wasAdded;
-    }
-
-
-    /**
-     * Send QuPath metadata to OMERO as Key-Value pairs. Check if OMERO keys are unique. If they are not, metadata are not sent
-     * <br>
-     * Existing keys on OMERO are :
-     * <p>
-     * <ul>
-     * <li> deleted : YES </li>
-     * <li> updated : NO </li>
-     * </ul>
-     * <p>
-     *
-     * @param qpMetadata Map of key-value
-     * @param imageServer ImageServer of an image loaded from OMERO
-     * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
-     */
-    public static boolean sendMetadataOnOmeroAndDeleteKeyValues(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
-        // read current key-value on OMERO ==> used for the later deletion
-        List<MapAnnotationData> omeroAnnotationMaps = OmeroRawTools.readKeyValues(imageServer.getClient(), imageServer.getId());
-
-        // read OMERO key-values and check if they are unique
-        Map<String,String> omeroKeyValuePairs = importOmeroKeyValues(imageServer);
-        if(omeroKeyValuePairs == null)
-            return false;
-
-        // Extract tags
-        List<String> qpMetadataTags = new ArrayList<>();
-        Map<String, String> qpMetadataKVP = new HashMap<>();
-        for(String key:qpMetadata.keySet()) {
-            if(key.equalsIgnoreCase(qpMetadata.get(key))){
-                qpMetadataTags.add(key);
-            }else{
-                qpMetadataKVP.put(key, qpMetadata.get(key));
-            }
-        }
-
-        // convert key value pairs to omero-compatible object NamedValue
-        List<NamedValue> newNV = new ArrayList<>();
-        qpMetadataKVP.forEach((key,value)-> newNV.add(new NamedValue(key,value)));
-
-        boolean wasAdded = true;
-        if(!newNV.isEmpty()) {
-            // set annotation map
-            MapAnnotationData newOmeroAnnotationMap = new MapAnnotationData();
-            newOmeroAnnotationMap.setContent(newNV);
-            newOmeroAnnotationMap.setNameSpace(DEFAULT_KVP_NAMESPACE);
-
-            // add key value pairs On OMERO
-            wasAdded = OmeroRawTools.addKeyValuesOnOmero(newOmeroAnnotationMap, imageServer.getClient(), imageServer.getId());
-        }else{
-            Dialogs.showInfoNotification("Save metadata on OMERO", "No key values to send");
-        }
-
-        // delete current keyValues
-        wasAdded = wasAdded && OmeroRawTools.deleteKeyValuesOnOmero(omeroAnnotationMaps, imageServer.getClient());
-
+    public static boolean sendTagsToOmero(List<String> tags, OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif){
         // unlink tags on OMERO
-        OmeroRawTools.unlinkTags(imageServer);
+        if(policy.equals(Utils.UpdatePolicy.DELETE_KEYS))
+            OmeroRawTools.unlinkTags(imageServer);
 
-        // add tags on OMERO
-        wasAdded = wasAdded && sendTagsToOmero(qpMetadataTags, imageServer, Utils.UpdatePolicy.KEEP_KEYS,true);
-
-        return wasAdded;
-    }
-
-
-    /**
-     * Send QuPath metadata to OMERO as Key-Value pairs. Check if OMERO keys are unique. If they are not, metadata are not sent.
-     * <br>
-     * Existing keys on OMERO are :
-     * <p>
-     * <ul>
-     * <li> deleted : NO </li>
-     * <li> updated : YES </li>
-     * </ul>
-     * <p>
-     *
-     * @param qpMetadata Map of key-value
-     * @param imageServer ImageServer of an image loaded from OMERO
-     * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
-     */
-    public static boolean sendMetadataOnOmeroAndUpdateKeyValues(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
-        // read current key-value on OMERO ==> used for the later deletion
-        List<MapAnnotationData> omeroAnnotationMaps = OmeroRawTools.readKeyValues(imageServer.getClient(), imageServer.getId());
-
-        // read OMERO key-values and check if they are unique
-        Map<String,String> omeroKeyValuePairs = importOmeroKeyValues(imageServer);
-        if(omeroKeyValuePairs == null)
+        // get current OMERO tags
+        List<TagAnnotationWrapper> omeroTagAnnotations;
+        try {
+            omeroTagAnnotations = imageServer.getImageWrapper().getTags(imageServer.getClient().getSimpleClient());
+        }catch(ServiceException | AccessException | ExecutionException e){
+            Utils.errorLog("OMERO - tags", "Cannot get tags to the image '"+imageServer.getId()+"'",e, qpNotif);
             return false;
+        }
+        List<String> currentTags = omeroTagAnnotations.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList());
 
-        // Extract tags
-        List<String> qpMetadataTags = new ArrayList<>();
+        // remove all existing tags
+        tags.removeAll(currentTags);
 
-        Map<String, String> qpMetadataKVP = new HashMap<>();
-        for(String key:qpMetadata.keySet()) {
-            if(key.equalsIgnoreCase(qpMetadata.get(key))){
-                qpMetadataTags.add(key);
-            }else{
-                qpMetadataKVP.put(key, qpMetadata.get(key));
+        if(tags.isEmpty()) {
+            Dialogs.showInfoNotification("Sending tags", "All tags are already existing on OMERO.");
+            return true;
+        }
+
+        List<TagAnnotationWrapper> tagsToAdd = new ArrayList<>();
+        List<TagAnnotationWrapper> groupTags;
+        try {
+            groupTags= imageServer.getClient().getSimpleClient().getTags();
+        }catch(ServiceException  | OMEROServerError e){
+            Utils.errorLog("OMERO - tags",
+                    "Cannot read tags from the current user '"+imageServer.getClient().getSimpleClient().getUser().getUserName()+"'",e, qpNotif);
+            return false;
+        }
+
+        for(String tag:tags) {
+            if(tagsToAdd.stream().noneMatch(e-> e.getName().equalsIgnoreCase(tag))){
+                TagAnnotationWrapper newOmeroTagAnnotation;
+                List<TagAnnotationWrapper> matchedTags = groupTags.stream().filter(e -> e.getName().equalsIgnoreCase(tag)).collect(Collectors.toList());
+                if(matchedTags.isEmpty()){
+                    newOmeroTagAnnotation = new TagAnnotationWrapper(new TagAnnotationData(tag));
+                } else {
+                    newOmeroTagAnnotation = matchedTags.get(0);
+                }
+                // find if the requested tag already exists
+                tagsToAdd.add(newOmeroTagAnnotation);
             }
         }
 
-        // split QuPath metadata into those that already exist on OMERO and those that need to be added
-        List<Map<String,String> > splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(omeroKeyValuePairs, qpMetadataKVP);
-        Map<String,String>  newKV = splitKeyValues.get(1);
-        Map<String,String> existingKV = splitKeyValues.get(0);
-
-        omeroKeyValuePairs.forEach((keyToUpdate, valueToUpdate) -> {
-            for (String updated : existingKV.keySet())
-                if (keyToUpdate.equals(updated))
-                    omeroKeyValuePairs.replace(keyToUpdate, valueToUpdate, existingKV.get(keyToUpdate));
-        });
-
-        // convert key value pairs to omero-compatible object NamedValue
-        List<NamedValue> newNV = new ArrayList<>();
-        omeroKeyValuePairs.forEach((key,value)-> newNV.add(new NamedValue(key,value)));
-        newKV.forEach((key,value)-> newNV.add(new NamedValue(key,value)));
-
-        boolean wasAdded = true;
-        if(!newNV.isEmpty()) {
-            // set annotation map
-            MapAnnotationData newOmeroAnnotationMap = new MapAnnotationData();
-            newOmeroAnnotationMap.setContent(newNV);
-            newOmeroAnnotationMap.setNameSpace(DEFAULT_KVP_NAMESPACE);
-
-            // add key value pairs On OMERO
-            wasAdded = OmeroRawTools.addKeyValuesOnOmero(newOmeroAnnotationMap, imageServer.getClient(), imageServer.getId());
-        }else{
-            Dialogs.showInfoNotification("Save metadata on OMERO", "No key values to send");
+        try {
+            imageServer.getImageWrapper().link(imageServer.getClient().getSimpleClient(), tagsToAdd.toArray(TagAnnotationWrapper[]::new));
+        }catch(ServiceException | AccessException | ExecutionException e){
+            String message = "Cannot add tags to the image '"+imageServer.getId()+"'";
+            String header = "OMERO - tags";
+            if(qpNotif) Dialogs.showErrorNotification(header, message);
+            logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+            return false;
         }
 
-        // delete current keyValues
-        wasAdded = wasAdded && OmeroRawTools.deleteKeyValuesOnOmero(omeroAnnotationMaps, imageServer.getClient());
-
-        // add tags on OMERO
-        wasAdded = wasAdded && sendTagsToOmero(qpMetadataTags, imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
-
-        return wasAdded;
+        return true;
     }
+
 
 
     /**
@@ -736,34 +596,6 @@ public class OmeroRawScripting {
 
 
     /**
-     * Read, from OMERO, Key-Value pairs attached to the current image and check if all keys are unique. If they are not unique, no Key-Values are returned.
-     *
-     * @param imageServer ImageServer of an image loaded from OMERO
-     * @return map of OMERO Key-Value pairs
-     */
-    @Deprecated
-    public static Map<String,String> importOmeroKeyValues(OmeroRawImageServer imageServer) {
-        // read current key-value on OMERO
-        List<NamedValue> currentOmeroKeyValues = OmeroRawTools.readKeyValuesAsNamedValue(imageServer.getClient(), imageServer.getId());
-
-        if (currentOmeroKeyValues.isEmpty()) {
-            Dialogs.showWarningNotification("Read key values on OMERO", "The current image does not have any KeyValues on OMERO");
-            return new HashMap<>();
-        }
-
-        // check unique keys
-        boolean uniqueOmeroKeys = Utils.checkUniqueKeyInAnnotationMap(currentOmeroKeyValues);
-
-        if (!uniqueOmeroKeys) {
-            Dialogs.showErrorMessage("Keys not unique", "There are at least two identical keys on OMERO. Please make each key unique");
-            return null;
-        }
-
-        return currentOmeroKeyValues.stream().collect(Collectors.toMap(e->e.name, e->e.value));
-    }
-
-
-    /**
      * Read, from OMERO, tags attached to the current image and add them as QuPath metadata fields
      *
      * @param imageServer ImageServer of an image loaded from OMERO
@@ -785,93 +617,6 @@ public class OmeroRawScripting {
         return omeroTagValues;
     }
 
-
-    /**
-     * Send a list of tags to OMERO. If tags are already attached to the image, these tags are not sent.
-     *
-     * @param tags List of tags to add to the image
-     * @param imageServer ImageServer of an image loaded from OMERO
-     * @return Sending status (true if tags have been sent ; false if there were troubles during the sending process)
-     * @deprecated use {@link OmeroRawScripting#sendTagsToOmero(List, OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
-     *
-     */
-    @Deprecated
-    public static boolean sendTagsToOmero(List<String> tags, OmeroRawImageServer imageServer){
-       return sendTagsToOmero(tags, imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
-    }
-
-
-    /**
-     * Send a list of tags to OMERO. If tags are already attached to the image, these tags are not sent.
-     *
-     * @param tags List of tags to add to the image
-     * @param imageServer ImageServer of an image loaded from OMERO
-     * @return Sending status (true if tags have been sent ; false if there were troubles during the sending process)
-     */
-    public static boolean sendTagsToOmero(List<String> tags, OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif){
-        // unlink tags on OMERO
-        if(policy.equals(Utils.UpdatePolicy.DELETE_KEYS))
-            OmeroRawTools.unlinkTags(imageServer);
-
-        // get current OMERO tags
-        List<TagAnnotationWrapper> omeroTagAnnotations;
-        try {
-            omeroTagAnnotations = imageServer.getImageWrapper().getTags(imageServer.getClient().getSimpleClient());
-        }catch(ServiceException | AccessException | ExecutionException e){
-            String message = "Cannot read tags from image '"+imageServer.getId()+"'";
-            String header = "OMERO - tags";
-            if(qpNotif) Dialogs.showErrorNotification(header, message);
-            logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
-            return false;
-        }
-        List<String> currentTags = omeroTagAnnotations.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList());
-
-        // remove all existing tags
-        tags.removeAll(currentTags);
-
-        if(tags.isEmpty()) {
-            Dialogs.showInfoNotification("Sending tags", "All tags are already existing on OMERO.");
-            return true;
-        }
-
-        List<TagAnnotationWrapper> tagsToAdd = new ArrayList<>();
-        List<TagAnnotationWrapper> groupTags;
-        try {
-            groupTags= imageServer.getClient().getSimpleClient().getTags();
-        }catch(ServiceException  | OMEROServerError e){
-            String message = "Cannot read tags from the current user '"+imageServer.getClient().getSimpleClient().getUser().getUserName()+"'";
-            String header = "OMERO - tags";
-            if(qpNotif) Dialogs.showErrorNotification(header, message);
-            logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
-            return false;
-        }
-
-        for(String tag:tags) {
-            if(tagsToAdd.stream().noneMatch(e-> e.getName().equalsIgnoreCase(tag))){
-                TagAnnotationWrapper newOmeroTagAnnotation;
-                List<TagAnnotationWrapper> matchedTags = groupTags.stream().filter(e -> e.getName().equalsIgnoreCase(tag)).collect(Collectors.toList());
-                if(matchedTags.isEmpty()){
-                    newOmeroTagAnnotation = new TagAnnotationWrapper(new TagAnnotationData(tag));
-                } else {
-                    newOmeroTagAnnotation = matchedTags.get(0);
-                }
-                // find if the requested tag already exists
-                tagsToAdd.add(newOmeroTagAnnotation);
-            }
-        }
-
-        try {
-            imageServer.getImageWrapper().link(imageServer.getClient().getSimpleClient(), tagsToAdd.toArray(TagAnnotationWrapper[]::new));
-        }catch(ServiceException | AccessException | ExecutionException e){
-            String message = "Cannot add tags to the image '"+imageServer.getId()+"'";
-            String header = "OMERO - tags";
-            if(qpNotif) Dialogs.showErrorNotification(header, message);
-            logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
-            return false;
-        }
-
-        return true;
-    }
 
 
     /**
@@ -2093,6 +1838,117 @@ public class OmeroRawScripting {
     public static Collection<PathObject> importOmeroROIsToQuPath(OmeroRawImageServer imageServer,
                                                                  boolean removePathObjects, String owner) {
         return addROIsToQuPath(imageServer, removePathObjects, owner, true);
+    }
+
+
+    /**
+     * Send QuPath metadata to OMERO as Key-Value pairs. Check if OMERO keys are unique. If they are not, metadata are not sent
+     * <br>
+     * Existing keys on OMERO are :
+     * <p>
+     * <ul>
+     * <li> deleted : NO </li>
+     * <li> updated : NO </li>
+     * </ul>
+     * <p>
+     *
+     * @param qpMetadata Map of key-value
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
+     * @deprecated use {@link OmeroRawScripting#sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     */
+    @Deprecated
+    public static boolean sendMetadataOnOmero(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
+        Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
+        return !(results.get(Utils.KVP_KEY).isEmpty() || results.get(Utils.TAG_KEY).isEmpty());
+    }
+
+
+    /**
+     * Send QuPath metadata to OMERO as Key-Value pairs. Check if OMERO keys are unique. If they are not, metadata are not sent
+     * <br>
+     * Existing keys on OMERO are :
+     * <p>
+     * <ul>
+     * <li> deleted : YES </li>
+     * <li> updated : NO </li>
+     * </ul>
+     * <p>
+     *
+     * @param qpMetadata Map of key-value
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
+     * @deprecated use {@link OmeroRawScripting#sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     */
+    @Deprecated
+    public static boolean sendMetadataOnOmeroAndDeleteKeyValues(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
+        Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.DELETE_KEYS, true);
+        return !(results.get(Utils.KVP_KEY).isEmpty() || results.get(Utils.TAG_KEY).isEmpty());
+    }
+
+
+    /**
+     * Send QuPath metadata to OMERO as Key-Value pairs. Check if OMERO keys are unique. If they are not, metadata are not sent.
+     * <br>
+     * Existing keys on OMERO are :
+     * <p>
+     * <ul>
+     * <li> deleted : NO </li>
+     * <li> updated : YES </li>
+     * </ul>
+     * <p>
+     *
+     * @param qpMetadata Map of key-value
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
+     * @deprecated use {@link OmeroRawScripting#sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     */
+    @Deprecated
+    public static boolean sendMetadataOnOmeroAndUpdateKeyValues(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
+        Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.UPDATE_KEYS, true);
+        return !(results.get(Utils.KVP_KEY).isEmpty() || results.get(Utils.TAG_KEY).isEmpty());
+    }
+
+
+    /**
+     * Read, from OMERO, Key-Value pairs attached to the current image and check if all keys are unique. If they are not unique, no Key-Values are returned.
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @return map of OMERO Key-Value pairs
+     */
+    @Deprecated
+    public static Map<String,String> importOmeroKeyValues(OmeroRawImageServer imageServer) {
+        // read current key-value on OMERO
+        List<NamedValue> currentOmeroKeyValues = OmeroRawTools.readKeyValuesAsNamedValue(imageServer.getClient(), imageServer.getId());
+
+        if (currentOmeroKeyValues.isEmpty()) {
+            Dialogs.showWarningNotification("Read key values on OMERO", "The current image does not have any KeyValues on OMERO");
+            return new HashMap<>();
+        }
+
+        // check unique keys
+        boolean uniqueOmeroKeys = Utils.checkUniqueKeyInAnnotationMap(currentOmeroKeyValues);
+
+        if (!uniqueOmeroKeys) {
+            Dialogs.showErrorMessage("Keys not unique", "There are at least two identical keys on OMERO. Please make each key unique");
+            return null;
+        }
+
+        return currentOmeroKeyValues.stream().collect(Collectors.toMap(e->e.name, e->e.value));
+    }
+
+    /**
+     * Send a list of tags to OMERO. If tags are already attached to the image, these tags are not sent.
+     *
+     * @param tags List of tags to add to the image
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @return Sending status (true if tags have been sent ; false if there were troubles during the sending process)
+     * @deprecated use {@link OmeroRawScripting#sendTagsToOmero(List, OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     *
+     */
+    @Deprecated
+    public static boolean sendTagsToOmero(List<String> tags, OmeroRawImageServer imageServer){
+        return sendTagsToOmero(tags, imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
     }
 
 }
