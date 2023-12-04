@@ -7,12 +7,17 @@ import javafx.scene.layout.GridPane;
 
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
+import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
 import qupath.lib.projects.ProjectImageEntry;
 
 import java.awt.image.BufferedImage;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Import key-values and tags from OMERO with a certain rule
@@ -70,59 +75,39 @@ public class OmeroRawImportMetadataCommand implements Runnable{
             return;
 
         // get user choice
-        boolean keepMetadata = rbKeepMetadata.isSelected();
-        boolean replaceMetadata = rbReplaceMetadata.isSelected();
-        boolean deleteMetadata = rbDeleteMetadata.isSelected();
+        // get user choice
+        Utils.UpdatePolicy policy;
+        if(rbReplaceMetadata.isSelected())
+            policy = Utils.UpdatePolicy.UPDATE_KEYS;
+        else if (rbDeleteMetadata.isSelected())
+            policy = Utils.UpdatePolicy.DELETE_KEYS;
+        else policy = Utils.UpdatePolicy.KEEP_KEYS;
 
         // read keyValue from QuPath
         ProjectImageEntry<BufferedImage> entry = this.qupath.getProject().getEntry(this.qupath.getImageData());
+        // get the initial number of key values
+        int nExistingKV = entry.getMetadataKeys().size();
 
-        // inform user if some key-values already exists in QuPath
-        if (keepMetadata) {
-            // get the initial number of key values
-            int nExistingKV = entry.getMetadataKeys().size();
+        // add new keyValues from omero
+        Map<String, String> keyValueMap = OmeroRawScripting.addKeyValuesToQuPath((OmeroRawImageServer) imageServer, policy, true);
+        List<String> tagList = OmeroRawScripting.addTagsToQuPath((OmeroRawImageServer) imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
 
-            // add new keyValues from omero
-            OmeroRawScripting.addOmeroKeyValues((OmeroRawImageServer) imageServer);
-            OmeroRawScripting.addOmeroTags((OmeroRawImageServer) imageServer);
-
-            // get the number of new key values
-            int nQuPathKVAfterAdding = entry.getMetadataKeys().size();
-            int nNewKV = nQuPathKVAfterAdding - nExistingKV;
-
-            Dialogs.showInfoNotification(title, String.format("Keep %d metadata and add %d new %s", nExistingKV,
-                    nNewKV,
-                    (nNewKV <= 1 ? "KVP/tag" : "KVPs/tags")));
+        String message = "";
+        switch(policy){
+            case UPDATE_KEYS :
+                message = "Keep %d metadata";
+                break;
+            case DELETE_KEYS:
+                message = "Update %d metadata";
+                break;
+            case KEEP_KEYS:
+                message = "Delete %d previous metadata";
         }
-        if(replaceMetadata) {
-            // get the initial number of key values
-            int nExistingKV = entry.getMetadataKeys().size();
 
-            // add new keyValues from omero
-            OmeroRawScripting.addOmeroKeyValuesAndUpdateMetadata((OmeroRawImageServer) imageServer);
-            OmeroRawScripting.addOmeroTags((OmeroRawImageServer) imageServer);
-
-            // get the number of new key values
-            int nQuPathKVAfterAdding = entry.getMetadataKeys().size();
-            int nNewKV = nQuPathKVAfterAdding - nExistingKV;
-
-            Dialogs.showInfoNotification(title, String.format("Update %d metadata and add %d new %s", nExistingKV,
-                    nNewKV,
-                    (nNewKV <= 1 ? "KVP/tag" : "KVPs/tags")));
-        }
-        if(deleteMetadata) {
-            // get the number of new key values
-            int nExistingKV = entry.getMetadataKeys().size();
-
-            // add new keyValues from omero
-            OmeroRawScripting.addOmeroKeyValuesAndDeleteMetadata((OmeroRawImageServer) imageServer);
-            OmeroRawScripting.addOmeroTags((OmeroRawImageServer) imageServer);
-
-            // get the number of new key values
-            int nNewKV = entry.getMetadataKeys().size();
-
-            Dialogs.showInfoNotification(title, String.format("Delete %d previous metadata and add %d new %s", nExistingKV, nNewKV,
-                    (nNewKV <= 1 ? "KVP/tag" : "KVPs/tags")));
-        }
+        Utils.infoLog(title, String.format(message + ", add %d new %s and add %d new %s", nExistingKV,
+                keyValueMap == null ? 0 : keyValueMap.size(),
+                ((keyValueMap != null && keyValueMap.size() <= 1) ? "KVP" : "KVPs"),
+                tagList == null ? 0 : tagList.size(),
+                ((tagList != null && tagList.size()<= 1) ? "tag" : "tags")), true);
     }
 }

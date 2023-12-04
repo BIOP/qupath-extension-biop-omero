@@ -13,7 +13,6 @@ import omero.gateway.facility.TablesFacility;
 import omero.gateway.model.ChannelData;
 import omero.gateway.model.DataObject;
 import omero.gateway.model.FileAnnotationData;
-import omero.gateway.model.MapAnnotationData;
 import omero.gateway.model.TableData;
 import omero.gateway.model.TagAnnotationData;
 import omero.model.ChannelBinding;
@@ -341,6 +340,8 @@ public class OmeroRawScripting {
      *
      * @param tags List of tags to add to the image
      * @param imageServer ImageServer of an image loaded from OMERO
+     * @param policy replacement policy you choose to replace annotations on OMERO
+     * @param qpNotif true to display a QuPath notification
      * @return Sending status (true if tags have been sent ; false if there were troubles during the sending process)
      */
     public static boolean sendTagsToOmero(List<String> tags, OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif){
@@ -401,6 +402,95 @@ public class OmeroRawScripting {
     }
 
 
+    /**
+     * Read and add OMERO Key-Value pairs as QuPath metadata to the current image in the QuPath project.
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @param policy replacement policy you choose to replace annotations on OMERO
+     * @param qpNotif true to display a QuPath notification
+     * @return a map of OMERO key-value pairs
+     */
+    public static Map<String, String> addKeyValuesToQuPath(OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif) {
+        // read OMERO key-values and check if they are unique
+        List<MapAnnotationWrapper> omeroKVPsWrapperList;
+        try {
+            omeroKVPsWrapperList = imageServer.getImageWrapper().getMapAnnotations(imageServer.getClient().getSimpleClient());
+        }catch(ServiceException | AccessException | ExecutionException e){
+            Utils.errorLog("OMERO - KVPs", "Cannot get KVPs from the image '"+imageServer.getId()+"'", e, qpNotif);
+            return null;
+        }
+
+        // check if OMERO keys are unique and store them in a map
+        MapAnnotationWrapper flattenMapWrapper = Utils.flattenMapAnnotationWrapperList(omeroKVPsWrapperList);
+        Map<String, String> omeroKVPs = new HashMap<>();
+        try {
+            omeroKVPs = Utils.convertMapAnnotationWrapperToMap(flattenMapWrapper);
+        }catch(IllegalStateException e){
+            Utils.errorLog("OMERO - KVPs", "Keys not unique on OMERO. Please make them unique", qpNotif);
+            return null;
+        }
+
+        if(omeroKVPs.isEmpty())
+            return Collections.emptyMap();
+
+        addKeyValuesToQuPath(omeroKVPs, policy, qpNotif);
+        return omeroKVPs;
+    }
+
+    /**
+     *
+     * add Key-Value pairs as QuPath metadata to the current image in the QuPath project.
+     *
+     * @param kvps map containing the key-value to add
+     * @param policy replacement policy you choose to replace annotations on OMERO
+     * @param qpNotif true to display a QuPath notification
+     */
+    public static void addKeyValuesToQuPath(Map<String, String> kvps, Utils.UpdatePolicy policy, boolean qpNotif) {
+        // get project entry
+        ProjectImageEntry<BufferedImage> entry = QP.getProjectEntry();
+
+        // get qupath metadata
+        Map<String, String> qpMetadata = entry.getMetadataMap();
+        Map<String,String> newMetadata = new HashMap<>();
+
+        switch(policy){
+            case UPDATE_KEYS :
+                // split key value pairs metadata into those that already exist in QuPath and those that need to be added
+                List<Map<String,String>> splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(qpMetadata, kvps);
+                Map<String,String> newKV = splitKeyValues.get(1);
+                Map<String,String> existingKV = splitKeyValues.get(0);
+                Map<String,String> updatedKV = new HashMap<>();
+
+                // update metadata
+                qpMetadata.forEach((keyToUpdate, valueToUpdate) -> {
+                    String newValue = valueToUpdate;
+                    for (String updated : existingKV.keySet()) {
+                        if (keyToUpdate.equals(updated)) {
+                            newValue = existingKV.get(keyToUpdate);
+                            break;
+                        }
+                    }
+                    updatedKV.put(keyToUpdate, newValue);
+                });
+                newMetadata.putAll(newKV);
+                newMetadata.putAll(updatedKV);
+
+                // delete metadata
+                entry.clearMetadata();
+                break;
+            case DELETE_KEYS:
+                newMetadata.putAll(kvps);
+                entry.clearMetadata();
+                break;
+            case KEEP_KEYS:
+                // split QuPath metadata into those that already exist on OMERO and those that need to be added
+                List<Map<String,String>> splitKeyValues2 = OmeroRawTools.splitNewAndExistingKeyValues(qpMetadata, kvps);
+                Map<String,String> newKV2 = splitKeyValues2.get(1);
+                newMetadata.putAll(newKV2);
+        }
+
+        newMetadata.forEach(entry::putMetadataValue);
+    }
 
     /**
      * Add new QuPath metadata to the current image in the QuPath project.
@@ -414,7 +504,9 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param keyValues map of key-values
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
      */
+    @Deprecated
     public static void addMetadata(Map<String,String> keyValues) {
         // get project entry
         ProjectImageEntry<BufferedImage> entry = QP.getProjectEntry();
@@ -443,7 +535,9 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param imageServer ImageServer of an image loaded from OMERO
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
      */
+    @Deprecated
     public static void addOmeroKeyValues(OmeroRawImageServer imageServer) {
         // read OMERO key-values and check if they are unique. If not, stop the process
         Map<String,String> omeroKeyValuePairs = importOmeroKeyValues(imageServer);
@@ -467,7 +561,9 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param keyValues map of key-values
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
      */
+    @Deprecated
     public static void addAndUpdateMetadata(Map<String,String> keyValues) {
         // get project entry
         ProjectImageEntry<BufferedImage> entry = QP.getProjectEntry();
@@ -514,7 +610,9 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param imageServer ImageServer of an image loaded from OMERO
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
      */
+    @Deprecated
     public static void addOmeroKeyValuesAndUpdateMetadata(OmeroRawImageServer imageServer) {
         // read OMERO key-values and check if they are unique. If not, stop the process
         Map<String,String> omeroKeyValuePairs = importOmeroKeyValues(imageServer);
@@ -539,7 +637,9 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param imageServer ImageServer of an image loaded from OMERO
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
      */
+    @Deprecated
     public static void addOmeroKeyValuesAndDeleteMetadata(OmeroRawImageServer imageServer) {
         // read OMERO key-values and check if they are unique. If not, stop the process
         Map<String,String> omeroKeyValues = importOmeroKeyValues(imageServer);
@@ -564,7 +664,9 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param keyValues map of key-values
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
      */
+    @Deprecated
     public static void addAndDeleteMetadata(Map<String,String> keyValues) {
         // get project entry
         ProjectImageEntry<BufferedImage> entry = QP.getProjectEntry();
@@ -582,21 +684,40 @@ public class OmeroRawScripting {
      *
      * @param imageServer ImageServer of an image loaded from OMERO
      * @return list of OMERO tags.
+     * @deprecated use {@link  OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
      */
-    public static List<String> addOmeroTags(OmeroRawImageServer imageServer) {
+    @Deprecated
+    public static List<String> addTagsToQuPath(OmeroRawImageServer imageServer) {
+        return addTagsToQuPath(imageServer, Utils.UpdatePolicy.KEEP_KEYS,true);
+    }
+
+
+    /**
+     * Read, from OMERO, tags attached to the current image and add them as QuPath metadata fields
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @return list of OMERO tags.
+     */
+    public static List<String> addTagsToQuPath(OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif) {
         // read tags
-        List<TagAnnotationData> omeroTagAnnotations = OmeroRawTools.readTags(imageServer.getClient(), imageServer.getId());
+        List<TagAnnotationWrapper> tagWrapperList;
+        try {
+            tagWrapperList =  imageServer.getImageWrapper().getTags(imageServer.getClient().getSimpleClient());
+        }catch(ServiceException | AccessException | ExecutionException e){
+            Utils.errorLog("OMERO - KVPs", "Cannot get KVPs from the image '"+imageServer.getId()+"'", e, qpNotif);
+            return null;
+        }
+        if(tagWrapperList.isEmpty())
+            return Collections.emptyList();
 
         // collect and convert to list
-        List<String> omeroTagValues = omeroTagAnnotations.stream().map(TagAnnotationData::getTagValue).collect(Collectors.toList());
+        List<String> tagValues = tagWrapperList.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList());
 
-        // create a map with equals key and values
-        Map<String,String> omeroTagMap =  omeroTagValues.stream().collect(Collectors.toMap(e->e, e->e));
+        // create a map and add metadata
+        Map<String,String> omeroTagMap =  tagValues.stream().collect(Collectors.toMap(e->e, e->e));
+        addKeyValuesToQuPath(omeroTagMap, policy, qpNotif);
 
-        // add metadata
-        addMetadata(omeroTagMap);
-
-        return omeroTagValues;
+        return tagValues;
     }
 
 
