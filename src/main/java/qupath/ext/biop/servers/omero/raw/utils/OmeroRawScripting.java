@@ -600,7 +600,7 @@ public class OmeroRawScripting {
         // set the table name
         String name = annotationFileBaseName + "_" +
                 QPEx.getQuPath().getProject().getName().split("/")[0] + "_"+
-                OmeroRawTools.getCurrentDateAndHour();
+                Utils.getCurrentDateAndHour();
         return sendMeasurementTableToOmero(annotationObjects, imageServer, imageData, name);
     }
 
@@ -628,7 +628,7 @@ public class OmeroRawScripting {
         // set the table name
         String name = detectionFileBaseName + "_" +
                 QPEx.getQuPath().getProject().getName().split("/")[0] + "_"+
-                OmeroRawTools.getCurrentDateAndHour();
+                Utils.getCurrentDateAndHour();
         return sendMeasurementTableToOmero(detectionObjects, imageServer, imageData, name);
     }
 
@@ -657,7 +657,7 @@ public class OmeroRawScripting {
         // set the file name
         String name = annotationFileBaseName + "_" +
                 QPEx.getQuPath().getProject().getName().split("/")[0] + "_"+
-                OmeroRawTools.getCurrentDateAndHour();
+                Utils.getCurrentDateAndHour();
         return sendMeasurementTableAsCSVToOmero(annotationObjects, imageServer, imageData, name);
     }
 
@@ -686,7 +686,7 @@ public class OmeroRawScripting {
         // set the file name
         String name = detectionFileBaseName + "_" +
                 QPEx.getQuPath().getProject().getName().split("/")[0] + "_"+
-                OmeroRawTools.getCurrentDateAndHour();
+                Utils.getCurrentDateAndHour();
         return sendMeasurementTableAsCSVToOmero(detectionObjects, imageServer, imageData, name);
     }
 
@@ -818,7 +818,7 @@ public class OmeroRawScripting {
         // set the file name
         String filename = summaryFileBaseName + "_" +
                 QPEx.getQuPath().getProject().getName().split("/")[0] + "_"+
-                OmeroRawTools.getCurrentDateAndHour();
+                Utils.getCurrentDateAndHour();
 
         // build the CSV parent table
         File parentCSVFile = Utils.buildCSVFileFromListsOfStrings(parentTable, filename);
@@ -912,7 +912,7 @@ public class OmeroRawScripting {
         // set the file name
         String filename = summaryFileBaseName + "_" +
                 QPEx.getQuPath().getProject().getName().split("/")[0] + "_"+
-                OmeroRawTools.getCurrentDateAndHour();
+                Utils.getCurrentDateAndHour();
 
         // build the OMERO.table parent table
         TableData omeroTable = Utils.buildOmeroTableFromListsOfStrings(parentTable, client);
@@ -1507,7 +1507,7 @@ public class OmeroRawScripting {
             String message = "Cannot read tags from image '"+imageServer.getId()+"'";
             String header = "OMERO - tags";
             Dialogs.showErrorNotification(header, message);
-            logger.error(header + "---" + message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+            logger.error(header + "---" + message + "\n" + e + "\n"+ Utils.getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
         // collect and convert to list

@@ -20,7 +20,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -39,6 +43,27 @@ public class Utils {
     public static final String ALL_USERS = "all_users";
     public final static String TAG_KEY = "tags";
     public final static String KVP_KEY = "key-values";
+
+
+    /**
+     * @return formatted date
+     */
+    public static String getCurrentDateAndHour(){
+        LocalDateTime localDateTime = LocalDateTime.now();
+        LocalTime localTime = localDateTime.toLocalTime();
+        LocalDate localDate = localDateTime.toLocalDate();
+        return String.valueOf(localDate.getYear())+
+                (localDate.getMonthValue() < 10 ? "0"+localDate.getMonthValue():localDate.getMonthValue()) +
+                (localDate.getDayOfMonth() < 10 ? "0"+localDate.getDayOfMonth():localDate.getDayOfMonth())+"-"+
+                (localTime.getHour() < 10 ? "0"+localTime.getHour():localTime.getHour())+"h"+
+                (localTime.getMinute() < 10 ? "0"+localTime.getMinute():localTime.getMinute())+"m"+
+                (localTime.getSecond() < 10 ? "0"+localTime.getSecond():localTime.getSecond());
+
+    }
+
+    public static String getErrorStackTraceAsString(Exception e){
+        return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
+    }
 
     public enum UpdatePolicy {
         /** Keep all existing keys without updating */
@@ -96,7 +121,7 @@ public class Utils {
      */
     public static void infoLog(String title, String message, Exception e, boolean qpNotif){
         if(qpNotif) Dialogs.showInfoNotification(title, message);
-        logger.info("["+title+"] -- "+message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+        logger.info("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
     }
 
     /**
@@ -119,7 +144,7 @@ public class Utils {
      */
     public static void errorLog(String title, String message, Exception e, boolean qpNotif){
         if(qpNotif) Dialogs.showErrorNotification(title, message);
-        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
     }
 
     /**
@@ -142,7 +167,7 @@ public class Utils {
      */
     public static void warnLog(String title, String message, Exception e, boolean qpNotif){
         if(qpNotif) Dialogs.showErrorNotification(title, message);
-        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
     }
 
     /**
@@ -448,7 +473,7 @@ public class Utils {
         } catch (IOException e) {
             Dialogs.showErrorNotification("Write CSV file", "An error has occurred when trying to save the csv file");
             logger.error(String.valueOf(e));
-            logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
+            logger.error(getErrorStackTraceAsString(e));
         }
         return file;
     }

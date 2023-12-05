@@ -1,6 +1,5 @@
 package qupath.ext.biop.servers.omero.raw.browser;
 
-import fr.igred.omero.annotations.AnnotationList;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
@@ -26,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServerBuilder;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
+import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.commands.ProjectCommands;
@@ -108,7 +108,7 @@ public class OmeroRawBrowserTools {
                     list.addAll(getProjectItems(client,parent,user,userGroup));
                 }catch(ServiceException | AccessException | ExecutionException e){
                     Dialogs.showErrorNotification("Reading projects", "Impossible to retrieve projects from your account");
-                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
                 }
 
                 // get all screens
@@ -116,7 +116,7 @@ public class OmeroRawBrowserTools {
                     list.addAll(getScreenItems(client,parent,user,userGroup));
                 }catch(ServiceException | AccessException | ExecutionException e){
                     Dialogs.showErrorNotification("Reading screens", "Impossible to retrieve screens from your account");
-                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
                 }
 
                 // read orphaned dataset
@@ -125,7 +125,7 @@ public class OmeroRawBrowserTools {
                 }catch(ServiceException | AccessException | ExecutionException | OMEROServerError e){
                     Dialogs.showErrorNotification("Reading orphaned dataset",
                             "Impossible to retrieve orphaned dataset from your account");
-                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
                 }
 
                 // read orphaned images
@@ -134,7 +134,7 @@ public class OmeroRawBrowserTools {
                 }catch(Exception e){
                     Dialogs.showErrorNotification("Reading orphaned images",
                             "Impossible to retrieve orphaned images from your account");
-                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
                 }
                 return list;
 
@@ -144,7 +144,7 @@ public class OmeroRawBrowserTools {
                 }catch(ServiceException | AccessException | ExecutionException e){
                     Dialogs.showErrorNotification("Reading datasets",
                             "Impossible to retrieve datasets from project '"+parent.getName()+"'");
-                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
                 }
                 break;
 
@@ -158,7 +158,7 @@ public class OmeroRawBrowserTools {
                 }catch(ServiceException | AccessException | ExecutionException e){
                     Dialogs.showErrorNotification("Reading Plates",
                             "Impossible to retrieve plates from screen '"+parent.getName()+"'");
-                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
                 }
                 break;
 
@@ -168,7 +168,7 @@ public class OmeroRawBrowserTools {
                 }catch(ServiceException | AccessException | ExecutionException e){
                     Dialogs.showErrorNotification("Reading wells",
                             "Impossible to retrieve wells from plate '"+parent.getName()+"'");
-                    logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
                 }
                 break;
 
@@ -855,7 +855,7 @@ public class OmeroRawBrowserTools {
         } catch (ExecutionException e) {
             Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+owner.getId());
             logger.error(String.valueOf(e));
-            logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
+            logger.error(Utils.getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
 
