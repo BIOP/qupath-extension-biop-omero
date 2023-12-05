@@ -1287,36 +1287,6 @@ public final class OmeroRawTools {
 
 
     /**
-     * Splits the "target" map into two parts : one part containing key/values that are referenced in the "reference" map and
-     * the other containing remaining key/values that are not referenced in the "reference".
-     *
-     * @param reference
-     * @param target
-     * @return List of new kvp and existing kvp maps
-     */
-    public static List<Map<String, String>> splitNewAndExistingKeyValues(Map<String, String> reference, Map<String, String> target){
-        Map<String, String> existingKVP = new HashMap<>();
-
-        // filter key/values that are contained in the reference
-        reference.forEach((key, value) -> existingKVP.putAll(target.keySet()
-                .stream()
-                .filter(f -> f.equals(key))
-                .collect(Collectors.toMap(e->key,e->target.get(key)))));
-
-        // filter the new key values
-        Map<String,String> updatedKV = target.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        existingKVP.forEach(updatedKV::remove);
-
-        // add the two separate maps to a list.
-        List<Map<String, String>> results = new ArrayList<>();
-        results.add(existingKVP);
-        results.add(updatedKV);
-
-        return results;
-    }
-
-
-    /**
      * Get attachments from OMERO server attached to the specified image.
      *
      * @param client
@@ -1639,52 +1609,6 @@ public final class OmeroRawTools {
         }
         return null;
     }
-
-
-    /**
-     * OMERO requests that return a list of items are paginated
-     * (see <a href="https://docs.openmicroscopy.org/omero/5.6.1/developers/json-api.html#pagination">OMERO API docs</a>).
-     * Using this helper method ensures that all the requested data is retrieved.
-     *
-     * @param url
-     * @return list of {@code Json Element}s
-     * @throws IOException
-     */
-    // TODO: Consider using parallel/asynchronous requests
-    static List<JsonElement> readPaginated(URL url) throws IOException {
-        List<JsonElement> jsonList = new ArrayList<>();
-        String symbol = (url.getQuery() != null && !url.getQuery().isEmpty()) ? "&" : "?";
-
-        // Open connection
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        int response = connection.getResponseCode();
-
-        // Catch bad response
-        if (response != 200)
-            return jsonList;
-
-        JsonObject map;
-        try (InputStreamReader reader = new InputStreamReader(connection.getInputStream())) {
-            map = GsonTools.getInstance().fromJson(reader, JsonObject.class);
-        }
-
-        map.get("data").getAsJsonArray().forEach(jsonList::add);
-        JsonObject meta = map.getAsJsonObject("meta");
-        int offset = 0;
-        int totalCount = meta.get("totalCount").getAsInt();
-        int limit = meta.get("limit").getAsInt();
-        while (offset + limit < totalCount) {
-            offset += limit;
-            URL nextURL = new URL(url + symbol + "offset=" + offset);
-            InputStreamReader newPageReader = new InputStreamReader(nextURL.openStream());
-            JsonObject newPageMap = GsonTools.getInstance().fromJson(newPageReader, JsonObject.class);
-            newPageMap.get("data").getAsJsonArray().forEach(jsonList::add);
-        }
-        return jsonList;
-    }
-
-
-
 
     /*
      *
@@ -2505,5 +2429,27 @@ public final class OmeroRawTools {
     public static String getErrorStackTraceAsString(Exception e){
         return Utils.getErrorStackTraceAsString(e);
     }
+
+    /**
+     * Splits the "target" map into two parts : one part containing key/values that are referenced in the "reference" map and
+     * the other containing remaining key/values that are not referenced in the "reference".
+     *
+     * @param reference
+     * @param target
+     * @return List of new kvp and existing kvp maps
+     * @deprecated use {@link Utils#splitNewAndExistingKeyValues(Map, Map)} instead
+     */
+    @Deprecated
+    public static List<Map<String, String>> splitNewAndExistingKeyValues(Map<String, String> reference, Map<String, String> target){
+        Map<String, Map<String, String>> keyMap = Utils.splitNewAndExistingKeyValues(reference, target);
+
+        // add the two separate maps to a list.
+        List<Map<String, String>> results = new ArrayList<>();
+        results.add(keyMap.get(Utils.EXISTING_KVP));
+        results.add(keyMap.get(Utils.NEW_KVP));
+
+        return results;
+    }
+
 
 }

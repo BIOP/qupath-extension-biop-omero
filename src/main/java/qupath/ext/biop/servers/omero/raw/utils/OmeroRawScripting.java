@@ -285,9 +285,9 @@ public class OmeroRawScripting {
         switch(policy){
             case UPDATE_KEYS :
                 // split QuPath metadata into those that already exist on OMERO and those that need to be added
-                List<Map<String,String> > splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(omeroKVPs, qpMetadataKVP);
-                Map<String,String>  newKV = splitKeyValues.get(1);
-                Map<String, String> existingKV = splitKeyValues.get(0);
+                Map<String,Map<String,String>> splitKeyValues = Utils.splitNewAndExistingKeyValues(omeroKVPs, qpMetadataKVP);
+                Map<String,String>  newKV = splitKeyValues.get(Utils.NEW_KVP);
+                Map<String, String> existingKV = splitKeyValues.get(Utils.EXISTING_KVP);
 
                 for(String keyToUpdate : omeroKVPs.keySet()){
                     String valueToUpdate = omeroKVPs.get(keyToUpdate);
@@ -304,8 +304,8 @@ public class OmeroRawScripting {
                 break;
             case KEEP_KEYS:
                 // split QuPath metadata into those that already exist on OMERO and those that need to be added
-                List<Map<String,String>> splitKeyValuesList = OmeroRawTools.splitNewAndExistingKeyValues(omeroKVPs, qpMetadataKVP);
-                Map<String,String>  newKVList = splitKeyValuesList.get(1);
+                Map<String,Map<String,String>> splitKeyValuesList = Utils.splitNewAndExistingKeyValues(omeroKVPs, qpMetadataKVP);
+                Map<String,String>  newKVList = splitKeyValuesList.get(Utils.NEW_KVP);
                 newKVList.forEach((key,value)-> newNV.add(new NamedValue(key,value)));
         }
 
@@ -456,9 +456,9 @@ public class OmeroRawScripting {
         switch(policy){
             case UPDATE_KEYS :
                 // split key value pairs metadata into those that already exist in QuPath and those that need to be added
-                List<Map<String,String>> splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(qpMetadata, kvps);
-                Map<String,String> newKV = splitKeyValues.get(1);
-                Map<String,String> existingKV = splitKeyValues.get(0);
+                Map<String, Map<String,String>> splitKeyValues = Utils.splitNewAndExistingKeyValues(qpMetadata, kvps);
+                Map<String,String> newKV = splitKeyValues.get(Utils.NEW_KVP);
+                Map<String,String> existingKV = splitKeyValues.get(Utils.EXISTING_KVP);
                 Map<String,String> updatedKV = new HashMap<>();
 
                 // update metadata
@@ -484,8 +484,8 @@ public class OmeroRawScripting {
                 break;
             case KEEP_KEYS:
                 // split QuPath metadata into those that already exist on OMERO and those that need to be added
-                List<Map<String,String>> splitKeyValues2 = OmeroRawTools.splitNewAndExistingKeyValues(qpMetadata, kvps);
-                Map<String,String> newKV2 = splitKeyValues2.get(1);
+                Map<String, Map<String,String>> splitKeyValues2 = Utils.splitNewAndExistingKeyValues(qpMetadata, kvps);
+                Map<String,String> newKV2 = splitKeyValues2.get(Utils.NEW_KVP);
                 newMetadata.putAll(newKV2);
         }
 

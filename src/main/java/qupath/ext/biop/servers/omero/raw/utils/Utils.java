@@ -43,6 +43,8 @@ public class Utils {
     public static final String ALL_USERS = "all_users";
     public final static String TAG_KEY = "tags";
     public final static String KVP_KEY = "key-values";
+    public final static String NEW_KVP = "new-keys";
+    public final static String EXISTING_KVP = "existing-keys";
 
 
     /**
@@ -192,6 +194,41 @@ public class Utils {
                 break;
         }
         return uniqueKey;
+    }
+
+    /**
+     * Splits the "target" map into two parts : one part containing key/values that are referenced in the "reference" map and
+     * the other containing remaining key/values that are not referenced in the "reference".
+     * <p>
+     * <ul>
+     * <li> The new key values can be accessed with {@link Utils#NEW_KVP} key </li>
+     * <li> The existing key values can be accessed with {@link Utils#EXISTING_KVP} key </li>
+     * </ul>
+     * <p>
+     *
+     * @param reference
+     * @param target
+     * @return List of new kvp and existing kvp maps
+     */
+    public static Map<String, Map<String, String>> splitNewAndExistingKeyValues(Map<String, String> reference, Map<String, String> target){
+        Map<String, String> existingKVP = new HashMap<>();
+
+        // filter key/values that are contained in the reference
+        reference.forEach((key, value) -> existingKVP.putAll(target.keySet()
+                .stream()
+                .filter(f -> f.equals(key))
+                .collect(Collectors.toMap(e->key,e->target.get(key)))));
+
+        // filter the new key values
+        Map<String,String> updatedKV = target.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        existingKVP.forEach(updatedKV::remove);
+
+        // add the two separate maps to a list.
+        Map<String, Map<String, String>> results = new HashMap<>();
+        results.put(EXISTING_KVP, existingKVP);
+        results.put(NEW_KVP, updatedKV);
+
+        return results;
     }
 
     /**
