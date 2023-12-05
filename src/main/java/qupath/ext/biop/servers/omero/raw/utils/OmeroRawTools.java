@@ -49,6 +49,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import fr.igred.omero.Client;
+import fr.igred.omero.GenericObjectWrapper;
 import fr.igred.omero.annotations.GenericAnnotationWrapper;
 import fr.igred.omero.annotations.MapAnnotationWrapper;
 import fr.igred.omero.annotations.TagAnnotationWrapper;
@@ -1239,54 +1240,6 @@ public final class OmeroRawTools {
 
 
     /**
-     * Delete the specified ROIs on OMERO that are linked to an image, specified by its id.
-     *
-     * @param client
-     * @param roisToDelete
-     */
-    public static void deleteROIs(OmeroRawClient client, Collection<ROIWrapper> roisToDelete)
-            throws AccessException, ServiceException, OMEROServerError, ExecutionException, InterruptedException {
-        if(!(roisToDelete.isEmpty()))
-            client.getSimpleClient().delete(roisToDelete);
-    }
-
-
-    /**
-     * Send ROIs to OMERO server and attached them to the specified image.
-     *
-     * @param client
-     * @param imageId
-     * @param omeroRois
-     * @return Sending status (True if sent ; false with error message otherwise)
-     */
-    public static List<ROIWrapper> addROIs(OmeroRawClient client, long imageId, List<ROIWrapper> omeroRois)
-            throws AccessException, ServiceException, ExecutionException {
-
-        List<ROIWrapper> uploaded = new ArrayList<>();
-        if (!(omeroRois.isEmpty())) {
-            ImageWrapper imageWrapper = client.getSimpleClient().getImage(imageId);
-            uploaded = imageWrapper.saveROIs(client.getSimpleClient(), omeroRois);
-        } else {
-            logger.warn("There is no Annotations to upload on OMERO");
-        }
-
-        return uploaded;
-    }
-
-    /**
-     * Read ROIs from OMERO server attached to an image specified by its id.
-     *
-     * @param client
-     * @param imageId
-     * @return Image's list of OMERO ROIs
-     */
-    public static List<ROIWrapper> fetchROIs(OmeroRawClient client, long imageId)
-            throws AccessException, ServiceException, ExecutionException {
-        return client.getSimpleClient().getImage(imageId).getROIs(client.getSimpleClient());
-    }
-
-
-    /**
      * Get attachments from OMERO server attached to the specified image.
      *
      * @param client
@@ -1892,13 +1845,17 @@ public final class OmeroRawTools {
      *
      * @param client
      * @param imageId
-     * @deprecated use {@link OmeroRawTools#deleteROIs(OmeroRawClient, Collection)} instead
+     * @deprecated use {@link Client#delete(Collection)} instead
      */
     @Deprecated
     public static void deleteAllOmeroROIs(OmeroRawClient client, long imageId) {
         try {
             // extract ROIData
-            List<IObject> roiData = fetchROIs(client, imageId).stream().map(ROIWrapper::asDataObject).map(ROIData::asIObject).collect(Collectors.toList());
+            List<IObject> roiData = client.getSimpleClient().getImage(imageId).getROIs(client.getSimpleClient())
+                    .stream()
+                    .map(ROIWrapper::asDataObject)
+                    .map(ROIData::asIObject)
+                    .collect(Collectors.toList());
 
             // delete ROis
             if(client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), roiData) == null)
@@ -1920,7 +1877,7 @@ public final class OmeroRawTools {
      *
      * @param client
      * @param roisToDelete
-     * @deprecated use {@link OmeroRawTools#deleteROIs(OmeroRawClient, Collection)} e} instead
+     * @deprecated use {@link Client#delete(Collection)}} instead
      */
     @Deprecated
     public static void deleteOmeroROIs(OmeroRawClient client, Collection<ROIData> roisToDelete) {
@@ -1950,7 +1907,7 @@ public final class OmeroRawTools {
      * @param imageId
      * @param omeroRois
      * @return Sending status (True if sent ; false with error message otherwise)
-     * @deprecated use {@link OmeroRawTools#addROIs(OmeroRawClient, long, List)} instead
+     * @deprecated use {@link ImageWrapper#saveROIs(Client, ROIWrapper...)} instead
      */
     @Deprecated
     public static boolean writeOmeroROIs(OmeroRawClient client, long imageId, List<ROIData> omeroRois) {

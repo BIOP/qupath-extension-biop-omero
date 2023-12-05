@@ -83,7 +83,7 @@ public class OmeroRawScripting {
     public static Collection<PathObject> getROIs(OmeroRawClient client, long imageId, String owner, boolean qpNotif) {
         List<ROIWrapper> roiWrappers;
         try{
-            roiWrappers = OmeroRawTools.fetchROIs(client, imageId);
+            roiWrappers = client.getSimpleClient().getImage(imageId).getROIs(client.getSimpleClient());
         }catch(fr.igred.omero.exception.ServiceException | AccessException | ExecutionException e){
             Utils.errorLog("OMERO - ROIs", "Cannot get ROIs from image '"+imageId, e, qpNotif);
             return Collections.emptyList();
@@ -171,7 +171,7 @@ public class OmeroRawScripting {
             List<ROIWrapper> existingROIs;
 
             try {
-                existingROIs = OmeroRawTools.fetchROIs(client, imageId);
+                existingROIs = imageServer.getImageWrapper().getROIs(client.getSimpleClient());
             }catch(ServiceException | AccessException | ExecutionException e){
                 Utils.errorLog("OMERO - ROIs", "Cannot get ROIs from image '"+imageId, e, qpNotif);
                 return null;
@@ -179,7 +179,7 @@ public class OmeroRawScripting {
 
             // write new ROIs
             try {
-                omeroROIs = OmeroRawTools.addROIs(client, imageId, omeroROIs);
+                omeroROIs = imageServer.getImageWrapper().saveROIs(client.getSimpleClient(), omeroROIs);
             }catch(ServiceException | AccessException | ExecutionException e){
                 Utils.errorLog("OMERO - ROIs", "Cannot add ROIs from image '"+imageId, e, qpNotif);
                 return null;
@@ -190,7 +190,7 @@ public class OmeroRawScripting {
 
             // delete previous ROIs
             try {
-                OmeroRawTools.deleteROIs(client, filteredROIs);
+                client.getSimpleClient().delete(filteredROIs);
             }catch(ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e){
                 Utils.errorLog("OMERO - ROIs", "Cannot delete ROIs from image '"+imageId+"' for the owner '"+owner+"'", e, qpNotif);
             }
@@ -198,7 +198,7 @@ public class OmeroRawScripting {
             return omeroROIs;
         } else {
             try {
-                return OmeroRawTools.addROIs(client, imageId, omeroROIs);
+                return imageServer.getImageWrapper().saveROIs(client.getSimpleClient(), omeroROIs);
             }catch(ServiceException | AccessException | ExecutionException e){
                 Utils.errorLog("OMERO - ROIs", "Cannot add ROIs on image '"+imageId, e, qpNotif);
                 return null;
