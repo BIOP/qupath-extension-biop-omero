@@ -45,7 +45,7 @@ public class Utils {
     public final static String KVP_KEY = "key-values";
     public final static String NEW_KVP = "new-keys";
     public final static String EXISTING_KVP = "existing-keys";
-
+    public final static String NO_IMAGE_THUMBNAIL = "NoImage256.png";
 
     /**
      * @return formatted date

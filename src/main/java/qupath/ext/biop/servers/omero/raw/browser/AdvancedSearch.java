@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
+import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.fx.dialogs.Dialogs;
 import qupath.fx.utils.GridPaneUtils;
 import qupath.lib.common.ThreadTools;
@@ -513,7 +514,12 @@ class AdvancedSearch {
 
         for (var searchResult: thumbnailsToQuery) {
             executorThumbnail.submit(() -> {
-                BufferedImage thumbnail = OmeroRawTools.getThumbnail(client, searchResult.id, imgPrefSize);
+                BufferedImage thumbnail;
+                try {
+                    thumbnail = client.getSimpleClient().getImage((long)searchResult.id).getThumbnail(client.getSimpleClient(), imgPrefSize);
+                } catch (Exception e2) {
+                    thumbnail = OmeroRawTools.readLocalImage(Utils.NO_IMAGE_THUMBNAIL);
+                }
                 if (thumbnail != null) {
                     thumbnailBank.put((long)searchResult.id, thumbnail);	// 'Put' shouldn't need synchronized key
                     Platform.runLater(() -> resultsTableView.refresh());

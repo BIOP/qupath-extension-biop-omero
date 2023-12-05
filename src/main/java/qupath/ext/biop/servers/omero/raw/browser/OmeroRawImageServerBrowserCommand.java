@@ -495,12 +495,12 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             executorThumbnails.submit(() -> {
                                 // Note: it is possible that another task for the same id exists, but it
                                 // shouldn't cause inconsistent results anyway, since '1 id = 1 thumbnail'
-                                BufferedImage img = OmeroRawTools.getThumbnail(client, selectedObjectLocal.getId(), imgPrefSize);
-                                /*try {
+                                BufferedImage img;
+                                try {
                                     img = client.getSimpleClient().getImage(selectedObjectLocal.getId()).getThumbnail(client.getSimpleClient(), imgPrefSize);
                                 } catch (Exception e) {
                                     img = OmeroRawTools.readLocalImage(Utils.NO_IMAGE_THUMBNAIL);
-                                }*/
+                                }
 
                                 if (img != null) {
                                     thumbnailBank.put(selectedObjectLocal.getId(), img);
@@ -1158,16 +1158,16 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     else {
                         // Get thumbnail from OMERO in separate thread
                         executorThumbnails.submit(() -> {
-                            BufferedImage loadedImg = OmeroRawTools.getThumbnail(client, item.getId(), imgPrefSize);
-                           /* try {
+                            BufferedImage loadedImg;
+                            try {
                                 loadedImg = client.getSimpleClient().getImage(item.getId()).getThumbnail(client.getSimpleClient(), imgPrefSize);
                             } catch (Exception e2) {
                                 loadedImg = OmeroRawTools.readLocalImage(Utils.NO_IMAGE_THUMBNAIL);
-                            }*/
+                            }
                             if (loadedImg != null) {
                                 thumbnailBank.put(item.getId(), loadedImg);
-                               // BufferedImage finalLoadedImg = loadedImg;
-                                Platform.runLater(() -> paintBufferedImageOnCanvas(loadedImg, tooltipCanvas, 100));
+                                BufferedImage finalLoadedImg = loadedImg;
+                                Platform.runLater(() -> paintBufferedImageOnCanvas(finalLoadedImg, tooltipCanvas, 100));
                             }
                         });
                     }

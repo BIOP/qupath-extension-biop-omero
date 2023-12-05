@@ -1272,90 +1272,6 @@ public final class OmeroRawTools {
 
 
     /**
-     * Get the thumbnail of the specified OMERO image.
-     * <br> <br>
-     * Code copied from Pierre Pouchin from {simple-omero-client} project, {ImageWrapper} class, {getThumbnail} method
-     * and adapted for QuPath compatibility.
-     *
-     * @param client
-     * @param imageId
-     * @param prefSize
-     * @return The image's thumbnail
-     */
-    public static BufferedImage getThumbnail(OmeroRawClient client, long imageId, int prefSize) {
-
-        // get the current defaultPixel
-        PixelsData pixel;
-        try {
-            pixel = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId).getDefaultPixels();
-        }catch(ExecutionException | DSOutOfServiceException | DSAccessException | NullPointerException e){
-            Dialogs.showErrorNotification( "Thumbnail reading","The thumbnail of image "+imageId+" cannot be read.");
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-            return readLocalImage(noImageThumbnail);
-        }
-
-        // set the thumbnail size
-        int   sizeX  = pixel.getSizeX();
-        int   sizeY  = pixel.getSizeY();
-        float ratioX = (float) sizeX / prefSize;
-        float ratioY = (float) sizeY / prefSize;
-        float ratio  = Math.max(ratioX, ratioY);
-        int   width  = (int) (sizeX / ratio);
-        int   height = (int) (sizeY / ratio);
-
-        // get rendering settings for the current image
-        RenderingDef renderingSettings = readOmeroRenderingSettings(client, imageId);
-
-        // check if we can access to rendering settings
-        if(renderingSettings == null) {
-            Dialogs.showErrorNotification("Channel settings", "Cannot access to rendering settings of the image " + imageId);
-            return readLocalImage(noImageThumbnail);
-        }
-
-        // get thumbnail
-        byte[] array;
-        ThumbnailStorePrx store = null;
-        try {
-            store = client.getSimpleClient().getGateway().getThumbnailService(client.getSimpleClient().getCtx());
-            store.setPixelsId(pixel.getId());
-            store.setRenderingDefId(renderingSettings.getId().getValue());
-            array = store.getThumbnail(rint(width), rint(height));
-        } catch (DSOutOfServiceException | ServerError | NullPointerException e) {
-            Dialogs.showErrorNotification( "Thumbnail reading","The thumbnail of image "+imageId+" cannot be read.");
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-            return readLocalImage(noImageThumbnail);
-        } finally {
-            if(store != null){
-                try{
-                    store.close();
-                } catch (ServerError s) {
-
-                }
-            }
-        }
-
-        // convert thumbnail into BufferedImage
-        if (array != null) {
-            try (ByteArrayInputStream stream = new ByteArrayInputStream(array)) {
-                //Create a buffered image to display
-                BufferedImage thumbnail = ImageIO.read(stream);
-                if(thumbnail == null)
-                    return readLocalImage(noImageThumbnail);
-                else return thumbnail;
-            }catch(IOException e){
-                Dialogs.showErrorNotification( "Thumbnail reading","The thumbnail of image "+imageId+" cannot be converted to buffered image.");
-                logger.error(String.valueOf(e));
-                logger.error(Utils.getErrorStackTraceAsString(e));
-                return readLocalImage(noImageThumbnail);
-            }
-        }
-        else return readLocalImage(noImageThumbnail);
-    }
-
-
-    /**
      * read an image stored in the resource folder of the main class
      *
      * @param imageName
@@ -2380,4 +2296,90 @@ public final class OmeroRawTools {
         }
         return dataset.importImage(client.getSimpleClient(), path);
     }
+
+    /**
+     * Get the thumbnail of the specified OMERO image.
+     * <br> <br>
+     * Code copied from Pierre Pouchin from {simple-omero-client} project, {ImageWrapper} class, {getThumbnail} method
+     * and adapted for QuPath compatibility.
+     *
+     * @param client
+     * @param imageId
+     * @param prefSize
+     * @return The image's thumbnail
+     * @deprecated use {@link ImageWrapper#getThumbnail(Client, int)} instead
+     */
+    @Deprecated
+    public static BufferedImage getThumbnail(OmeroRawClient client, long imageId, int prefSize) {
+
+        // get the current defaultPixel
+        PixelsData pixel;
+        try {
+            pixel = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId).getDefaultPixels();
+        }catch(ExecutionException | DSOutOfServiceException | DSAccessException | NullPointerException e){
+            Dialogs.showErrorNotification( "Thumbnail reading","The thumbnail of image "+imageId+" cannot be read.");
+            logger.error(String.valueOf(e));
+            logger.error(Utils.getErrorStackTraceAsString(e));
+            return readLocalImage(noImageThumbnail);
+        }
+
+        // set the thumbnail size
+        int   sizeX  = pixel.getSizeX();
+        int   sizeY  = pixel.getSizeY();
+        float ratioX = (float) sizeX / prefSize;
+        float ratioY = (float) sizeY / prefSize;
+        float ratio  = Math.max(ratioX, ratioY);
+        int   width  = (int) (sizeX / ratio);
+        int   height = (int) (sizeY / ratio);
+
+        // get rendering settings for the current image
+        RenderingDef renderingSettings = readOmeroRenderingSettings(client, imageId);
+
+        // check if we can access to rendering settings
+        if(renderingSettings == null) {
+            Dialogs.showErrorNotification("Channel settings", "Cannot access to rendering settings of the image " + imageId);
+            return readLocalImage(noImageThumbnail);
+        }
+
+        // get thumbnail
+        byte[] array;
+        ThumbnailStorePrx store = null;
+        try {
+            store = client.getSimpleClient().getGateway().getThumbnailService(client.getSimpleClient().getCtx());
+            store.setPixelsId(pixel.getId());
+            store.setRenderingDefId(renderingSettings.getId().getValue());
+            array = store.getThumbnail(rint(width), rint(height));
+        } catch (DSOutOfServiceException | ServerError | NullPointerException e) {
+            Dialogs.showErrorNotification( "Thumbnail reading","The thumbnail of image "+imageId+" cannot be read.");
+            logger.error(String.valueOf(e));
+            logger.error(Utils.getErrorStackTraceAsString(e));
+            return readLocalImage(noImageThumbnail);
+        } finally {
+            if(store != null){
+                try{
+                    store.close();
+                } catch (ServerError s) {
+
+                }
+            }
+        }
+
+        // convert thumbnail into BufferedImage
+        if (array != null) {
+            try (ByteArrayInputStream stream = new ByteArrayInputStream(array)) {
+                //Create a buffered image to display
+                BufferedImage thumbnail = ImageIO.read(stream);
+                if(thumbnail == null)
+                    return readLocalImage(noImageThumbnail);
+                else return thumbnail;
+            }catch(IOException e){
+                Dialogs.showErrorNotification( "Thumbnail reading","The thumbnail of image "+imageId+" cannot be converted to buffered image.");
+                logger.error(String.valueOf(e));
+                logger.error(Utils.getErrorStackTraceAsString(e));
+                return readLocalImage(noImageThumbnail);
+            }
+        }
+        else return readLocalImage(noImageThumbnail);
+    }
+
 }

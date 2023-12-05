@@ -756,12 +756,11 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		BufferedImage bf = readRegion(request);
 		if(isRGB() && bf.getType() == BufferedImage.TYPE_CUSTOM){
 			logger.info("Cannot create default thumbnail ; try to get it from OMERO");
-			return OmeroRawTools.getThumbnail(getClient(), getId(), 256);
-			/*try {
+			try {
 				return imageWrapper.getThumbnail(client.getSimpleClient(), 256);
 			} catch (Exception e) {
 				OmeroRawTools.readLocalImage(Utils.NO_IMAGE_THUMBNAIL);
-			}*/
+			}
 		}
 		return bf;
 
