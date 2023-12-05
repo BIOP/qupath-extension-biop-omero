@@ -23,8 +23,9 @@ package qupath.ext.biop.servers.omero.raw;
 
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.meta.GroupWrapper;
+import fr.igred.omero.repository.ChannelWrapper;
 import fr.igred.omero.repository.ImageWrapper;
-import fr.igred.omero.roi.ROIWrapper;
+import fr.igred.omero.repository.PixelsWrapper;
 import loci.common.DataTools;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
@@ -36,10 +37,7 @@ import omero.gateway.exception.DSAccessException;
 import omero.gateway.exception.DSOutOfServiceException;
 import omero.gateway.facility.MetadataFacility;
 
-import omero.gateway.model.ChannelData;
-import omero.gateway.model.ImageData;
 import omero.gateway.model.PixelsData;
-import omero.gateway.model.ROIData;
 
 import omero.model.ChannelBinding;
 import omero.model.Length;
@@ -50,7 +48,6 @@ import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClients;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
-import qupath.ext.biop.servers.omero.raw.utils.OmeroRawShapes;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.lib.color.ColorModelFactory;
@@ -222,7 +219,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 * @throws DSAccessException
 	 * @throws URISyntaxException
 	 */
-	protected ImageServerMetadata buildMetadata() throws IOException, ServerError, DSOutOfServiceException, ExecutionException, DSAccessException, URISyntaxException {
+	protected ImageServerMetadata buildMetadata()
+			throws ServerError, DSOutOfServiceException, ExecutionException, DSAccessException {
 
 		long startTime = System.currentTimeMillis();
 
@@ -245,13 +243,13 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		// Create a reader & extract the metadata
 		readerWrapper = manager.getPrimaryReaderWrapper(imageID, client);
 		RawPixelsStorePrx reader = readerWrapper.getReader();
-		PixelsData meta = readerWrapper.getPixelsData();
+		PixelsWrapper meta = readerWrapper.getPixelsWrapper();
 		this.client = readerWrapper.getClient();
 		this.imageWrapper = this.client.getSimpleClient().getImage(imageID);
 
 		// There is just one series per image ID
 		synchronized (reader) {
-			String name = meta.getImage().getName();
+			String name = meta.asDataObject().getImage().getName();
 
 			long sizeX = meta.getSizeX();
 			long sizeY = meta.getSizeY();
@@ -347,7 +345,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			}
 
 			// Try to read the default display colors for each channel from the file
-			List<ChannelData> channelMetadata = client.getSimpleClient().getMetadata().getChannelData(client.getSimpleClient().getCtx(), imageID);
+			List<ChannelWrapper> channelMetadata = imageWrapper.getChannels(client.getSimpleClient());
 			RenderingDef renderingSettings = client.getSimpleClient().getGateway().getRenderingSettingsService(client.getSimpleClient().getCtx()).getRenderingSettings(reader.getPixelsId());
 			short nNullChannelName = 0;
 			for (int c = 0; c < nChannels; c++) {
@@ -401,8 +399,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			// Try parsing pixel sizes in micrometers
 			double[] timepoints;
 			try {
-				Length xSize = meta.getPixelSizeX(UnitsLength.MICROMETER);
-				Length ySize = meta.getPixelSizeY(UnitsLength.MICROMETER);
+				Length xSize = meta.asDataObject().getPixelSizeX(UnitsLength.MICROMETER);
+				Length ySize = meta.asDataObject().getPixelSizeY(UnitsLength.MICROMETER);
 				if (xSize != null && ySize != null) {
 					pixelWidth = xSize.getValue();
 					pixelHeight = ySize.getValue();
@@ -412,7 +410,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				}
 				// If we have multiple z-slices, parse the spacing
 				if (nZSlices > 1) {
-					Length zSize = meta.getPixelSizeZ(UnitsLength.MICROMETER);
+					Length zSize = meta.asDataObject().getPixelSizeZ(UnitsLength.MICROMETER);
 					if (zSize != null)
 						zSpacing = zSize.getValue();
 					else
@@ -457,7 +455,10 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			var resolutionBuilder = new ImageServerMetadata.ImageResolutionLevel.Builder(width, height)
 					.addFullResolutionLevel();
 
-			String imageFormat = OmeroRawTools.readImageFileType(client, imageID);
+			// get the image format
+			//TODO update with simple-omero-client imageWrapper.getFormat() when released (also update the deprecated methods)
+			String imageFormat = imageWrapper.asDataObject().asImage().getFormat().getValue().getValue();
+
 			// I have seen czi files where the resolutions are not read correctly & this results in an IndexOutOfBoundsException
 			for (int i = 1; i < nResolutions; i++) {
 				try {
@@ -485,19 +486,16 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 					resolutionBuilder.addLevel(w, h);
 				} catch (Exception e) {
-					logger.warn("Error attempting to extract resolution " + i + " for " + meta.getImage().getName(), e);
+					logger.warn("Error attempting to extract resolution " + i + " for " + name, e);
 					break;
 				}
 			}
-
-			// Generate a suitable name for this image
-			String imageName = meta.getImage().getName();
 
 			// Set metadata
 			String path = createID();
 			ImageServerMetadata.Builder builder = new ImageServerMetadata.Builder(
 					getClass(), path, width, height).
-					name(imageName).
+					name(name).
 					channels(channels).
 					sizeZ(nZSlices).
 					sizeT(nTimepoints).
@@ -607,7 +605,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 				order = ByteOrder.BIG_ENDIAN; // ByteOrder.LITTLE_ENDIAN
 				interleaved = false;
-				pixelType = readerWrapper.getPixelsData().getPixelType();
+				pixelType = readerWrapper.getPixelsWrapper().getPixelType();
 
 				normalizeFloats = false;
 
@@ -622,7 +620,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				}*/
 
 				// Read bytes for all the required channels
-				effectiveC = readerWrapper.getPixelsData().getSizeC();
+				effectiveC = readerWrapper.getPixelsWrapper().getSizeC();
 				//effectiveC = 1; // TODO find a way to get the channel size
 				bytes = new byte[effectiveC][];
 
@@ -962,7 +960,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			}
 
 
-			private LocalReaderWrapper wrapReader(RawPixelsStorePrx reader, PixelsData pixelsData, OmeroRawClient client) {
+			private LocalReaderWrapper wrapReader(RawPixelsStorePrx reader, PixelsWrapper pixelsData, OmeroRawClient client) {
 				LocalReaderWrapper wrapper = new LocalReaderWrapper(reader, pixelsData, client);
 				logger.debug("Constructing reader for {}", Thread.currentThread());
 				cleaner.register(
@@ -987,7 +985,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			 * @throws FormatException
 			 * @throws IOException
 			 */
-			synchronized LocalReaderWrapper createPrimaryReader(final Long pixelsID,  OmeroRawClient client) throws ServerError, DSOutOfServiceException, URISyntaxException {
+			synchronized LocalReaderWrapper createPrimaryReader(final Long pixelsID,  OmeroRawClient client)
+					throws ServerError, DSOutOfServiceException, AccessException, ExecutionException {
 				return createReader(pixelsID,  client);
 			}
 
@@ -1002,7 +1001,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			 * @throws FormatException
 			 * @throws IOException
 			 */
-			synchronized LocalReaderWrapper getPrimaryReaderWrapper(final Long pixelsID, OmeroRawClient client) throws ServerError, DSOutOfServiceException, URISyntaxException, IOException {
+			synchronized LocalReaderWrapper getPrimaryReaderWrapper(final Long pixelsID, OmeroRawClient client)
+					throws ServerError, DSOutOfServiceException, AccessException, ExecutionException {
 				/*for (LocalReaderWrapper wrapper : primaryReaders) {
 					if (pixelsID.equals(wrapper.getReader().getPixelsId())) {
 						System.out.println("Get reader "+pixelsID);
@@ -1010,7 +1010,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					}
 				}*/
 
-				LocalReaderWrapper reader = createPrimaryReader( pixelsID, client);
+				LocalReaderWrapper reader = createPrimaryReader(pixelsID, client);
 				//primaryReaders.add(reader);
 				return reader;
 			}
@@ -1023,12 +1023,13 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			 * @return the {@code IFormatReader}
 			 * @throws IOException
 			 */
-			private synchronized LocalReaderWrapper createReader(final Long imageID, OmeroRawClient client) throws DSOutOfServiceException, ServerError {
+			private synchronized LocalReaderWrapper createReader(final Long imageID, OmeroRawClient client)
+					throws DSOutOfServiceException, ServerError, AccessException, ExecutionException {
 				logger.info("Create new OMERO reader for image ID : "+imageID);
 				OmeroRawClient currentClient = client;
 
 				// read the image with the current client, connected to the current group
-				ImageData image = OmeroRawTools.readOmeroImage(currentClient,imageID);
+				ImageWrapper image = currentClient.getSimpleClient().getImage(imageID);
 
 				// if image unreadable, check all groups the current user is part of
 				if(image == null){
@@ -1038,7 +1039,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 						currentClient.switchGroup(group.getId());
 
 						// read the image
-						image = OmeroRawTools.readOmeroImage(currentClient,imageID);
+						image = currentClient.getSimpleClient().getImage(imageID);
 						if(image != null)
 							break;
 					}
@@ -1050,7 +1051,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					List<OmeroRawClient> otherClients = OmeroRawClients.getAllClients().stream().filter(c -> !c.equals(client)).collect(Collectors.toList());
 					for (OmeroRawClient cli : otherClients) {
 						// read the image
-						image = OmeroRawTools.readOmeroImage(cli, imageID);
+						image = cli.getSimpleClient().getImage(imageID);
 						if(image != null) {
 							currentClient = cli;
 							break;
@@ -1063,16 +1064,16 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					long groupId = OmeroRawTools.getGroupIdFromImageId(client, imageID);
 					if(groupId > 0) {
 						currentClient.switchGroup(groupId);
-						image = OmeroRawTools.readOmeroImage(currentClient, imageID);
+						image = currentClient.getSimpleClient().getImage(imageID);
 					}
 				}
 
 				// read the imported image
 				if(!(image == null)) {
-					PixelsData pixelData = image.getDefaultPixels();
+					PixelsWrapper pixelsWrapper = image.getPixels();
 					RawPixelsStorePrx rawPixStore = currentClient.getSimpleClient().getGateway().getPixelsStore(currentClient.getSimpleClient().getCtx());
-					rawPixStore.setPixelsId(pixelData.getId(), false);
-					return new LocalReaderWrapper(rawPixStore, pixelData, currentClient);
+					rawPixStore.setPixelsId(pixelsWrapper.getId(), false);
+					return new LocalReaderWrapper(rawPixStore, pixelsWrapper, currentClient);
 				}
 				else {
 					// user does not have admin rights
@@ -1087,7 +1088,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			static class LocalReaderWrapper {
 
 				private final RawPixelsStorePrx reader;
-				private final PixelsData pixelsData;
+				private final PixelsWrapper pixelsWrapper;
 				int nLevels;
 				int[] imageSizeX;
 				int[] imageSizeY;
@@ -1095,9 +1096,9 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 				private final OmeroRawClient client;
 
-				LocalReaderWrapper(RawPixelsStorePrx reader, PixelsData pixelsData, OmeroRawClient client) {
+				LocalReaderWrapper(RawPixelsStorePrx reader, PixelsWrapper pixelsWrapper, OmeroRawClient client) {
 					this.reader = reader;
-					this.pixelsData = pixelsData;
+					this.pixelsWrapper = pixelsWrapper;
 					this.client = client;
 
 					try {
@@ -1123,7 +1124,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					return reader;
 				}
 
-				public PixelsData getPixelsData() { return pixelsData; }
+				public PixelsWrapper getPixelsWrapper() { return pixelsWrapper; }
 
 				public OmeroRawClient getClient() { return this.client; }
 

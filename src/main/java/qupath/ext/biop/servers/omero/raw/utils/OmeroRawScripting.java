@@ -7,6 +7,8 @@ import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.meta.ExperimenterWrapper;
+import fr.igred.omero.repository.ChannelWrapper;
+import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 import javafx.collections.ObservableList;
 import omero.gateway.facility.TablesFacility;
@@ -1159,7 +1161,13 @@ public class OmeroRawScripting {
         }
 
         // get the number of the channels in OMERO
-        int omeroNChannels = OmeroRawTools.readOmeroChannels(imageServer.getClient(), imageServer.getId()).size();
+        int omeroNChannels;
+        try {
+            omeroNChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient()).size();
+        }catch(AccessException | ServiceException | ExecutionException e){
+            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            return;
+        }
 
         // get current channels from QuPath
         ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
@@ -1209,7 +1217,13 @@ public class OmeroRawScripting {
         }
 
         // get the number of the channels in OMERO
-        int omeroNChannels = OmeroRawTools.readOmeroChannels(imageServer.getClient(), imageServer.getId()).size();
+        int omeroNChannels;
+        try {
+            omeroNChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient()).size();
+        }catch(AccessException | ServiceException | ExecutionException e){
+            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            return;
+        }
 
         // get current channels from QuPath
         ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
@@ -1275,7 +1289,13 @@ public class OmeroRawScripting {
      */
     public static void setChannelsNameFromOmeroChannel(OmeroRawImageServer imageServer){
         // get the number of the channels in OMERO
-        List<ChannelData> omeroChannels = OmeroRawTools.readOmeroChannels(imageServer.getClient(), imageServer.getId());
+        List<ChannelWrapper> omeroChannels;
+        try {
+            omeroChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient());
+        }catch(AccessException | ServiceException | ExecutionException e){
+            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            return;
+        }
 
         // get current channels from QuPath
         ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
@@ -1322,8 +1342,13 @@ public class OmeroRawScripting {
             return false;
         }
 
-        // get the number of the channels in OMERO
-        int omeroNChannels = OmeroRawTools.readOmeroChannels(imageServer.getClient(), imageServer.getId()).size();
+        int omeroNChannels;
+        try {
+            omeroNChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient()).size();
+        }catch(AccessException | ServiceException | ExecutionException e){
+            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            return false;
+        }
 
         // get current channels from QuPath
         ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
@@ -1369,7 +1394,13 @@ public class OmeroRawScripting {
      */
     public static boolean sendChannelsNameToOmero(OmeroRawImageServer imageServer){
         // get the number of the channels in OMERO
-        List<ChannelData> omeroChannels = OmeroRawTools.readOmeroChannels(imageServer.getClient(), imageServer.getId());
+        List<ChannelWrapper> omeroChannels;
+        try {
+            omeroChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient());
+        }catch(AccessException | ServiceException | ExecutionException e){
+            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            return false;
+        }
 
         // get current channels from QuPath
         ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
@@ -1389,7 +1420,7 @@ public class OmeroRawScripting {
         }
 
         // update the image on OMERO first
-        return OmeroRawTools.updateObjectsOnOmero(imageServer.getClient(), omeroChannels.stream().map(ChannelData::asIObject).collect(Collectors.toList()));
+        return OmeroRawTools.updateObjectsOnOmero(imageServer.getClient(), omeroChannels.stream().map(ChannelWrapper::asDataObject).map(ChannelData::asIObject).collect(Collectors.toList()));
     }
 
 
@@ -1416,8 +1447,13 @@ public class OmeroRawScripting {
             return false;
         }
 
-        // get the number of the channels in OMERO
-        int omeroNChannels = OmeroRawTools.readOmeroChannels(imageServer.getClient(), imageServer.getId()).size();
+        int omeroNChannels;
+        try {
+            omeroNChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient()).size();
+        }catch(AccessException | ServiceException | ExecutionException e){
+            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            return false;
+        }
 
         // get current channels from QuPath
         ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
@@ -1458,12 +1494,12 @@ public class OmeroRawScripting {
      */
     public static boolean sendImageNameToOmero(OmeroRawImageServer imageServer){
         // get the image
-        omero.gateway.model.ImageData image = OmeroRawTools.readOmeroImage(imageServer.getClient(), imageServer.getId());
+        ImageWrapper image = imageServer.getImageWrapper();
         if(image != null) {
             image.setName(QPEx.getCurrentImageName());
 
             // update the image on OMERO first
-            return OmeroRawTools.updateObjectOnOmero(imageServer.getClient(), image.asIObject());
+            return OmeroRawTools.updateObjectOnOmero(imageServer.getClient(), image.asDataObject().asIObject());
         }
 
         return false;

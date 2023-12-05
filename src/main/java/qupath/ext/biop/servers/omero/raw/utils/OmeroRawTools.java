@@ -689,54 +689,6 @@ public final class OmeroRawTools {
 
 
     /**
-     * Get OMERO image's channels
-     *
-     * @param client
-     * @param imageId
-     * @return List of channels objects of the specified image
-     */
-    public static List<ChannelData> readOmeroChannels(OmeroRawClient client, long imageId){
-        try {
-            // get channels
-            return client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getChannelData(client.getSimpleClient().getCtx(), imageId);
-        } catch(ExecutionException | DSOutOfServiceException e){
-            Dialogs.showErrorNotification("Channel reading","Could not read image channel on OMERO.");
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        } catch (DSAccessException e){
-            Dialogs.showErrorNotification("Channel reading","You don't have the right to read channels on OMERO for the image "+imageId);
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * Get the image file format (ex. .lif, .vsi,...)
-     *
-     * @param client
-     * @param imageId
-     * @return Image file format
-     */
-    public static String readImageFileType(OmeroRawClient client, long imageId){
-        try {
-            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
-            return imageData.asImage().getFormat().getValue().getValue();
-        } catch(ExecutionException | DSOutOfServiceException e) {
-            Dialogs.showErrorNotification("Reading OMERO annotations", "Cannot get annotations from OMERO for the image "+imageId);
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-            return "";
-        } catch (DSAccessException e){
-            Dialogs.showErrorNotification("Reading OMERO annotations","You don't have the right to read annotations on OMERO for the image "+imageId);
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-            return "";
-        }
-    }
-
-    /**
      * Get any Pojo object from OMERO
      * @param client
      * @param objectClassData The object class must implement DataObject class
@@ -745,7 +697,7 @@ public final class OmeroRawTools {
      */
     private static DataObject readObject(OmeroRawClient client, String objectClassData, long id){
         try {
-            return  client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).findObject(client.getSimpleClient().getCtx(), objectClassData, id, true);
+            return  client.getSimpleClient().getBrowseFacility().findObject(client.getSimpleClient().getCtx(), objectClassData, id, true);
         } catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO object", "Cannot get "+objectClassData+" from OMERO with id "+id);
             logger.error(String.valueOf(e));
@@ -768,7 +720,7 @@ public final class OmeroRawTools {
      */
     private static IObject readIObject(OmeroRawClient client, String objectClass, long id){
         try {
-            return  client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).findIObject(client.getSimpleClient().getCtx(), objectClass, id, true);
+            return  client.getSimpleClient().getBrowseFacility().findIObject(client.getSimpleClient().getCtx(), objectClass, id, true);
         } catch(ExecutionException | DSOutOfServiceException e) {
             Dialogs.showErrorNotification("Reading OMERO object", "Cannot get "+objectClass+" from OMERO with id "+id);
             logger.error(String.valueOf(e));
@@ -1114,116 +1066,6 @@ public final class OmeroRawTools {
     }
 
     /**
-     * Download an image from OMERO in the path given in argument.
-     *
-     * @param client
-     * @param imageId
-     * @param path
-     * @return Downloading status (True if downloaded ; false with error message otherwise)
-     */
-    public static boolean downloadImage(OmeroRawClient client, long imageId, String path){
-        boolean wasDownloaded = true;
-        try {
-            if(new File(path).exists())
-                client.getSimpleClient().getGateway().getFacility(TransferFacility.class).downloadImage(client.getSimpleClient().getCtx(), path, imageId);
-            else {
-                Dialogs.showErrorNotification("Download object","The following path does not exists : "+path);
-                wasDownloaded = false;
-            }
-        } catch(DSOutOfServiceException | ExecutionException e){
-            Dialogs.showErrorNotification("Download object","Error during downloading image "+imageId+" from OMERO.");
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-            wasDownloaded = false;
-        } catch(DSAccessException e){
-            Dialogs.showErrorNotification("Download object","You don't have the right to download image "+imageId+" from OMERO.");
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-            wasDownloaded = false;
-        }
-
-        return wasDownloaded;
-    }
-
-    /**
-     * Upload an image to a specific dataset on OMERO
-     *
-     * @param client
-     * @param datasetId
-     * @param path
-     * @return id of the newly uploaded image
-     */
-    public static List<Long> uploadImage(OmeroRawClient client, long datasetId, String path){
-        DatasetWrapper dataset;
-        try {
-            dataset = client.getSimpleClient().getDataset(datasetId);
-            return uploadImage(client, dataset, path);
-        }catch(DSAccessException | ServiceException | ExecutionException e) {
-            Dialogs.showErrorNotification("Upload image", "The dataset "+datasetId+" does not exist");
-            return Collections.emptyList();
-        }
-    }
-
-
-    /**
-     * Upload an image to a specific dataset on OMERO
-     * Code taken from simple-omero-client project from Pierre Pouchin (GreD-Clermont)
-     *
-     * @param client
-     * @param dataset
-     * @param path
-     * @return id of the newly uploaded image
-     */
-    public static List<Long> uploadImage(OmeroRawClient client, DatasetWrapper dataset, String path){
-        if(dataset == null){
-            Dialogs.showErrorNotification("Upload image", "The dataset you want to access does not exist");
-            return Collections.emptyList();
-        }
-
-        ImportConfig config = new ImportConfig();
-        config.target.set("Dataset:" + dataset.getId()); // can also import an image into a well or wellsample => to check
-        config.username.set(client.getUsername());
-        config.email.set(client.getLoggedInUser().getEmail());
-
-        Collection<Pixels> pixels = new ArrayList<>(1);
-        OMEROMetadataStoreClient store = null;
-        try (OMEROWrapper reader = new OMEROWrapper(config)) {
-            store = client.getSimpleClient().getGateway().getImportStore(client.getSimpleClient().getCtx());
-            store.logVersionInfo(config.getIniVersionNumber());
-            reader.setMetadataOptions(new DefaultMetadataOptions(MetadataLevel.ALL));
-
-            ImportLibrary library = new ImportLibrary(store, reader);
-            library.addObserver(new LoggingImportMonitor());
-
-            ErrorHandler handler = new ErrorHandler(config);
-
-            ImportCandidates candidates = new ImportCandidates(reader, new String[]{path}, handler);
-            ExecutorService uploadThreadPool = Executors.newFixedThreadPool(config.parallelUpload.get());
-
-            List<ImportContainer> containers = candidates.getContainers();
-            if (containers != null) {
-                for (int i = 0; i < containers.size(); i++) {
-                    ImportContainer container = containers.get(i);
-                    container.setTarget(dataset.asDataObject().asIObject());
-                    List<Pixels> imported = library.importImage(container, uploadThreadPool, i);
-                    pixels.addAll(imported);
-                }
-            }
-            uploadThreadPool.shutdown();
-        } catch (Throwable e) {
-            Dialogs.showErrorNotification("Upload image","Error during uploading image "+path+" to OMERO.");
-            logger.error(String.valueOf(e));
-        } finally {
-            if(store != null)
-                store.logout();
-        }
-
-        List<Long> ids = new ArrayList<>(pixels.size());
-        pixels.forEach(pix -> ids.add(pix.getImage().getId().getValue()));
-        return ids.stream().distinct().collect(Collectors.toList());
-    }
-
-    /**
      * Convert a QuPath measurement table into a CSV file,
      * including the OMERO image ID on which the measurements are referring to.
      *
@@ -1400,6 +1242,7 @@ public final class OmeroRawTools {
         return client.getSimpleClient().getDataset(r.getId().getValue());
     }
 
+    //TODO remove this method when the PR is accepted
     /**
      * Unlink tags from an image on OMERO
      *
@@ -2408,5 +2251,133 @@ public final class OmeroRawTools {
         return results;
     }
 
+    /**
+     * Get OMERO image's channels
+     *
+     * @param client
+     * @param imageId
+     * @return List of channels objects of the specified image
+     * @deprecated use {@link ImageWrapper#getChannels(Client)} instead
+     */
+    @Deprecated
+    public static List<ChannelData> readOmeroChannels(OmeroRawClient client, long imageId){
+        try {
+            // get channels
+            return client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getChannelData(client.getSimpleClient().getCtx(), imageId);
+        } catch(ExecutionException | DSOutOfServiceException e){
+            Dialogs.showErrorNotification("Channel reading","Could not read image channel on OMERO.");
+            logger.error(String.valueOf(e));
+            logger.error(Utils.getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        } catch (DSAccessException e){
+            Dialogs.showErrorNotification("Channel reading","You don't have the right to read channels on OMERO for the image "+imageId);
+            logger.error(String.valueOf(e));
+            logger.error(Utils.getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+    }
 
+
+    //TODO change the deprecated message when the PR is accepted and the simpe-omero-client 5.17.0 is released
+    /**
+     * Get the image file format (ex. .lif, .vsi,...)
+     *
+     * @param client
+     * @param imageId
+     * @return Image file format
+     * @deprecated use {@link ImageWrapper#asDataObject()#asImage()#getFormat()#getValue()#getValue()} instead
+     */
+    @Deprecated
+    public static String readImageFileType(OmeroRawClient client, long imageId){
+        try {
+            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
+            return imageData.asImage().getFormat().getValue().getValue();
+        } catch(ExecutionException | DSOutOfServiceException e) {
+            Dialogs.showErrorNotification("Reading OMERO annotations", "Cannot get annotations from OMERO for the image "+imageId);
+            logger.error(String.valueOf(e));
+            logger.error(Utils.getErrorStackTraceAsString(e));
+            return "";
+        } catch (DSAccessException e){
+            Dialogs.showErrorNotification("Reading OMERO annotations","You don't have the right to read annotations on OMERO for the image "+imageId);
+            logger.error(String.valueOf(e));
+            logger.error(Utils.getErrorStackTraceAsString(e));
+            return "";
+        }
+    }
+
+    /**
+     * Download an image from OMERO in the path given in argument.
+     *
+     * @param client
+     * @param imageId
+     * @param path
+     * @return Downloading status (True if downloaded ; false with error message otherwise)
+     * @deprecated use {@link ImageWrapper#download(Client, String)} instead
+     */
+    @Deprecated
+    public static boolean downloadImage(OmeroRawClient client, long imageId, String path){
+        boolean wasDownloaded = true;
+        try {
+            if(new File(path).exists())
+                client.getSimpleClient().getGateway().getFacility(TransferFacility.class).downloadImage(client.getSimpleClient().getCtx(), path, imageId);
+            else {
+                Dialogs.showErrorNotification("Download object","The following path does not exists : "+path);
+                wasDownloaded = false;
+            }
+        } catch(DSOutOfServiceException | ExecutionException e){
+            Dialogs.showErrorNotification("Download object","Error during downloading image "+imageId+" from OMERO.");
+            logger.error(String.valueOf(e));
+            logger.error(Utils.getErrorStackTraceAsString(e));
+            wasDownloaded = false;
+        } catch(DSAccessException e){
+            Dialogs.showErrorNotification("Download object","You don't have the right to download image "+imageId+" from OMERO.");
+            logger.error(String.valueOf(e));
+            logger.error(Utils.getErrorStackTraceAsString(e));
+            wasDownloaded = false;
+        }
+
+        return wasDownloaded;
+    }
+
+    /**
+     * Upload an image to a specific dataset on OMERO
+     *
+     * @param client
+     * @param datasetId
+     * @param path
+     * @return id of the newly uploaded image
+     * @deprecated use {@link DatasetWrapper#importImage(Client, String)} instead
+     */
+    @Deprecated
+    public static List<Long> uploadImage(OmeroRawClient client, long datasetId, String path){
+        DatasetWrapper dataset;
+        try {
+            dataset = client.getSimpleClient().getDataset(datasetId);
+            return uploadImage(client, dataset, path);
+        }catch(DSAccessException | ServiceException | ExecutionException | OMEROServerError e) {
+            Dialogs.showErrorNotification("Upload image", "The dataset "+datasetId+" does not exist");
+            return Collections.emptyList();
+        }
+    }
+
+
+    /**
+     * Upload an image to a specific dataset on OMERO
+     * Code taken from simple-omero-client project from Pierre Pouchin (GreD-Clermont)
+     *
+     * @param client
+     * @param dataset
+     * @param path
+     * @return id of the newly uploaded image
+     * @deprecated use {@link DatasetWrapper#importImage(Client, String)} instead
+     */
+    @Deprecated
+    public static List<Long> uploadImage(OmeroRawClient client, DatasetWrapper dataset, String path)
+            throws AccessException, ServiceException, OMEROServerError, ExecutionException {
+        if(dataset == null){
+            Dialogs.showErrorNotification("OMERO - Upload image", "The dataset you want to access does not exist");
+            return Collections.emptyList();
+        }
+        return dataset.importImage(client.getSimpleClient(), path);
+    }
 }
