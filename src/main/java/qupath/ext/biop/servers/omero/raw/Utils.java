@@ -27,8 +27,8 @@ import java.util.Map;
 /**
  * Private class regrouping all tools that are not restricted to OMERO.
  */
-class UtilityTools {
-    private final static Logger logger = LoggerFactory.getLogger(UtilityTools.class);
+class Utils {
+    private final static Logger logger = LoggerFactory.getLogger(Utils.class);
     protected static final String NUMERIC_FIELD_ID = "\\$";
     protected static final String IMAGE_ID_HEADER = NUMERIC_FIELD_ID + "Image_ID";
 

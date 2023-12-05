@@ -986,7 +986,7 @@ public class OmeroRawScripting {
         ob.setImageData(imageData, pathObjects);
 
         // convert measurements to lists of strings to build the parent table
-        UtilityTools.buildListsOfStringsFromMeasurementTable(parentTable, ob, pathObjects, imageServer.getId());
+        Utils.buildListsOfStringsFromMeasurementTable(parentTable, ob, pathObjects, imageServer.getId());
     }
 
     /**
@@ -1036,7 +1036,7 @@ public class OmeroRawScripting {
                 OmeroRawTools.getCurrentDateAndHour();
 
         // build the CSV parent table
-        File parentCSVFile = UtilityTools.buildCSVFileFromListsOfStrings(parentTable, filename);
+        File parentCSVFile = Utils.buildCSVFileFromListsOfStrings(parentTable, filename);
 
         FileAnnotationData attachedFile = null;
         if (parentCSVFile.exists()) {
@@ -1130,7 +1130,7 @@ public class OmeroRawScripting {
                 OmeroRawTools.getCurrentDateAndHour();
 
         // build the OMERO.table parent table
-        TableData omeroTable = UtilityTools.buildOmeroTableFromListsOfStrings(parentTable, client);
+        TableData omeroTable = Utils.buildOmeroTableFromListsOfStrings(parentTable, client);
         FileAnnotationData attachedFile = null;
 
         // loop over all parents if images comes from more than one dataset

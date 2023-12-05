@@ -899,7 +899,7 @@ public final class OmeroRawTools {
      * @return The corresponding OMERO.Table
      */
     public static TableData convertMeasurementTableToOmeroTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, OmeroRawClient client, long imageId) {
-        return UtilityTools.buildOmeroTableFromMeasurementTable(pathObjects, ob, client, imageId);
+        return Utils.buildOmeroTableFromMeasurementTable(pathObjects, ob, client, imageId);
     }
 
     /**
@@ -1341,7 +1341,7 @@ public final class OmeroRawTools {
      * @return CSV file of measurement table.
      */
     public static File buildCSVFileFromMeasurementTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, long imageId, String name, String path) {
-        return UtilityTools.buildCSVFileFromMeasurementTable(pathObjects, ob, imageId, name);
+        return Utils.buildCSVFileFromMeasurementTable(pathObjects, ob, imageId, name);
     }
 
 
