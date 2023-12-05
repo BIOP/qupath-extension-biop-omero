@@ -629,25 +629,6 @@ public final class OmeroRawTools {
         }
     }
 
-
-
-    /**
-     * Get OMERO corresponding to the id
-     *
-     * @param client
-     * @param datasetId
-     * @return OMERO dataset or null object is ot doesn't exists
-     * @deprecated use {@link Client#getDataset(Long)} instead
-     */
-    @Deprecated
-    public static DatasetData readOmeroDataset(OmeroRawClient client, Long datasetId){
-        Collection<DatasetData> datasets = readOmeroDatasets(client, Collections.singletonList(datasetId));
-        if(datasets.isEmpty())
-            return null;
-        return datasets.iterator().next();
-
-    }
-
     /**
      * Get all OMERO datasets corresponding to the list of ids
      *
@@ -1460,96 +1441,42 @@ public final class OmeroRawTools {
     }
 
     /**
-     * create a new orphaned dataset on OMERO
-     *
-     * @param client
-     * @param datasetName
-     * @return OMERO dataset
-     */
-    public static DatasetData createNewDataset(OmeroRawClient client, String datasetName){
-        return createNewDataset(client, datasetName, "");
-    }
-
-    /**
-     * create a new dataset on OMERO and add a project as parent object
-     *
-     * @param client
-     * @param projectId
-     * @param datasetName
-     * @return OMERO dataset
-     */
-    public static DatasetData createNewDataset(OmeroRawClient client, long projectId, String datasetName){
-        return createNewDataset(client, projectId, datasetName, "");
-    }
-
-    /**
-     * create a new orphaned dataset on OMERO
+     *  Create a new dataset on OMERO.
+     *  If the project ID > 0, then the dataset is link to the specified project. Otherwise, the dataset is orphaned
+     *  (i.e. to create an orphaned dataset, set the project ID to -1)
      *
      * @param client
      * @param datasetName
      * @param datasetDescription
-     * @return OMERO dataset
-     */
-    public static DatasetData createNewDataset(OmeroRawClient client, String datasetName, String datasetDescription){
-        // create a new dataset
-        Dataset dataset = new DatasetI();
-        dataset.setName(omero.rtypes.rstring(datasetName));
-        dataset.setDescription(omero.rtypes.rstring(datasetDescription));
-
-        try {
-            // send the new dataset to OMERO
-            IObject r = client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).saveAndReturnObject(client.getSimpleClient().getCtx(), dataset);
-            return readOmeroDataset(client,r.getId().getValue());
-        }catch(ExecutionException | DSOutOfServiceException  e) {
-            Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return null;
-        }catch(DSAccessException e) {
-            Dialogs.showErrorNotification("Create New dataset", "You don't have the right to create a dataset on OMERO");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return null;
-        }
-    }
-
-    /**
-     * create a new dataset on OMERO and add a project as parent object
-     *
-     * @param client
      * @param projectId
-     * @param datasetName
-     * @param datasetDescription
-     * @return OMERO dataset
+     * @return
+     * @throws ExecutionException
+     * @throws DSOutOfServiceException
+     * @throws DSAccessException
      */
-    public static DatasetData createNewDataset(OmeroRawClient client, long projectId, String datasetName, String datasetDescription) {
+    public static DatasetWrapper createNewDataset(OmeroRawClient client,  String datasetName, String datasetDescription, long projectId)
+            throws ExecutionException, DSOutOfServiceException, DSAccessException {
+
         // create a new dataset
         Dataset dataset = new DatasetI();
         dataset.setName(omero.rtypes.rstring(datasetName));
         dataset.setDescription(omero.rtypes.rstring(datasetDescription));
+        IObject objTosave;
 
-        // link the dataset to a project
-        ProjectDatasetLink link = new ProjectDatasetLinkI();
-        link.setChild(dataset);
-        link.setParent(new ProjectI(projectId, false));
-
-        try {
-            // send the new dataset to OMERO
-            IObject r = client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).saveAndReturnObject(client.getSimpleClient().getCtx(), link);
-            return readOmeroDataset(client,r.getId().getValue());
-        }catch(ExecutionException | DSOutOfServiceException  e) {
-            Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName+" in the project "+projectId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return null;
-        }catch(DSAccessException e) {
-            Dialogs.showErrorNotification("Create New dataset", "You don't have the right to create a dataset on OMERO in the project "+projectId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return null;
+        if(projectId > 0) {
+            // link the dataset to a project
+            ProjectDatasetLink link = new ProjectDatasetLinkI();
+            link.setChild(dataset);
+            link.setParent(new ProjectI(projectId, false));
+            objTosave = link;
+        }else{
+            objTosave = dataset;
         }
-    }
 
+        // send the new dataset to OMERO
+        IObject r = client.getSimpleClient().getDm().saveAndReturnObject(client.getSimpleClient().getCtx(), objTosave);
+        return client.getSimpleClient().getDataset(r.getId().getValue());
+    }
 
     /**
      * Unlink tags from an image on OMERO
@@ -1578,101 +1505,6 @@ public final class OmeroRawTools {
         }
     }
 
-
-    /**
-     * Read tags from OMERO server, attached to the specified image.
-     *
-     * @param client
-     * @param imageId
-     * @return List of Tag objects attached to the image
-     */
-    public static List<TagAnnotationData> readTags(OmeroRawClient client, long imageId) {
-        List<AnnotationData> annotations;
-
-        try {
-            // get current image from OMERO
-            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
-
-            // read annotations linked to the image
-            annotations = client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), imageData);
-
-        }catch(ExecutionException | DSOutOfServiceException e) {
-            Dialogs.showErrorNotification("Reading OMERO Tags", "Cannot get tags from OMERO");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }catch(DSAccessException e) {
-            Dialogs.showErrorNotification("Reading OMERO tags", "You don't have the right to read tags from OMERO on the image "+imageId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-
-        // filter tags
-        return annotations.stream()
-                .filter(TagAnnotationData.class::isInstance)
-                .map(TagAnnotationData.class::cast)
-                .collect(Collectors.toList());
-    }
-
-
-    /**
-     * Read all tags available for the logged-in user
-     *
-     * @param client
-     * @return List of available tag objects
-     */
-    public static List<TagAnnotationData> readUserTags(OmeroRawClient client) {
-        List<IObject> objects;
-
-        try {
-            // get current image from OMERO
-            objects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAll(TagAnnotation.class.getSimpleName(),null);
-            
-        } catch (ServerError | DSOutOfServiceException e) {
-            Dialogs.showErrorNotification("Reading OMERO tags", "Error getting all available tags");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-
-        // filter tags
-        return objects.stream()
-                .map(TagAnnotation.class::cast)
-                .map(TagAnnotationData::new)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     *  Send a new tag on OMERO server and attach it to the specified image.
-     *
-     * @param tags
-     * @param client
-     * @param imageId
-     * @return Sending status (True if sent ; false with error message otherwise)
-     */
-    public static boolean addTagsOnOmero(TagAnnotationData tags, OmeroRawClient client, long imageId) {
-        boolean wasAdded = true;
-        try {
-            // get current image from OMERO
-            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
-
-            // send key-values to OMERO
-            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).attachAnnotation(client.getSimpleClient().getCtx(), tags, imageData);
-
-        }catch(ExecutionException | DSOutOfServiceException e) {
-            Dialogs.showErrorNotification("Adding OMERO tags", "Cannot add new tags on OMERO");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            wasAdded = false;
-        }catch(DSAccessException e) {
-            Dialogs.showErrorNotification("Adding OMERO tags", "You don't have the right to add tags on OMERO on the image "+imageId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            wasAdded = false;
-        }
-        return wasAdded;
-    }
 
     /**
      * Get the thumbnail of the specified OMERO image.
@@ -2449,5 +2281,230 @@ public final class OmeroRawTools {
     }
 
 
+
+    /**
+     * Read tags from OMERO server, attached to the specified image.
+     *
+     * @param client
+     * @param imageId
+     * @return List of Tag objects attached to the image
+     * @deprecated use {@link GenericRepositoryObjectWrapper#getTags(Client)} instead
+     */
+    @Deprecated
+    public static List<TagAnnotationData> readTags(OmeroRawClient client, long imageId) {
+        List<AnnotationData> annotations;
+
+        try {
+            // get current image from OMERO
+            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
+
+            // read annotations linked to the image
+            annotations = client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), imageData);
+
+        }catch(ExecutionException | DSOutOfServiceException e) {
+            Dialogs.showErrorNotification("Reading OMERO Tags", "Cannot get tags from OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }catch(DSAccessException e) {
+            Dialogs.showErrorNotification("Reading OMERO tags", "You don't have the right to read tags from OMERO on the image "+imageId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+
+        // filter tags
+        return annotations.stream()
+                .filter(TagAnnotationData.class::isInstance)
+                .map(TagAnnotationData.class::cast)
+                .collect(Collectors.toList());
+    }
+
+
+    /**
+     * Read all tags available for the logged-in user
+     *
+     * @param client
+     * @return List of available tag objects
+     * @deprecated use {@link Client#getTags()} instead
+     */
+    @Deprecated
+    public static List<TagAnnotationData> readUserTags(OmeroRawClient client) {
+        List<IObject> objects;
+
+        try {
+            // get current image from OMERO
+            objects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAll(TagAnnotation.class.getSimpleName(),null);
+
+        } catch (ServerError | DSOutOfServiceException e) {
+            Dialogs.showErrorNotification("Reading OMERO tags", "Error getting all available tags");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+
+        // filter tags
+        return objects.stream()
+                .map(TagAnnotation.class::cast)
+                .map(TagAnnotationData::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     *  Send a new tag on OMERO server and attach it to the specified image.
+     *
+     * @param tags
+     * @param client
+     * @param imageId
+     * @return Sending status (True if sent ; false with error message otherwise)
+     * @deprecated use {@link GenericRepositoryObjectWrapper#link(Client, GenericAnnotationWrapper)} instead
+     */
+    @Deprecated
+    public static boolean addTagsOnOmero(TagAnnotationData tags, OmeroRawClient client, long imageId) {
+        boolean wasAdded = true;
+        try {
+            // get current image from OMERO
+            ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
+
+            // send key-values to OMERO
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).attachAnnotation(client.getSimpleClient().getCtx(), tags, imageData);
+
+        }catch(ExecutionException | DSOutOfServiceException e) {
+            Dialogs.showErrorNotification("Adding OMERO tags", "Cannot add new tags on OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            wasAdded = false;
+        }catch(DSAccessException e) {
+            Dialogs.showErrorNotification("Adding OMERO tags", "You don't have the right to add tags on OMERO on the image "+imageId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            wasAdded = false;
+        }
+        return wasAdded;
+    }
+
+
+    /**
+     * create a new dataset on OMERO and add a project as parent object
+     *
+     * @param client
+     * @param projectId
+     * @param datasetName
+     * @param datasetDescription
+     * @return OMERO dataset
+     *
+     * @deprecated use {@link OmeroRawTools#createNewDataset(OmeroRawClient, String, String, long)} instead
+     */
+    @Deprecated
+    public static DatasetData createNewDataset(OmeroRawClient client, long projectId, String datasetName, String datasetDescription) {
+        try {
+            return createNewDataset(client, datasetName, datasetDescription, projectId).asDataObject();
+        }catch(ExecutionException | DSOutOfServiceException  e) {
+            Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName+" in the project "+projectId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return null;
+        }catch(DSAccessException e) {
+            Dialogs.showErrorNotification("Create New dataset", "You don't have the right to create a dataset on OMERO in the project "+projectId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return null;
+        }
+    }
+
+    /**
+     * create a new orphaned dataset on OMERO
+     *
+     * @param client
+     * @param datasetName
+     * @param datasetDescription
+     * @return OMERO dataset
+     * @deprecated use {@link OmeroRawTools#createNewDataset(OmeroRawClient, String, String, long)} instead
+     */
+    @Deprecated
+    public static DatasetData createNewDataset(OmeroRawClient client, String datasetName, String datasetDescription){
+        try {
+            return createNewDataset(client, datasetName, datasetDescription, -1).asDataObject();
+        }catch(ExecutionException | DSOutOfServiceException  e) {
+            Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return null;
+        }catch(DSAccessException e) {
+            Dialogs.showErrorNotification("Create New dataset", "You don't have the right to create a dataset on OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return null;
+        }
+    }
+
+    /**
+     * create a new orphaned dataset on OMERO
+     *
+     * @param client
+     * @param datasetName
+     * @return OMERO dataset
+     * @deprecated use {@link OmeroRawTools#createNewDataset(OmeroRawClient, String, String, long)} instead
+     */
+    @Deprecated
+    public static DatasetData createNewDataset(OmeroRawClient client, String datasetName){
+        try {
+            return createNewDataset(client, datasetName, "", -1).asDataObject();
+        }catch(ExecutionException | DSOutOfServiceException  e) {
+            Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return null;
+        }catch(DSAccessException e) {
+            Dialogs.showErrorNotification("Create New dataset", "You don't have the right to create a dataset on OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return null;
+        }
+    }
+
+    /**
+     * create a new dataset on OMERO and add a project as parent object
+     *
+     * @param client
+     * @param projectId
+     * @param datasetName
+     * @return OMERO dataset
+     * @deprecated use {@link OmeroRawTools#createNewDataset(OmeroRawClient, String, String, long)} instead
+     */
+    @Deprecated
+    public static DatasetData createNewDataset(OmeroRawClient client, long projectId, String datasetName){
+        try {
+            return createNewDataset(client, datasetName, "", projectId).asDataObject();
+        }catch(ExecutionException | DSOutOfServiceException  e) {
+            Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return null;
+        }catch(DSAccessException e) {
+            Dialogs.showErrorNotification("Create New dataset", "You don't have the right to create a dataset on OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return null;
+        }
+    }
+
+
+    /**
+     * Get OMERO corresponding to the id
+     *
+     * @param client
+     * @param datasetId
+     * @return OMERO dataset or null object is ot doesn't exists
+     * @deprecated use {@link Client#getDataset(Long)} instead
+     */
+    @Deprecated
+    public static DatasetData readOmeroDataset(OmeroRawClient client, Long datasetId){
+        Collection<DatasetData> datasets = readOmeroDatasets(client, Collections.singletonList(datasetId));
+        if(datasets.isEmpty())
+            return null;
+        return datasets.iterator().next();
+
+    }
 
 }
