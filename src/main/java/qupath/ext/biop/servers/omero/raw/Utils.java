@@ -327,8 +327,8 @@ class Utils {
                     parentTable.put(header, new ArrayList<>());
             }
         } else if(headersSize != (ob.getAllNames().size() + 1)){
-            Dialogs.showWarningNotification("Parent Table - Compatibility issue","Size of headers ("+ob.getAllNames().size()+
-                    ") is different from existing table size ("+headersSize+"). Parent table is not populated");
+            Utils.errorLog(logger,"Parent Table","Compatibility issue - Size of headers ("+ob.getAllNames().size()+
+                    ") is different from existing table size ("+headersSize+"). Parent table is not populated", true);
             return;
         }
 
@@ -344,7 +344,7 @@ class Utils {
                 List<String> listedValues = parentTable.get(col);
 
                 if(listedValues == null){
-                    Dialogs.showErrorNotification("Parent Table - Compatibility issue","There is no columns named "+col);
+                    Utils.errorLog(logger, "Parent Table","Compatibility issue - There is no columns named "+col, true);
                     throw new RuntimeException();
                 }
 
@@ -379,9 +379,7 @@ class Utils {
             buffer.close();
 
         } catch (IOException e) {
-            Dialogs.showErrorNotification("Write CSV file", "An error has occurred when trying to save the csv file");
-            logger.error(String.valueOf(e));
-            logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
+            Utils.errorLog(logger,"CSV file", "An error has occurred when trying to save the csv file",e ,true);
         }
         return file;
     }

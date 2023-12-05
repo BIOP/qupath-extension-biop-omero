@@ -5,6 +5,8 @@ import javafx.scene.control.RadioButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
@@ -22,7 +24,7 @@ import java.util.Map;
  *
  */
 public class OmeroRawWriteMetadataCommand  implements Runnable{
-
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawWriteMetadataCommand.class);
     private final String title = "Sending metadata";
     private final QuPathGUI qupath;
     public OmeroRawWriteMetadataCommand(QuPathGUI qupath)  {
@@ -103,9 +105,9 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
             wasSaved = OmeroRawScripting.sendMetadataOnOmeroAndUpdateKeyValues(keyValues,(OmeroRawImageServer)imageServer);
 
         if(wasSaved)
-            Dialogs.showInfoNotification(StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully sent to OMERO server",
+            Utils.infoLog(logger, StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully sent to OMERO server",
                     keyValues.keySet().size(),
                     objectString,
-                    (keyValues.keySet().size() == 1 ? "was" : "were")));
+                    (keyValues.keySet().size() == 1 ? "was" : "were")), true);
     }
 }

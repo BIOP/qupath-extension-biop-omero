@@ -33,6 +33,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
@@ -44,12 +46,11 @@ import qupath.lib.objects.PathObject;
  * current image is hosted.
  *
  * @author Melvin Gelbard
- *
  */
+
 public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
-
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawWriteDetectionObjectsCommand.class);
     private final String title = "Send objects to OMERO";
-
     private final QuPathGUI qupath;
 
     OmeroRawWriteDetectionObjectsCommand(QuPathGUI qupath) {
@@ -123,9 +124,9 @@ public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
 
             // Give warning and filter out annotation objects
             if (annotations.size() > 0) {
-                Dialogs.showWarningNotification(title, String.format("Selected annotations will not be imported on OMERO (%d %s)",
+                Utils.warnLog(logger, title, String.format("Selected annotations will not be imported on OMERO (%d %s)",
                         annotations.size(),
-                        (annotations.size() == 1 ? "object" : "objects")));
+                        (annotations.size() == 1 ? "object" : "objects")), true);
 
                 objs = objs.stream().filter(e -> !e.isAnnotation()).collect(Collectors.toList());
             }
@@ -167,9 +168,9 @@ public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
         objs.forEach(pathObject -> pathObject.setName(null));
 
         if(hasBeenSaved)
-            Dialogs.showInfoNotification(StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully written to OMERO server",
+            Utils.infoLog(logger,StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully written to OMERO server",
                     objs.size(),
                     objectString,
-                    (objs.size() == 1 ? "was" : "were")));
+                    (objs.size() == 1 ? "was" : "were")), true);
     }
 }

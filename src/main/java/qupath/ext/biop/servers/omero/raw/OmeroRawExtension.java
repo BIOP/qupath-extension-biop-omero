@@ -202,7 +202,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 						browser.getStage().requestFocus();
 
 				} catch (FileNotFoundException ex) {
-					Dialogs.showErrorMessage("OMERO-RAW server", String.format("An error occured when trying to reach %s: %s\"", path, ex.getLocalizedMessage()));
+					Dialogs.showErrorMessage("OMERO-RAW server", String.format("An error occurred when trying to reach %s: %s\"", path, ex.getLocalizedMessage()));
 				} catch (IOException | URISyntaxException ex) {
 					Dialogs.showErrorMessage("OMERO-RAW server", ex.getLocalizedMessage());
 					return;

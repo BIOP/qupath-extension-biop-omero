@@ -468,9 +468,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 else
                     content.putString("[" + String.join(", ", uris) + "]");
                 Clipboard.getSystemClipboard().setContent(content);
-                Dialogs.showInfoNotification("Copy URI to clipboard", "URI" + (uris.size() > 1 ? "s " : " ") + "successfully copied to clipboard");
+                Utils.infoLog(logger, "Copy URI to clipboard", "URI" + (uris.size() > 1 ? "s " : " ") + "successfully copied to clipboard", true);
             } else
-                Dialogs.showWarningNotification("Copy URI to clipboard", "The item needs to be selected first!");
+                Utils.warnLog(logger,"Copy URI to clipboard", "The item needs to be selected first!", true);
         });
 
         // Collapse all items in the tree

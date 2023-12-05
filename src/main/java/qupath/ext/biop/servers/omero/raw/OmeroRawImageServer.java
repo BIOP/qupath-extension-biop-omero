@@ -1072,6 +1072,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				else {
 					// user does not have admin rights
 					Dialogs.showErrorMessage("Load image","You do not have access to this image because it is part of a group / user you do not have access to");
+					logger.error("You do not have access to this image because it is part of a group / user you do not have access to");
 					return null;
 				}
 			}

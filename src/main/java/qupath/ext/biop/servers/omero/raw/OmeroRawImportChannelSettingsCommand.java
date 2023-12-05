@@ -3,6 +3,8 @@ package qupath.ext.biop.servers.omero.raw;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
@@ -13,6 +15,7 @@ public class OmeroRawImportChannelSettingsCommand implements Runnable {
 
     private final String title = "Import channel settings from OMERO";
     private final QuPathGUI qupath;
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawImportChannelSettingsCommand.class);
     public OmeroRawImportChannelSettingsCommand(QuPathGUI qupath)  {
         this.qupath = qupath;
     }
@@ -66,7 +69,7 @@ public class OmeroRawImportChannelSettingsCommand implements Runnable {
         if(channelNames)
             OmeroRawScripting.setChannelsNameFromOmeroChannel((OmeroRawImageServer)imageServer);
 
-        Dialogs.showInfoNotification("Channel settings import","Channel settings successfully set the current image");
+        Utils.infoLog(logger, "Channel settings import","Channel settings successfully set the current image", true);
     }
 
 }

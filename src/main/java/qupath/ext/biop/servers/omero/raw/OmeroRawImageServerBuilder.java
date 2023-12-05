@@ -2,7 +2,6 @@ package qupath.ext.biop.servers.omero.raw;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
 import qupath.lib.images.servers.ImageServerBuilder;
 
@@ -122,10 +121,8 @@ public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedIm
                 URI serverUri = OmeroRawTools.getServerURI(uri);
                 OmeroRawClient client = OmeroRawClients.getClientFromServerURI(serverUri);
                 return new OmeroRawImageServer(uri, client, args);
-            } catch (IOException e) {
-                Dialogs.showErrorNotification("OMERO raw server", uri + " - " + e.getLocalizedMessage());
             } catch (Exception e) {
-                e.printStackTrace();
+                Utils.errorLog(logger,"OMERO Raw server", "Could not build server " + uri, e,true);
             }
         }
         return null;
@@ -142,7 +139,7 @@ public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedIm
             try {
                 uris = getURIs(uri, args);
             } catch (IOException e) {
-                Dialogs.showErrorNotification("OMERO Raw server", e.getLocalizedMessage());
+                Utils.errorLog(logger,"OMERO Raw server","Could not get server URIs", e, true);
             }
 
             for (var subURI : uris) {
