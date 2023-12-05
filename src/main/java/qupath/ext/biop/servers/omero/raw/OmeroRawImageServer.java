@@ -22,6 +22,7 @@
 package qupath.ext.biop.servers.omero.raw;
 
 import fr.igred.omero.exception.AccessException;
+import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.meta.GroupWrapper;
 import fr.igred.omero.repository.ChannelWrapper;
 import fr.igred.omero.repository.ImageWrapper;
@@ -756,6 +757,11 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		if(isRGB() && bf.getType() == BufferedImage.TYPE_CUSTOM){
 			logger.info("Cannot create default thumbnail ; try to get it from OMERO");
 			return OmeroRawTools.getThumbnail(getClient(), getId(), 256);
+			/*try {
+				return imageWrapper.getThumbnail(client.getSimpleClient(), 256);
+			} catch (Exception e) {
+				OmeroRawTools.readLocalImage(Utils.NO_IMAGE_THUMBNAIL);
+			}*/
 		}
 		return bf;
 
@@ -1024,24 +1030,31 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			 * @throws IOException
 			 */
 			private synchronized LocalReaderWrapper createReader(final Long imageID, OmeroRawClient client)
-					throws DSOutOfServiceException, ServerError, AccessException, ExecutionException {
+					throws DSOutOfServiceException, ServerError {
 				logger.info("Create new OMERO reader for image ID : "+imageID);
 				OmeroRawClient currentClient = client;
-
-				// read the image with the current client, connected to the current group
-				ImageWrapper image = currentClient.getSimpleClient().getImage(imageID);
+				ImageWrapper image = null;
+				try {
+					// read the image with the current client, connected to the current group
+					image = currentClient.getSimpleClient().getImage(imageID);
+				}catch(Exception e){
+					logger.info("The image '"+imageID+"' is not coming from the default group '"+
+							client.getSimpleClient().getGroup(client.getSimpleClient().getCurrentGroupId()).getName()+"'");
+				}
 
 				// if image unreadable, check all groups the current user is part of
 				if(image == null){
 					List<GroupWrapper> availableGroups = OmeroRawTools.getUserGroups(currentClient);
-					for(GroupWrapper group:availableGroups){
+					for(GroupWrapper group:availableGroups) {
 						// switch the user to another group
 						currentClient.switchGroup(group.getId());
-
-						// read the image
-						image = currentClient.getSimpleClient().getImage(imageID);
-						if(image != null)
+						try {
+							// read the image
+							image = currentClient.getSimpleClient().getImage(imageID);
 							break;
+						} catch (Exception e) {
+							logger.info("The image '"+imageID+"' is not coming from the user's available groups");
+						}
 					}
 				}
 
@@ -1050,11 +1063,13 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					// get opened clients
 					List<OmeroRawClient> otherClients = OmeroRawClients.getAllClients().stream().filter(c -> !c.equals(client)).collect(Collectors.toList());
 					for (OmeroRawClient cli : otherClients) {
-						// read the image
-						image = cli.getSimpleClient().getImage(imageID);
-						if(image != null) {
+						try{
+							// read the image
+							image = cli.getSimpleClient().getImage(imageID);
 							currentClient = cli;
 							break;
+						} catch (Exception e) {
+							logger.info("The image '"+imageID+"' is not coming from the user's available clients");
 						}
 					}
 				}
@@ -1064,7 +1079,12 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					long groupId = OmeroRawTools.getGroupIdFromImageId(client, imageID);
 					if(groupId > 0) {
 						currentClient.switchGroup(groupId);
-						image = currentClient.getSimpleClient().getImage(imageID);
+						try{
+							image = currentClient.getSimpleClient().getImage(imageID);
+						} catch (Exception e) {
+							logger.warn("The image '"+imageID+"' is not coming from the omero server '"+currentClient.getServerURI()+
+									"'. Admins cannot access to it");
+						}
 					}
 				}
 

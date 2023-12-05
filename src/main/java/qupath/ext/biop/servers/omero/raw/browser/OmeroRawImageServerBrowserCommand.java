@@ -86,6 +86,7 @@ import javafx.stage.WindowEvent;
 import qupath.ext.biop.servers.omero.raw.OmeroRawExtension;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
+import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.lib.common.ThreadTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
@@ -495,6 +496,11 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                                 // Note: it is possible that another task for the same id exists, but it
                                 // shouldn't cause inconsistent results anyway, since '1 id = 1 thumbnail'
                                 BufferedImage img = OmeroRawTools.getThumbnail(client, selectedObjectLocal.getId(), imgPrefSize);
+                                /*try {
+                                    img = client.getSimpleClient().getImage(selectedObjectLocal.getId()).getThumbnail(client.getSimpleClient(), imgPrefSize);
+                                } catch (Exception e) {
+                                    img = OmeroRawTools.readLocalImage(Utils.NO_IMAGE_THUMBNAIL);
+                                }*/
 
                                 if (img != null) {
                                     thumbnailBank.put(selectedObjectLocal.getId(), img);
@@ -1152,9 +1158,15 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     else {
                         // Get thumbnail from OMERO in separate thread
                         executorThumbnails.submit(() -> {
-                            var loadedImg = OmeroRawTools.getThumbnail(client, item.getId(), imgPrefSize);
+                            BufferedImage loadedImg = OmeroRawTools.getThumbnail(client, item.getId(), imgPrefSize);
+                           /* try {
+                                loadedImg = client.getSimpleClient().getImage(item.getId()).getThumbnail(client.getSimpleClient(), imgPrefSize);
+                            } catch (Exception e2) {
+                                loadedImg = OmeroRawTools.readLocalImage(Utils.NO_IMAGE_THUMBNAIL);
+                            }*/
                             if (loadedImg != null) {
                                 thumbnailBank.put(item.getId(), loadedImg);
+                               // BufferedImage finalLoadedImg = loadedImg;
                                 Platform.runLater(() -> paintBufferedImageOnCanvas(loadedImg, tooltipCanvas, 100));
                             }
                         });
