@@ -170,6 +170,7 @@ public final class OmeroRawTools {
      * @param userId
      * @param username
      * @return The specified OMERO user
+     * @deprecated use {@link OmeroRawTools#getUser(OmeroRawClient, long)} instead
      */
     @Deprecated
     public static ExperimenterWrapper getOmeroUser(OmeroRawClient client, long userId, String username){
@@ -422,47 +423,6 @@ public final class OmeroRawTools {
      * Get user's orphaned datasets from the OMERO server
      *
      * @param client the client {@link OmeroRawClient} object
-     * @param userId
-     * @return List orphaned of datasets
-     * @deprecated user {@link OmeroRawTools#readOrphanedDatasets(OmeroRawClient, ExperimenterWrapper)}
-     */
-    @Deprecated
-    public static Collection<DatasetData> readOrphanedDatasets(OmeroRawClient client, long userId) {
-        try {
-            // query orphaned dataset
-            List<IObject> datasetObjects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select dataset from Dataset as dataset " +
-                    "join fetch dataset.details.owner as o " +
-                    "where o.id = "+ userId +
-                    "and not exists (select obl from " +
-                    "ProjectDatasetLink as obl where obl.child = dataset.id) ", null);
-
-            // get orphaned dataset ids
-            List<Long> datasetIds = datasetObjects.stream()
-                    .map(IObject::getId)
-                    .map(RLong::getValue)
-                    .collect(Collectors.toList());
-
-            // get orphaned datasets
-            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
-
-        } catch (DSOutOfServiceException | ExecutionException | ServerError e) {
-            Dialogs.showErrorMessage("Orphaned datasets","Cannot retrieved orphaned datasets for user "+userId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        } catch (DSAccessException e){
-            Dialogs.showErrorMessage("Orphaned datasets","You don't have the right to access to orphaned dataset of the user "+userId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-    }
-
-
-    /**
-     * Get user's orphaned datasets from the OMERO server
-     *
-     * @param client the client {@link OmeroRawClient} object
      * @param user
      * @return List orphaned of datasets
      */
@@ -485,68 +445,6 @@ public final class OmeroRawTools {
         return client.getSimpleClient().getDatasets(datasetIds);
     }
 
-    /**
-     * Get all orphaned datasets from the OMERO server linked to the current group (contained in the security context of the current client).
-     *
-     * @param client
-     * @return List of orphaned datasets
-     * @deprecated user {@link OmeroRawTools#readOrphanedDatasets(OmeroRawClient, ExperimenterWrapper)}
-     */
-    @Deprecated
-    public static Collection<DatasetData> readOmeroOrphanedDatasets(OmeroRawClient client)  {
-        Collection<DatasetData> orphanedDatasets;
-
-        try {
-            // query orphaned dataset
-            List<IObject> datasetObjects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select dataset from Dataset as dataset " +
-                            "left outer join fetch dataset.details.owner " +
-                            "where not exists (select obl from " +
-                            "ProjectDatasetLink as obl where obl.child = dataset.id) ", null);
-
-            // get orphaned dataset ids
-            List<Long> datasetIds = datasetObjects.stream()
-                    .map(IObject::getId)
-                    .map(RLong::getValue)
-                    .collect(Collectors.toList());
-
-            // get orphaned datasets
-            orphanedDatasets = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
-
-        } catch (DSOutOfServiceException | ExecutionException | ServerError e) {
-            Dialogs.showErrorMessage("Orphaned datasets","Cannot retrieved orphaned datasets");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        } catch (DSAccessException e){
-            Dialogs.showErrorMessage("Orphaned datasets","You don't have the right to access to orphaned dataset");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-
-        return orphanedDatasets;
-    }
-
-
-    /**
-     * Get user's orphaned images from the OMERO server
-     *
-     * @param client
-     * @param userId
-     * @return List of orphaned images
-     * @deprecated use {@link OmeroRawTools#readOrphanedImages(OmeroRawClient, ExperimenterWrapper) instead}
-     */
-    @Deprecated
-    public static Collection<ImageData> readOrphanedImages(OmeroRawClient client, long userId) {
-        try {
-            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getOrphanedImages(client.getSimpleClient().getCtx(), userId);
-        } catch (ExecutionException e) {
-            Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+userId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-    }
 
     /**
      * Get user's orphaned images from the OMERO server
@@ -732,81 +630,6 @@ public final class OmeroRawTools {
     }
 
 
-    /**
-     * Get all OMERO projects corresponding to the list of ids
-     *
-     * @param client
-     * @param projectIds
-     * @return List of OMERO project objects
-     * @deprecated use {@link fr.igred.omero.Client#getProjects(Long...)} instead
-     */
-    @Deprecated
-    public static Collection<ProjectData> readOmeroProjects(OmeroRawClient client, List<Long> projectIds){
-        try {
-            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), projectIds);
-        }catch(ExecutionException | DSOutOfServiceException e){
-            Dialogs.showErrorNotification("Reading projects","An error occurs when reading OMERO projects "+projectIds);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }catch (DSAccessException | NoSuchElementException e){
-            Dialogs.showErrorNotification("Reading projects","You don't have the right to access OMERO projects "+projectIds);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-    }
-
-
-    /**
-     * Get all OMERO projects linked to the specified user.
-     *
-     * @param client
-     * @param userId
-     * @return User's list of OMERO project objects
-     * @deprecated Use {@link fr.igred.omero.Client#getProjects(ExperimenterWrapper)} instead
-     */
-    @Deprecated
-    public static Collection<ProjectData> readOmeroProjectsByUser(OmeroRawClient client, long userId){
-        try {
-            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), userId);
-        }catch(ExecutionException | DSOutOfServiceException e){
-            Dialogs.showErrorNotification("Reading projects by user","An error occurs when reading OMERO projects for the user "+userId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }catch (DSAccessException | NoSuchElementException e){
-            Dialogs.showErrorNotification("Reading projects by user","You don't have the right to access OMERO projects for the user "+userId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * Get all OMERO screens linked to the specified user.
-     *
-     * @param client
-     * @param userId
-     * @return User's list of OMERO project objects
-     * @deprecated Use {@link fr.igred.omero.Client#getScreens(ExperimenterWrapper)} instead
-     */
-    @Deprecated
-    public static Collection<ScreenData> readOmeroScreensByUser(OmeroRawClient client, long userId){
-        try {
-            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getScreens(client.getSimpleClient().getCtx(), userId);
-        }catch(ExecutionException | DSOutOfServiceException e){
-            Dialogs.showErrorNotification("Reading projects by user","An error occurs when reading OMERO projects for the user "+userId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }catch (DSAccessException | NoSuchElementException e){
-            Dialogs.showErrorNotification("Reading projects by user","You don't have the right to access OMERO projects for the user "+userId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-    }
 
     /**
      * Get OMERO corresponding to the id
@@ -824,45 +647,6 @@ public final class OmeroRawTools {
         return datasets.iterator().next();
 
     }
-
-    /**
-     * Get all OMERO datasets corresponding to the list of ids
-     *
-     * @param client
-     * @param datasetIds
-     * @return List of OMERO dataset objects
-     * @deprecated use {@link fr.igred.omero.Client#getDatasets(Long...)}
-     */
-    @Deprecated
-    public static Collection<DatasetData> readOmeroDatasets(OmeroRawClient client, List<Long> datasetIds){
-        try {
-            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
-        }catch(ExecutionException | DSOutOfServiceException e){
-            Dialogs.showErrorNotification("Reading datasets","An error occurs when reading OMERO datasets "+datasetIds);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }catch (DSAccessException | NoSuchElementException e){
-            Dialogs.showErrorNotification("Reading datasets","You don't have the right to access OMERO datasets "+datasetIds);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * Get all OMERO datasets corresponding to the list of ids
-     *
-     * @param client
-     * @param plateIds
-     * @return List of OMERO dataset objects
-     * @deprecated use {@link OmeroRawTools#readPlates(OmeroRawClient, List)} instead
-     */
-    @Deprecated
-    public static Collection<PlateData> readOmeroPlates(OmeroRawClient client, List<Long> plateIds){
-        return readPlates(client, plateIds).stream().map(PlateWrapper::asDataObject).collect(Collectors.toList());
-    }
-
 
     /**
      * Get all OMERO datasets corresponding to the list of ids
@@ -895,31 +679,6 @@ public final class OmeroRawTools {
         }catch (NoSuchElementException e){
             Dialogs.showErrorNotification("Reading plates","You don't have the right to access OMERO plates "+plateIds);
             logger.error(e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * Get all OMERO wells corresponding to the plate id
-     *
-     * @param client
-     * @param plateId
-     * @return List of OMERO dataset objects
-     * @deprecated use {@link fr.igred.omero.repository.PlateWrapper#getWells(Client)}
-     */
-    @Deprecated
-    public static Collection<WellData> readOmeroWells(OmeroRawClient client, long plateId){
-        try {
-            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getWells(client.getSimpleClient().getCtx(), plateId);
-        }catch(ExecutionException | DSOutOfServiceException e){
-            Dialogs.showErrorNotification("Reading datasets","An error occurs when reading wells in plate "+plateId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }catch (DSAccessException | NoSuchElementException e){
-            Dialogs.showErrorNotification("Reading wells","You don't have the right to access wells in plate "+plateId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
             return Collections.emptyList();
         }
     }
@@ -971,51 +730,6 @@ public final class OmeroRawTools {
             return Collections.emptyList();
         }
     }
-
-
-    /**
-     * Get annotations (i.e. tag, key-value, comment...) attached to an image on OMERO, specified by its id.
-     *
-     * @param client
-     * @param obj
-     * @return List of annotation objects
-     * @deprecated
-     */
-    @Deprecated
-    public static List<AnnotationData> readOmeroAnnotations(OmeroRawClient client, DataObject obj){
-        try {
-             // read annotations linked to the image
-            return client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), obj);
-
-        } catch(ExecutionException | DSOutOfServiceException e) {
-            Dialogs.showErrorNotification("Reading OMERO annotations", "Cannot get annotations from OMERO for the object "+obj);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        } catch (DSAccessException e){
-            Dialogs.showErrorNotification("Reading OMERO annotations","You don't have the right to read annotations on OMERO for the object "+obj);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-    }
-
-    public static AnnotationList readOmeroAnnotations(OmeroRawClient client, GenericRepositoryObjectWrapper<? extends DataObject> obj){
-        try {
-            // read annotations linked to the image
-            return obj.getAnnotations(client.getSimpleClient());
-        } catch(ExecutionException | DSOutOfServiceException e) {
-            Dialogs.showErrorNotification("Reading OMERO annotations", "Cannot get annotations from OMERO for the object "+obj);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-        } catch (DSAccessException e) {
-            Dialogs.showErrorNotification("Reading OMERO annotations", "You don't have the right to read annotations on OMERO for the object " + obj);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-        }
-        return null;
-    }
-
 
     /**
      * Get the image file format (ex. .lif, .vsi,...)
@@ -1545,62 +1259,6 @@ public final class OmeroRawTools {
 
 
     /**
-     * Delete all existing ROIs on OMERO that are linked to an image, specified by its id.
-     *
-     * @param client
-     * @param imageId
-     * @deprecated use {@link OmeroRawTools#deleteROIs(OmeroRawClient, Collection)} instead
-     */
-    @Deprecated
-    public static void deleteAllOmeroROIs(OmeroRawClient client, long imageId) {
-        try {
-            // extract ROIData
-            List<IObject> roiData = fetchROIs(client, imageId).stream().map(ROIWrapper::asDataObject).map(ROIData::asIObject).collect(Collectors.toList());
-
-            // delete ROis
-            if(client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), roiData) == null)
-                Dialogs.showInfoNotification("ROI deletion","No ROIs to delete of cannot delete them");
-
-        } catch (DSOutOfServiceException |  ExecutionException e){
-            Dialogs.showErrorNotification("ROI deletion","Could not delete existing ROIs on OMERO.");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-        } catch (DSAccessException e) {
-            Dialogs.showErrorNotification("ROI deletion", "You don't have the right to delete ROIs on OMERO on the image  " + imageId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-        }
-    }
-
-    /**
-     * Delete the specified ROIs on OMERO that are linked to an image, specified by its id.
-     *
-     * @param client
-     * @param roisToDelete
-     * @deprecated use {@link OmeroRawTools#deleteROIs(OmeroRawClient, Collection)} e} instead
-     */
-    @Deprecated
-    public static void deleteOmeroROIs(OmeroRawClient client, Collection<ROIData> roisToDelete) {
-        try {
-            // Convert to IObject
-            List<IObject> roiData = roisToDelete.stream().map(ROIData::asIObject).collect(Collectors.toList());
-
-            // delete ROis
-            if(client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), roiData) == null)
-                Dialogs.showInfoNotification("ROI deletion","No ROIs to delete");
-
-        } catch (DSOutOfServiceException |  ExecutionException e){
-            Dialogs.showErrorNotification("ROI deletion","Could not delete existing ROIs on OMERO.");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-        } catch (DSAccessException e) {
-            Dialogs.showErrorNotification("ROI deletion", "You don't have the right to delete those ROIs on OMERO");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-        }
-    }
-
-    /**
      * Delete the specified ROIs on OMERO that are linked to an image, specified by its id.
      *
      * @param client
@@ -1612,40 +1270,6 @@ public final class OmeroRawTools {
             client.getSimpleClient().delete(roisToDelete);
     }
 
-    /**
-     * Send ROIs to OMERO server and attached them to the specified image.
-     *
-     * @param client
-     * @param imageId
-     * @param omeroRois
-     * @return Sending status (True if sent ; false with error message otherwise)
-     * @deprecated use {@link OmeroRawTools#addROIs(OmeroRawClient, long, List)} instead
-     */
-    @Deprecated
-    public static boolean writeOmeroROIs(OmeroRawClient client, long imageId, List<ROIData> omeroRois) {
-        boolean roiSaved = false;
-
-        // import ROIs on OMERO
-        if (!(omeroRois.isEmpty())) {
-            try {
-                // save ROIs
-                client.getSimpleClient().getGateway().getFacility(ROIFacility.class).saveROIs(client.getSimpleClient().getCtx(), imageId, client.getSimpleClient().getGateway().getLoggedInUser().getId(), omeroRois);
-                roiSaved = true;
-            } catch (ExecutionException | DSOutOfServiceException e){
-                Dialogs.showErrorNotification("ROI Saving","Error during saving ROIs on OMERO.");
-                logger.error(String.valueOf(e));
-                logger.error(getErrorStackTraceAsString(e));
-            } catch (DSAccessException e){
-                Dialogs.showErrorNotification("ROI Saving","You don't have the right to write ROIs from OMERO on the image "+imageId);
-                logger.error(String.valueOf(e));
-                logger.error(getErrorStackTraceAsString(e));
-            }
-        } else {
-            Dialogs.showInfoNotification("Upload annotations","There is no Annotations to upload on OMERO");
-        }
-
-        return roiSaved;
-    }
 
     /**
      * Send ROIs to OMERO server and attached them to the specified image.
@@ -1681,66 +1305,6 @@ public final class OmeroRawTools {
         return client.getSimpleClient().getImage(imageId).getROIs(client.getSimpleClient());
     }
 
-    /**
-     * Convert QuPath pathObjects into OMERO ROIs.
-     *
-     * @param pathObjects
-     * @return List of OMERO ROIs
-     * @deprecated Method removed
-     */
-    @Deprecated
-    public static List<ROIWrapper> createOmeroROIsFromPathObjects(Collection<PathObject> pathObjects){
-        return OmeroRawShapes.createOmeroROIsFromPathObjects(pathObjects);
-    }
-
-    /**
-     * Convert OMERO ROIs into QuPath pathObjects
-     *
-     * @param roiWrapperList
-     * @return List of QuPath pathObjects
-     * @deprecated Method removed
-     */
-    @Deprecated
-    public static Collection<PathObject> createPathObjectsFromOmeroROIs(List<ROIWrapper> roiWrapperList){
-        return OmeroRawShapes.createPathObjectsFromOmeroROIs(roiWrapperList);
-    }
-
-    /**
-     * Read the comment attached to one shape of an OMERO ROI.
-     *
-     * @param shape
-     * @return The shape comment
-     * @deprecated Method removed
-     */
-    @Deprecated
-    public static String getROIComment(Shape shape){
-        return OmeroRawShapes.getROIComment(shape);
-    }
-
-    /**
-     * Read the comments attach to an OMERO ROI (i.e. read each comment attached to each shape of the ROI)
-     *
-     * @param roiData
-     * @return List of comments
-     * @deprecated Method removed
-     */
-    @Deprecated
-    public static List<String> getROIComment(ROIData roiData) {
-        return OmeroRawShapes.getROIComment(new ROIWrapper(roiData));
-    }
-
-    /**
-     * Parse the comment based on the format introduced in {OmeroRawShapes.setRoiComment(PathObject src, String objectID, String parentID)}
-     *
-     * @param comment
-     * @return The split comment
-     * @deprecated Method removed
-     */
-    @Deprecated
-    public static String[] parseROIComment(String comment) {
-        return OmeroRawShapes.parseROIComment(comment);
-    }
-
 
     /**
      * Splits the "target" map into two parts : one part containing key/values that are referenced in the "reference" map and
@@ -1769,36 +1333,6 @@ public final class OmeroRawTools {
         results.add(updatedKV);
 
         return results;
-    }
-
-
-    /**
-     * Get key-value pairs from OMERO server attached to the specified image.
-     *
-     * @param client
-     * @param imageId
-     * @return List of Key-Value pairs as annotation objects
-     * @deprecated use {@link ImageWrapper#getMapAnnotations(Client)} instead
-     */
-    @Deprecated
-    public static List<MapAnnotationData> readKeyValues(OmeroRawClient client, long imageId) {
-        List<MapAnnotationData> annotations;
-
-        try {
-            // get current image from OMERO
-            ImageWrapper imageWrapper = client.getSimpleClient().getImage(imageId);
-            // read annotations linked to the image
-            List<MapAnnotationWrapper> annotationWrappers = imageWrapper.getMapAnnotations(client.getSimpleClient());
-            annotations = annotationWrappers.stream().map(MapAnnotationWrapper::asDataObject).collect(Collectors.toList());
-        }catch(ExecutionException | DSOutOfServiceException | DSAccessException e) {
-            Dialogs.showErrorNotification("Reading OMERO key value pairs", "Cannot get key values from OMERO");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
-
-        // filter key values
-        return annotations;
     }
 
 
@@ -2016,20 +1550,6 @@ public final class OmeroRawTools {
         }
     }
 
-    /**
-     * Read key value pairs from OMERO server and convert them into NamedValue OMERO-compatible-objects.
-     *
-     * @param client
-     * @param imageId
-     * @return List of NamedValue objects.
-     * @deprecated use {@link MapAnnotationWrapper#getContent()} instead
-     */
-    @Deprecated
-    public static List<NamedValue> readKeyValuesAsNamedValue(OmeroRawClient client, long imageId) {
-        return readKeyValues(client, imageId).stream()
-                .flatMap(e->((List<NamedValue>)(e.getContent())).stream())
-                .collect(Collectors.toList());
-    }
 
     /**
      * Unlink tags from an image on OMERO
@@ -2056,105 +1576,6 @@ public final class OmeroRawTools {
             logger.error(String.valueOf(e));
             logger.error(getErrorStackTraceAsString(e));
         }
-    }
-
-    /**
-     * Send key value pairs on OMERO and attach them to the specified image.
-     *
-     * @param keyValuePairs
-     * @param client
-     * @param imageId
-     * @return Sending status (True if sent ; false with error message otherwise)
-     * @deprecated use {@link GenericRepositoryObjectWrapper#link(Client, GenericAnnotationWrapper)} instead
-     */
-    @Deprecated
-    public static boolean addKeyValuesOnOmero(MapAnnotationData keyValuePairs, OmeroRawClient client, long imageId) {
-        boolean wasAdded = true;
-        try {
-            // get current image from OMERO
-            ImageWrapper imageWrapper = client.getSimpleClient().getImage(imageId);
-
-            // send key-values to OMERO
-            imageWrapper.link(client.getSimpleClient(), new MapAnnotationWrapper(keyValuePairs));
-        }catch(ExecutionException | DSOutOfServiceException  e) {
-            Dialogs.showErrorNotification("Adding OMERO KeyValues", "Cannot add new key values on OMERO");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            wasAdded = false;
-        }catch(DSAccessException e) {
-            Dialogs.showErrorNotification("Adding OMERO KeyValues", "You don't have the right to add some key value pairs on OMERO on the image "+imageId);
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            wasAdded = false;
-        }
-        return wasAdded;
-    }
-
-    /**
-     * Update specified key value pairs on OMERO server.
-     *
-     * @param keyValuePairs
-     * @param client
-     * @return Updating status (True if updated ; false with error message otherwise)
-     * @deprecated method removed
-     */
-    @Deprecated
-    public static boolean updateKeyValuesOnOmero(List<MapAnnotationData> keyValuePairs, OmeroRawClient client) {
-        boolean wasUpdated = true;
-        try {
-            // update key-values to OMERO
-            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).updateObjects(client.getSimpleClient().getCtx(), keyValuePairs.stream().map(MapAnnotationData::asIObject).collect(Collectors.toList()),null);
-        }catch(ExecutionException | DSOutOfServiceException e) {
-            Dialogs.showErrorNotification("OMERO KeyValues update", "Cannot update existing key values on OMERO");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            wasUpdated = false;
-        }catch(DSAccessException e) {
-            Dialogs.showErrorNotification("Adding OMERO KeyValues", "You don't have the right to update key value pairs on OMERO");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            wasUpdated = false;
-        }
-        return wasUpdated;
-    }
-
-    /**
-     * Delete specified key value pairs on OMERO server
-     *
-     * @param keyValuePairs
-     * @param client
-     * @return Deleting status (True if deleted ; false with error message otherwise)
-     * @deprecated use {@link GenericRepositoryObjectWrapper#link(Client, GenericAnnotationWrapper[])} instead
-     */
-    @Deprecated
-    public static boolean deleteKeyValuesOnOmero(List<MapAnnotationData> keyValuePairs, OmeroRawClient client) {
-        boolean wasDeleted = true;
-        try {
-            // remove current key-values
-            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), keyValuePairs.stream().map(MapAnnotationData::asIObject).collect(Collectors.toList()));
-        } catch(ExecutionException | DSOutOfServiceException | DSAccessException e) {
-            Dialogs.showErrorNotification("OMERO KeyValues deletion", "Cannot delete existing key values on OMERO");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
-            wasDeleted = false;
-        }
-        return wasDeleted;
-    }
-
-
-
-    /**
-     * Try to solve an error in OMERO regarding the keys creation.
-     * On OMERO, it is possible to have two identical keys with a different value. This should normally never append.
-     * This method checks if all keys are unique and output false if there is at least two identical keys.
-     *
-     * @param keyValues
-     * @return Check status (True if all keys unique ; false otherwise)
-     * @deprecated method moved with a non-public access
-     */
-    @Deprecated
-    public static boolean checkUniqueKeyInAnnotationMap(List<NamedValue> keyValues){
-      return Utils.checkUniqueKeyInAnnotationMap(keyValues);
     }
 
 
@@ -2352,17 +1773,6 @@ public final class OmeroRawTools {
     }
 
 
-//	/**
-//	 * Return a list of all {@code OmeroWebClient}s that are using the specified URI (based on their {@code host}).
-//	 * @param uri
-//	 * @return
-//	 */
-//	public static OmeroWebClient getWebClients(URI uri) {
-//		var webclients = OmeroWebClients.getAllClients();
-//		return webclients.values().parallelStream().flatMap(List::stream).filter(e -> e.getURI().getHost().equals(uri.getHost())).collect(Collectors.toList());
-//	}
-
-
     /**
      * Return a clean URI of the server from which the given URI is specified. This method relies on
      * the specified {@code uri} to be formed properly (with at least a scheme and a host).
@@ -2464,4 +1874,580 @@ public final class OmeroRawTools {
                 (localTime.getSecond() < 10 ? "0"+localTime.getSecond():localTime.getSecond());
 
     }
+
+    /*
+     *
+     *
+     *                                           Deprecated methods
+     *
+     *
+     */
+
+    /**
+     * Get annotations (i.e. tag, key-value, comment...) attached to an image on OMERO, specified by its id.
+     *
+     * @param client
+     * @param obj
+     * @return List of annotation objects
+     * @deprecated use  {@link GenericRepositoryObjectWrapper#getAnnotations(Client)} instead
+     */
+    @Deprecated
+    public static List<AnnotationData> readOmeroAnnotations(OmeroRawClient client, DataObject obj){
+        try {
+            // read annotations linked to the image
+            return client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), obj);
+
+        } catch(ExecutionException | DSOutOfServiceException e) {
+            Dialogs.showErrorNotification("Reading OMERO annotations", "Cannot get annotations from OMERO for the object "+obj);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        } catch (DSAccessException e){
+            Dialogs.showErrorNotification("Reading OMERO annotations","You don't have the right to read annotations on OMERO for the object "+obj);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Get all OMERO wells corresponding to the plate id
+     *
+     * @param client
+     * @param plateId
+     * @return List of OMERO dataset objects
+     * @deprecated use {@link fr.igred.omero.repository.PlateWrapper#getWells(Client)}
+     */
+    @Deprecated
+    public static Collection<WellData> readOmeroWells(OmeroRawClient client, long plateId){
+        try {
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getWells(client.getSimpleClient().getCtx(), plateId);
+        }catch(ExecutionException | DSOutOfServiceException e){
+            Dialogs.showErrorNotification("Reading datasets","An error occurs when reading wells in plate "+plateId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }catch (DSAccessException | NoSuchElementException e){
+            Dialogs.showErrorNotification("Reading wells","You don't have the right to access wells in plate "+plateId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Get user's orphaned images from the OMERO server
+     *
+     * @param client
+     * @param userId
+     * @return List of orphaned images
+     * @deprecated use {@link OmeroRawTools#readOrphanedImages(OmeroRawClient, ExperimenterWrapper) instead}
+     */
+    @Deprecated
+    public static Collection<ImageData> readOrphanedImages(OmeroRawClient client, long userId) {
+        try {
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getOrphanedImages(client.getSimpleClient().getCtx(), userId);
+        } catch (ExecutionException e) {
+            Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+userId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Get all orphaned datasets from the OMERO server linked to the current group (contained in the security context of the current client).
+     *
+     * @param client
+     * @return List of orphaned datasets
+     * @deprecated user {@link OmeroRawTools#readOrphanedDatasets(OmeroRawClient, ExperimenterWrapper)}
+     */
+    @Deprecated
+    public static Collection<DatasetData> readOmeroOrphanedDatasets(OmeroRawClient client)  {
+        Collection<DatasetData> orphanedDatasets;
+
+        try {
+            // query orphaned dataset
+            List<IObject> datasetObjects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select dataset from Dataset as dataset " +
+                    "left outer join fetch dataset.details.owner " +
+                    "where not exists (select obl from " +
+                    "ProjectDatasetLink as obl where obl.child = dataset.id) ", null);
+
+            // get orphaned dataset ids
+            List<Long> datasetIds = datasetObjects.stream()
+                    .map(IObject::getId)
+                    .map(RLong::getValue)
+                    .collect(Collectors.toList());
+
+            // get orphaned datasets
+            orphanedDatasets = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
+
+        } catch (DSOutOfServiceException | ExecutionException | ServerError e) {
+            Dialogs.showErrorMessage("Orphaned datasets","Cannot retrieved orphaned datasets");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        } catch (DSAccessException e){
+            Dialogs.showErrorMessage("Orphaned datasets","You don't have the right to access to orphaned dataset");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+
+        return orphanedDatasets;
+    }
+
+    /**
+     * Get user's orphaned datasets from the OMERO server
+     *
+     * @param client the client {@link OmeroRawClient} object
+     * @param userId
+     * @return List orphaned of datasets
+     * @deprecated user {@link OmeroRawTools#readOrphanedDatasets(OmeroRawClient, ExperimenterWrapper)}
+     */
+    @Deprecated
+    public static Collection<DatasetData> readOrphanedDatasets(OmeroRawClient client, long userId) {
+        try {
+            // query orphaned dataset
+            List<IObject> datasetObjects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select dataset from Dataset as dataset " +
+                    "join fetch dataset.details.owner as o " +
+                    "where o.id = "+ userId +
+                    "and not exists (select obl from " +
+                    "ProjectDatasetLink as obl where obl.child = dataset.id) ", null);
+
+            // get orphaned dataset ids
+            List<Long> datasetIds = datasetObjects.stream()
+                    .map(IObject::getId)
+                    .map(RLong::getValue)
+                    .collect(Collectors.toList());
+
+            // get orphaned datasets
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
+
+        } catch (DSOutOfServiceException | ExecutionException | ServerError e) {
+            Dialogs.showErrorMessage("Orphaned datasets","Cannot retrieved orphaned datasets for user "+userId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        } catch (DSAccessException e){
+            Dialogs.showErrorMessage("Orphaned datasets","You don't have the right to access to orphaned dataset of the user "+userId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Get all OMERO projects corresponding to the list of ids
+     *
+     * @param client
+     * @param projectIds
+     * @return List of OMERO project objects
+     * @deprecated use {@link fr.igred.omero.Client#getProjects(Long...)} instead
+     */
+    @Deprecated
+    public static Collection<ProjectData> readOmeroProjects(OmeroRawClient client, List<Long> projectIds){
+        try {
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), projectIds);
+        }catch(ExecutionException | DSOutOfServiceException e){
+            Dialogs.showErrorNotification("Reading projects","An error occurs when reading OMERO projects "+projectIds);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }catch (DSAccessException | NoSuchElementException e){
+            Dialogs.showErrorNotification("Reading projects","You don't have the right to access OMERO projects "+projectIds);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+    }
+
+
+    /**
+     * Get all OMERO projects linked to the specified user.
+     *
+     * @param client
+     * @param userId
+     * @return User's list of OMERO project objects
+     * @deprecated Use {@link fr.igred.omero.Client#getProjects(ExperimenterWrapper)} instead
+     */
+    @Deprecated
+    public static Collection<ProjectData> readOmeroProjectsByUser(OmeroRawClient client, long userId){
+        try {
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), userId);
+        }catch(ExecutionException | DSOutOfServiceException e){
+            Dialogs.showErrorNotification("Reading projects by user","An error occurs when reading OMERO projects for the user "+userId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }catch (DSAccessException | NoSuchElementException e){
+            Dialogs.showErrorNotification("Reading projects by user","You don't have the right to access OMERO projects for the user "+userId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Get all OMERO screens linked to the specified user.
+     *
+     * @param client
+     * @param userId
+     * @return User's list of OMERO project objects
+     * @deprecated Use {@link fr.igred.omero.Client#getScreens(ExperimenterWrapper)} instead
+     */
+    @Deprecated
+    public static Collection<ScreenData> readOmeroScreensByUser(OmeroRawClient client, long userId){
+        try {
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getScreens(client.getSimpleClient().getCtx(), userId);
+        }catch(ExecutionException | DSOutOfServiceException e){
+            Dialogs.showErrorNotification("Reading projects by user","An error occurs when reading OMERO projects for the user "+userId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }catch (DSAccessException | NoSuchElementException e){
+            Dialogs.showErrorNotification("Reading projects by user","You don't have the right to access OMERO projects for the user "+userId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Get all OMERO datasets corresponding to the list of ids
+     *
+     * @param client
+     * @param datasetIds
+     * @return List of OMERO dataset objects
+     * @deprecated use {@link fr.igred.omero.Client#getDatasets(Long...)}
+     */
+    @Deprecated
+    public static Collection<DatasetData> readOmeroDatasets(OmeroRawClient client, List<Long> datasetIds){
+        try {
+            return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
+        }catch(ExecutionException | DSOutOfServiceException e){
+            Dialogs.showErrorNotification("Reading datasets","An error occurs when reading OMERO datasets "+datasetIds);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }catch (DSAccessException | NoSuchElementException e){
+            Dialogs.showErrorNotification("Reading datasets","You don't have the right to access OMERO datasets "+datasetIds);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Get all OMERO datasets corresponding to the list of ids
+     *
+     * @param client
+     * @param plateIds
+     * @return List of OMERO dataset objects
+     * @deprecated use {@link OmeroRawTools#readPlates(OmeroRawClient, List)} instead
+     */
+    @Deprecated
+    public static Collection<PlateData> readOmeroPlates(OmeroRawClient client, List<Long> plateIds){
+        return readPlates(client, plateIds).stream().map(PlateWrapper::asDataObject).collect(Collectors.toList());
+    }
+
+
+    /**
+     * Delete all existing ROIs on OMERO that are linked to an image, specified by its id.
+     *
+     * @param client
+     * @param imageId
+     * @deprecated use {@link OmeroRawTools#deleteROIs(OmeroRawClient, Collection)} instead
+     */
+    @Deprecated
+    public static void deleteAllOmeroROIs(OmeroRawClient client, long imageId) {
+        try {
+            // extract ROIData
+            List<IObject> roiData = fetchROIs(client, imageId).stream().map(ROIWrapper::asDataObject).map(ROIData::asIObject).collect(Collectors.toList());
+
+            // delete ROis
+            if(client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), roiData) == null)
+                Dialogs.showInfoNotification("ROI deletion","No ROIs to delete of cannot delete them");
+
+        } catch (DSOutOfServiceException |  ExecutionException e){
+            Dialogs.showErrorNotification("ROI deletion","Could not delete existing ROIs on OMERO.");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+        } catch (DSAccessException e) {
+            Dialogs.showErrorNotification("ROI deletion", "You don't have the right to delete ROIs on OMERO on the image  " + imageId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+        }
+    }
+
+    /**
+     * Delete the specified ROIs on OMERO that are linked to an image, specified by its id.
+     *
+     * @param client
+     * @param roisToDelete
+     * @deprecated use {@link OmeroRawTools#deleteROIs(OmeroRawClient, Collection)} e} instead
+     */
+    @Deprecated
+    public static void deleteOmeroROIs(OmeroRawClient client, Collection<ROIData> roisToDelete) {
+        try {
+            // Convert to IObject
+            List<IObject> roiData = roisToDelete.stream().map(ROIData::asIObject).collect(Collectors.toList());
+
+            // delete ROis
+            if(client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), roiData) == null)
+                Dialogs.showInfoNotification("ROI deletion","No ROIs to delete");
+
+        } catch (DSOutOfServiceException |  ExecutionException e){
+            Dialogs.showErrorNotification("ROI deletion","Could not delete existing ROIs on OMERO.");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+        } catch (DSAccessException e) {
+            Dialogs.showErrorNotification("ROI deletion", "You don't have the right to delete those ROIs on OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+        }
+    }
+
+    /**
+     * Send ROIs to OMERO server and attached them to the specified image.
+     *
+     * @param client
+     * @param imageId
+     * @param omeroRois
+     * @return Sending status (True if sent ; false with error message otherwise)
+     * @deprecated use {@link OmeroRawTools#addROIs(OmeroRawClient, long, List)} instead
+     */
+    @Deprecated
+    public static boolean writeOmeroROIs(OmeroRawClient client, long imageId, List<ROIData> omeroRois) {
+        boolean roiSaved = false;
+
+        // import ROIs on OMERO
+        if (!(omeroRois.isEmpty())) {
+            try {
+                // save ROIs
+                client.getSimpleClient().getGateway().getFacility(ROIFacility.class).saveROIs(client.getSimpleClient().getCtx(), imageId, client.getSimpleClient().getGateway().getLoggedInUser().getId(), omeroRois);
+                roiSaved = true;
+            } catch (ExecutionException | DSOutOfServiceException e){
+                Dialogs.showErrorNotification("ROI Saving","Error during saving ROIs on OMERO.");
+                logger.error(String.valueOf(e));
+                logger.error(getErrorStackTraceAsString(e));
+            } catch (DSAccessException e){
+                Dialogs.showErrorNotification("ROI Saving","You don't have the right to write ROIs from OMERO on the image "+imageId);
+                logger.error(String.valueOf(e));
+                logger.error(getErrorStackTraceAsString(e));
+            }
+        } else {
+            Dialogs.showInfoNotification("Upload annotations","There is no Annotations to upload on OMERO");
+        }
+
+        return roiSaved;
+    }
+
+    /**
+     * Convert QuPath pathObjects into OMERO ROIs.
+     *
+     * @param pathObjects
+     * @return List of OMERO ROIs
+     * @deprecated Method moved with a non-public access
+     */
+    @Deprecated
+    public static List<ROIWrapper> createOmeroROIsFromPathObjects(Collection<PathObject> pathObjects){
+        return OmeroRawShapes.createOmeroROIsFromPathObjects(pathObjects);
+    }
+
+    /**
+     * Convert OMERO ROIs into QuPath pathObjects
+     *
+     * @param roiWrapperList
+     * @return List of QuPath pathObjects
+     * @deprecated Method moved with a non-public access
+     */
+    @Deprecated
+    public static Collection<PathObject> createPathObjectsFromOmeroROIs(List<ROIWrapper> roiWrapperList){
+        return OmeroRawShapes.createPathObjectsFromOmeroROIs(roiWrapperList);
+    }
+
+    /**
+     * Read the comment attached to one shape of an OMERO ROI.
+     *
+     * @param shape
+     * @return The shape comment
+     * @deprecated Method moved with a non-public access
+     */
+    @Deprecated
+    public static String getROIComment(Shape shape){
+        return OmeroRawShapes.getROIComment(shape);
+    }
+
+    /**
+     * Read the comments attach to an OMERO ROI (i.e. read each comment attached to each shape of the ROI)
+     *
+     * @param roiData
+     * @return List of comments
+     * @deprecated Method moved with a non-public access
+     */
+    @Deprecated
+    public static List<String> getROIComment(ROIData roiData) {
+        return OmeroRawShapes.getROIComment(new ROIWrapper(roiData));
+    }
+
+    /**
+     * Parse the comment based on the format introduced in {OmeroRawShapes.setRoiComment(PathObject src, String objectID, String parentID)}
+     *
+     * @param comment
+     * @return The split comment
+     * @deprecated Method moved with a non-public access
+     */
+    @Deprecated
+    public static String[] parseROIComment(String comment) {
+        return OmeroRawShapes.parseROIComment(comment);
+    }
+
+
+
+    /**
+     * Update specified key value pairs on OMERO server.
+     *
+     * @param keyValuePairs
+     * @param client
+     * @return Updating status (True if updated ; false with error message otherwise)
+     * @deprecated method removed
+     */
+    @Deprecated
+    public static boolean updateKeyValuesOnOmero(List<MapAnnotationData> keyValuePairs, OmeroRawClient client) {
+        boolean wasUpdated = true;
+        try {
+            // update key-values to OMERO
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).updateObjects(client.getSimpleClient().getCtx(), keyValuePairs.stream().map(MapAnnotationData::asIObject).collect(Collectors.toList()),null);
+        }catch(ExecutionException | DSOutOfServiceException e) {
+            Dialogs.showErrorNotification("OMERO KeyValues update", "Cannot update existing key values on OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            wasUpdated = false;
+        }catch(DSAccessException e) {
+            Dialogs.showErrorNotification("Adding OMERO KeyValues", "You don't have the right to update key value pairs on OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            wasUpdated = false;
+        }
+        return wasUpdated;
+    }
+
+    /**
+     * Delete specified key value pairs on OMERO server
+     *
+     * @param keyValuePairs
+     * @param client
+     * @return Deleting status (True if deleted ; false with error message otherwise)
+     * @deprecated use {@link GenericRepositoryObjectWrapper#link(Client, GenericAnnotationWrapper[])} instead
+     */
+    @Deprecated
+    public static boolean deleteKeyValuesOnOmero(List<MapAnnotationData> keyValuePairs, OmeroRawClient client) {
+        boolean wasDeleted = true;
+        try {
+            // remove current key-values
+            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).delete(client.getSimpleClient().getCtx(), keyValuePairs.stream().map(MapAnnotationData::asIObject).collect(Collectors.toList()));
+        } catch(ExecutionException | DSOutOfServiceException | DSAccessException e) {
+            Dialogs.showErrorNotification("OMERO KeyValues deletion", "Cannot delete existing key values on OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            wasDeleted = false;
+        }
+        return wasDeleted;
+    }
+
+
+
+    /**
+     * Try to solve an error in OMERO regarding the keys creation.
+     * On OMERO, it is possible to have two identical keys with a different value. This should normally never append.
+     * This method checks if all keys are unique and output false if there is at least two identical keys.
+     *
+     * @param keyValues
+     * @return Check status (True if all keys unique ; false otherwise)
+     * @deprecated method moved with a non-public access
+     */
+    @Deprecated
+    public static boolean checkUniqueKeyInAnnotationMap(List<NamedValue> keyValues){
+        return Utils.checkUniqueKeyInAnnotationMap(keyValues);
+    }
+
+    /**
+     * Send key value pairs on OMERO and attach them to the specified image.
+     *
+     * @param keyValuePairs
+     * @param client
+     * @param imageId
+     * @return Sending status (True if sent ; false with error message otherwise)
+     * @deprecated use {@link GenericRepositoryObjectWrapper#link(Client, GenericAnnotationWrapper)} instead
+     */
+    @Deprecated
+    public static boolean addKeyValuesOnOmero(MapAnnotationData keyValuePairs, OmeroRawClient client, long imageId) {
+        boolean wasAdded = true;
+        try {
+            // get current image from OMERO
+            ImageWrapper imageWrapper = client.getSimpleClient().getImage(imageId);
+
+            // send key-values to OMERO
+            imageWrapper.link(client.getSimpleClient(), new MapAnnotationWrapper(keyValuePairs));
+        }catch(ExecutionException | DSOutOfServiceException  e) {
+            Dialogs.showErrorNotification("Adding OMERO KeyValues", "Cannot add new key values on OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            wasAdded = false;
+        }catch(DSAccessException e) {
+            Dialogs.showErrorNotification("Adding OMERO KeyValues", "You don't have the right to add some key value pairs on OMERO on the image "+imageId);
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            wasAdded = false;
+        }
+        return wasAdded;
+    }
+
+    /**
+     * Read key value pairs from OMERO server and convert them into NamedValue OMERO-compatible-objects.
+     *
+     * @param client
+     * @param imageId
+     * @return List of NamedValue objects.
+     * @deprecated use {@link MapAnnotationWrapper#getContent()} instead
+     */
+    @Deprecated
+    public static List<NamedValue> readKeyValuesAsNamedValue(OmeroRawClient client, long imageId) {
+        return readKeyValues(client, imageId).stream()
+                .flatMap(e->((List<NamedValue>)(e.getContent())).stream())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get key-value pairs from OMERO server attached to the specified image.
+     *
+     * @param client
+     * @param imageId
+     * @return List of Key-Value pairs as annotation objects
+     * @deprecated use {@link ImageWrapper#getMapAnnotations(Client)} instead
+     */
+    @Deprecated
+    public static List<MapAnnotationData> readKeyValues(OmeroRawClient client, long imageId) {
+        List<MapAnnotationData> annotations;
+
+        try {
+            // get current image from OMERO
+            ImageWrapper imageWrapper = client.getSimpleClient().getImage(imageId);
+            // read annotations linked to the image
+            List<MapAnnotationWrapper> annotationWrappers = imageWrapper.getMapAnnotations(client.getSimpleClient());
+            annotations = annotationWrappers.stream().map(MapAnnotationWrapper::asDataObject).collect(Collectors.toList());
+        }catch(ExecutionException | DSOutOfServiceException | DSAccessException e) {
+            Dialogs.showErrorNotification("Reading OMERO key value pairs", "Cannot get key values from OMERO");
+            logger.error(String.valueOf(e));
+            logger.error(getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+
+        // filter key values
+        return annotations;
+    }
+
+
+
 }

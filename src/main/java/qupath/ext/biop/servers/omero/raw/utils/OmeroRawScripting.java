@@ -493,206 +493,6 @@ public class OmeroRawScripting {
     }
 
     /**
-     * Add new QuPath metadata to the current image in the QuPath project.
-     * <br>
-     * Existing keys in QuPath are :
-     * <p>
-     * <ul>
-     * <li> deleted : NO </li>
-     * <li> updated : NO </li>
-     * </ul>
-     * <p>
-     *
-     * @param keyValues map of key-values
-     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
-     */
-    @Deprecated
-    public static void addMetadata(Map<String,String> keyValues) {
-        // get project entry
-        ProjectImageEntry<BufferedImage> entry = QP.getProjectEntry();
-
-        // get qupath metadata
-        Map<String, String> qpMetadata = entry.getMetadataMap();
-
-        // split key value pairs into those that already exist in QuPath and those that need to be added
-        List<Map<String,String>> splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(qpMetadata, keyValues);
-        Map<String,String> newKV = splitKeyValues.get(1);
-
-        // add metadata
-        newKV.forEach(entry::putMetadataValue);
-    }
-
-
-    /**
-     * Read and add OMERO Key-Value pairs as QuPath metadata to the current image in the QuPath project.
-     * <br>
-     * Existing keys in QuPath are :
-     * <p>
-     * <ul>
-     * <li> deleted : NO </li>
-     * <li> updated : NO </li>
-     * </ul>
-     * <p>
-     *
-     * @param imageServer ImageServer of an image loaded from OMERO
-     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
-     */
-    @Deprecated
-    public static void addOmeroKeyValues(OmeroRawImageServer imageServer) {
-        // read OMERO key-values and check if they are unique. If not, stop the process
-        Map<String,String> omeroKeyValuePairs = importOmeroKeyValues(imageServer);
-        if(omeroKeyValuePairs == null || omeroKeyValuePairs.isEmpty())
-            return;
-
-        // add metadata
-        addMetadata(omeroKeyValuePairs);
-    }
-
-
-    /**
-     * Add new QuPath metadata to the current image in the QuPath project.
-     * <br>
-     * Existing keys in QuPath are :
-     * <p>
-     * <ul>
-     * <li> deleted : NO </li>
-     * <li> updated : YES </li>
-     * </ul>
-     * <p>
-     *
-     * @param keyValues map of key-values
-     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
-     */
-    @Deprecated
-    public static void addAndUpdateMetadata(Map<String,String> keyValues) {
-        // get project entry
-        ProjectImageEntry<BufferedImage> entry = QP.getProjectEntry();
-
-        // get qupath metadata
-        Map<String, String> qpMetadata = entry.getMetadataMap();
-
-        // split key value pairs metadata into those that already exist in QuPath and those that need to be added
-        List<Map<String,String>> splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(qpMetadata, keyValues);
-        Map<String,String> newKV = splitKeyValues.get(1);
-        Map<String,String> existingKV = splitKeyValues.get(0);
-        Map<String,String> updatedKV = new HashMap<>();
-
-        // update metadata
-        qpMetadata.forEach((keyToUpdate, valueToUpdate) -> {
-            String newValue = valueToUpdate;
-            for (String updated : existingKV.keySet()) {
-                if (keyToUpdate.equals(updated)) {
-                    newValue = existingKV.get(keyToUpdate);
-                    break;
-                }
-            }
-            updatedKV.put(keyToUpdate, newValue);
-        });
-
-        // delete metadata
-        entry.clearMetadata();
-
-        // add metadata
-        updatedKV.forEach(entry::putMetadataValue);
-        newKV.forEach(entry::putMetadataValue);
-    }
-
-
-    /**
-     * Read and add OMERO Key-Value pairs as QuPath metadata to the current image in the QuPath project.
-     * <br>
-     * Existing keys in QuPath are :
-     * <p>
-     * <ul>
-     * <li> deleted : NO </li>
-     * <li> updated : YES </li>
-     * </ul>
-     * <p>
-     *
-     * @param imageServer ImageServer of an image loaded from OMERO
-     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
-     */
-    @Deprecated
-    public static void addOmeroKeyValuesAndUpdateMetadata(OmeroRawImageServer imageServer) {
-        // read OMERO key-values and check if they are unique. If not, stop the process
-        Map<String,String> omeroKeyValuePairs = importOmeroKeyValues(imageServer);
-
-        if(omeroKeyValuePairs == null || omeroKeyValuePairs.isEmpty())
-            return;
-
-        // add and update metadata
-        addAndUpdateMetadata(omeroKeyValuePairs);
-    }
-
-
-    /**
-     * Read and add OMERO Key-Value pairs as QuPath metadata to the current image in the QuPath project.
-     * <br>
-     * Existing keys in QuPath are :
-     * <p>
-     * <ul>
-     * <li> deleted : YES </li>
-     * <li> updated : NO </li>
-     * </ul>
-     * <p>
-     *
-     * @param imageServer ImageServer of an image loaded from OMERO
-     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
-     */
-    @Deprecated
-    public static void addOmeroKeyValuesAndDeleteMetadata(OmeroRawImageServer imageServer) {
-        // read OMERO key-values and check if they are unique. If not, stop the process
-        Map<String,String> omeroKeyValues = importOmeroKeyValues(imageServer);
-
-        if(omeroKeyValues == null || omeroKeyValues.isEmpty())
-            return;
-
-        // add and delete metadata
-        addAndDeleteMetadata(omeroKeyValues);
-    }
-
-
-    /**
-     * Add new QuPath metadata to the current image in the QuPath project.
-     * <br>
-     * Existing keys in QuPath are :
-     * <p>
-     * <ul>
-     * <li> deleted : YES </li>
-     * <li> updated : NO </li>
-     * </ul>
-     * <p>
-     *
-     * @param keyValues map of key-values
-     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
-     */
-    @Deprecated
-    public static void addAndDeleteMetadata(Map<String,String> keyValues) {
-        // get project entry
-        ProjectImageEntry<BufferedImage> entry = QP.getProjectEntry();
-
-        // delete metadata
-        entry.clearMetadata();
-
-        // add new metadata
-        keyValues.forEach(entry::putMetadataValue);
-    }
-
-
-    /**
-     * Read, from OMERO, tags attached to the current image and add them as QuPath metadata fields
-     *
-     * @param imageServer ImageServer of an image loaded from OMERO
-     * @return list of OMERO tags.
-     * @deprecated use {@link  OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
-     */
-    @Deprecated
-    public static List<String> addTagsToQuPath(OmeroRawImageServer imageServer) {
-        return addTagsToQuPath(imageServer, Utils.UpdatePolicy.KEEP_KEYS,true);
-    }
-
-
-    /**
      * Read, from OMERO, tags attached to the current image and add them as QuPath metadata fields
      *
      * @param imageServer ImageServer of an image loaded from OMERO
@@ -1670,10 +1470,12 @@ public class OmeroRawScripting {
     }
 
 
-    /**
-     * -----------------------------------------------------------------------------------------------------
-     * Deprecated methods
-     * -----------------------------------------------------------------------------------------------------
+    /*
+     *
+     *
+     *                                           Deprecated methods
+     *
+     *
      */
 
     /**
@@ -2054,4 +1856,136 @@ public class OmeroRawScripting {
         return sendTagsToOmero(tags, imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
     }
 
+
+    /**
+     * Add new QuPath metadata to the current image in the QuPath project.
+     * <br>
+     * Existing keys in QuPath are :
+     * <p>
+     * <ul>
+     * <li> deleted : NO </li>
+     * <li> updated : NO </li>
+     * </ul>
+     * <p>
+     *
+     * @param keyValues map of key-values
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
+     */
+    @Deprecated
+    public static void addMetadata(Map<String,String> keyValues) {
+        addKeyValuesToQuPath(keyValues, Utils.UpdatePolicy.KEEP_KEYS, true);
+    }
+
+
+    /**
+     * Read and add OMERO Key-Value pairs as QuPath metadata to the current image in the QuPath project.
+     * <br>
+     * Existing keys in QuPath are :
+     * <p>
+     * <ul>
+     * <li> deleted : NO </li>
+     * <li> updated : NO </li>
+     * </ul>
+     * <p>
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     */
+    @Deprecated
+    public static void addOmeroKeyValues(OmeroRawImageServer imageServer) {
+        addKeyValuesToQuPath(imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
+    }
+
+
+    /**
+     * Add new QuPath metadata to the current image in the QuPath project.
+     * <br>
+     * Existing keys in QuPath are :
+     * <p>
+     * <ul>
+     * <li> deleted : NO </li>
+     * <li> updated : YES </li>
+     * </ul>
+     * <p>
+     *
+     * @param keyValues map of key-values
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
+     */
+    @Deprecated
+    public static void addAndUpdateMetadata(Map<String,String> keyValues) {
+        addKeyValuesToQuPath(keyValues, Utils.UpdatePolicy.UPDATE_KEYS, true);
+    }
+
+
+    /**
+     * Read and add OMERO Key-Value pairs as QuPath metadata to the current image in the QuPath project.
+     * <br>
+     * Existing keys in QuPath are :
+     * <p>
+     * <ul>
+     * <li> deleted : NO </li>
+     * <li> updated : YES </li>
+     * </ul>
+     * <p>
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     */
+    @Deprecated
+    public static void addOmeroKeyValuesAndUpdateMetadata(OmeroRawImageServer imageServer) {
+        addKeyValuesToQuPath(imageServer, Utils.UpdatePolicy.UPDATE_KEYS, true);
+    }
+
+
+    /**
+     * Read and add OMERO Key-Value pairs as QuPath metadata to the current image in the QuPath project.
+     * <br>
+     * Existing keys in QuPath are :
+     * <p>
+     * <ul>
+     * <li> deleted : YES </li>
+     * <li> updated : NO </li>
+     * </ul>
+     * <p>
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     */
+    @Deprecated
+    public static void addOmeroKeyValuesAndDeleteMetadata(OmeroRawImageServer imageServer) {
+        addKeyValuesToQuPath(imageServer, Utils.UpdatePolicy.DELETE_KEYS, true);
+    }
+
+
+    /**
+     * Add new QuPath metadata to the current image in the QuPath project.
+     * <br>
+     * Existing keys in QuPath are :
+     * <p>
+     * <ul>
+     * <li> deleted : YES </li>
+     * <li> updated : NO </li>
+     * </ul>
+     * <p>
+     *
+     * @param keyValues map of key-values
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
+     */
+    @Deprecated
+    public static void addAndDeleteMetadata(Map<String,String> keyValues) {
+        addKeyValuesToQuPath(keyValues, Utils.UpdatePolicy.DELETE_KEYS, true);
+    }
+
+
+    /**
+     * Read, from OMERO, tags attached to the current image and add them as QuPath metadata fields
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @return list of OMERO tags.
+     * @deprecated use {@link  OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     */
+    @Deprecated
+    public static List<String> addTagsToQuPath(OmeroRawImageServer imageServer) {
+        return addTagsToQuPath(imageServer, Utils.UpdatePolicy.KEEP_KEYS,true);
+    }
 }

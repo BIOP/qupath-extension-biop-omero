@@ -1,5 +1,6 @@
 package qupath.ext.biop.servers.omero.raw.browser;
 
+import fr.igred.omero.annotations.AnnotationList;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
@@ -819,7 +820,12 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static OmeroRawAnnotations readAnnotationsItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject obj, OmeroRawAnnotations.OmeroRawAnnotationType category) {
-        return OmeroRawAnnotations.getOmeroAnnotations(category, OmeroRawTools.readOmeroAnnotations(client, obj.getWrapper()));
+        try {
+            return OmeroRawAnnotations.getOmeroAnnotations(category, obj.getWrapper().getAnnotations(client.getSimpleClient()));
+        }catch(Exception e){
+            logger.error("Cannot read annotations from OMERO");
+            return new OmeroRawAnnotations(new ArrayList<>(), category);
+        }
     }
 
     /**
