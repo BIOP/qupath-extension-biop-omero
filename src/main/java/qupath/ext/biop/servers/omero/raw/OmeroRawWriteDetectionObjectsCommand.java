@@ -46,8 +46,9 @@ import qupath.lib.objects.PathObject;
  * current image is hosted.
  *
  * @author Melvin Gelbard
+ * @deprecated This class will be removed in the next release because the detection objects are not send to OMERO.
  */
-
+@Deprecated
 public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
     private final static Logger logger = LoggerFactory.getLogger(OmeroRawWriteDetectionObjectsCommand.class);
     private final String title = "Send objects to OMERO";
