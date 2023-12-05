@@ -34,6 +34,75 @@ class Utils {
 
 
     /**
+     * Info Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param qpNotif
+     */
+    public static void infoLog(Logger logger, String title, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showInfoNotification(title, message);
+        logger.info("["+title+"] -- "+message);
+    }
+
+    /**
+     * Info Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param e
+     * @param qpNotif
+     */
+    public static void infoLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showInfoNotification(title, message);
+        logger.info("["+title+"] -- "+message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+    }
+
+    /**
+     * Error Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param qpNotif
+     */
+    public static void errorLog(Logger logger, String title, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message);
+    }
+
+    /**
+     * Error Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param e
+     * @param qpNotif
+     */
+    public static void errorLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+    }
+
+    /**
+     * Warning Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param qpNotif
+     */
+    public static void warnLog(Logger logger, String title, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message);
+    }
+
+    /**
+     * Warning Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param e
+     * @param qpNotif
+     */
+    public static void warnLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+    }
+
+    /**
      * Convert a map < header, list_of_values > into a CSV file
      *
      * @param parentTable the map containing headers and values
