@@ -1102,7 +1102,7 @@ public final class OmeroRawTools {
                 // update the thumbnail
                 store.createThumbnails();
             } catch (ServerError e) {
-                Utils.errorLog(logger,"OMERO thumbnail","Error during thumbnail creation but thumbnail is updated ",e,false);
+                Utils.errorLog(logger,"OMERO thumbnail","Cannot update thumbnail but image is updated ",e,false);
             }
 
         } catch (NullPointerException | ServerError e) {
