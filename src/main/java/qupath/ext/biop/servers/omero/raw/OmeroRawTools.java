@@ -1677,7 +1677,8 @@ public final class OmeroRawTools {
                         " link where link.parent = " + imageId +
                         " and link.child = " + tag.getId(), null));
             }
-            client.getGateway().getFacility(DataManagerFacility.class).delete(client.getContext(), oss).block(500);
+            if(!oss.isEmpty())
+                client.getGateway().getFacility(DataManagerFacility.class).delete(client.getContext(), oss).block(500);
 
         }catch(ExecutionException | DSOutOfServiceException | ServerError | InterruptedException e) {
             Utils.errorLog(logger,"Unlink tags", "Cannot unlink tags for the image "+imageId, e, true);
