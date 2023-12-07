@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 import qupath.lib.color.ColorModelFactory;
 import qupath.lib.common.ColorTools;
 import qupath.lib.common.GeneralTools;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 
 import qupath.lib.images.servers.AbstractTileableImageServer;
 import qupath.lib.images.servers.ImageChannel;
@@ -102,7 +102,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -110,12 +109,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * ImageServer that reads pixels using the OMERO web API.
+ * ImageServer that reads pixels using the OMERO-JAVA gateway
  * <p>
- * Note that this does not provide access to the raw data, but rather RGB tiles only in the manner of a web viewer. 
- * Consequently, only RGB images are supported and some small changes in pixel values can be expected due to compression.
+ * Note that this ImageServer provides access to the raw data (not JPEG rendered).
+ * Fluorescence and bright-field images from OMERO can be open with it.
  * 
- * @author Pete Bankhead
+ * @author Olivier Burri & Rémy Dornier
  *
  */
 public class OmeroRawImageServer extends AbstractTileableImageServer implements PathObjectReader {
@@ -191,8 +190,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		// Args are stored in the JSON - passwords and usernames must not be included!
 		// Do an extra check to ensure someone hasn't accidentally passed one
 		var invalid = Arrays.asList("--password", "-p", "-u", "--username", "-password");
-		for (int i = 0; i < args.length; i++) {
-			String arg = args[i].toLowerCase().strip();
+		for (String s : args) {
+			String arg = s.toLowerCase().strip();
 			if (invalid.contains(arg)) {
 				throw new IllegalArgumentException("Cannot build server with arg " + arg);
 			}
@@ -360,7 +359,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				if (channelColor == null) {
 					// Select next available default color, or white (for grayscale) if only one channel
 					if (nChannels == 1)
-						channelColor = ColorTools.makeRGB(255, 255, 255);
+						channelColor = ColorTools.packRGB(255, 255, 255);
 					else
 						channelColor = ImageChannel.getDefaultChannelColor(c);
 				}
@@ -1073,6 +1072,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				else {
 					// user does not have admin rights
 					Dialogs.showErrorMessage("Load image","You do not have access to this image because it is part of a group / user you do not have access to");
+					logger.error("You do not have access to this image because it is part of a group / user you do not have access to");
 					return null;
 				}
 			}

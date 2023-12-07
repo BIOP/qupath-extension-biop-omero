@@ -4,13 +4,16 @@ import javafx.geometry.Pos;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.lib.gui.QuPathGUI;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
 
 import java.awt.image.BufferedImage;
 
 public class OmeroRawWriteChannelSettingsCommand implements Runnable {
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawWriteChannelSettingsCommand.class);
     private final String title = "Sending image & channels settings";
     private final QuPathGUI qupath;
     public OmeroRawWriteChannelSettingsCommand(QuPathGUI qupath)  {
@@ -78,6 +81,6 @@ public class OmeroRawWriteChannelSettingsCommand implements Runnable {
             wasSaved = OmeroRawScripting.sendChannelsNameToOmero((OmeroRawImageServer)imageServer);
 
         if(wasSaved)
-            Dialogs.showInfoNotification(" Image update successfully", "Image & channels settings have been successfully updated");
+           Utils.infoLog(logger," Image update successfully", "Image & channels settings have been successfully updated", true);
     }
 }

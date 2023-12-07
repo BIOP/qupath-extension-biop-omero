@@ -9,8 +9,10 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import omero.RString;
 import omero.model.Experimenter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.lib.gui.QuPathGUI;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
 import qupath.lib.objects.PathObject;
 import qupath.lib.objects.hierarchy.PathObjectHierarchy;
@@ -33,6 +35,7 @@ public class OmeroRawImportAnnotationObjectsCommand implements Runnable{
     private final QuPathGUI qupath;
     private final double MAX_FONT_SIZE = 16.0;
     private final String ALL_USER_CHOICE = "All";
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawImportAnnotationObjectsCommand.class);
     public OmeroRawImportAnnotationObjectsCommand(QuPathGUI qupath)  {
         this.qupath = qupath;
     }
@@ -129,7 +132,7 @@ public class OmeroRawImportAnnotationObjectsCommand implements Runnable{
             hierarchy.resolveHierarchy();
         }
         else{
-            Dialogs.showWarningNotification(title, "The current image does not have any ROIs on OMERO");
+            Utils.warnLog(logger, title, "The current image does not have any ROIs on OMERO", true);
         }
     }
 }

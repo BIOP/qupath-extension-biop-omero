@@ -5,8 +5,10 @@ import javafx.scene.control.RadioButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.lib.gui.QuPathGUI;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
 import qupath.lib.projects.ProjectImageEntry;
 
@@ -15,6 +17,7 @@ import java.awt.image.BufferedImage;
 
 public class OmeroRawImportMetadataCommand implements Runnable{
 
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawImportMetadataCommand.class);
     private final String title = "Import KeyValues / Tags from OMERO";
     private final QuPathGUI qupath;
     public OmeroRawImportMetadataCommand(QuPathGUI qupath)  {
@@ -80,9 +83,9 @@ public class OmeroRawImportMetadataCommand implements Runnable{
             int nQuPathKVAfterAdding = entry.getMetadataKeys().size();
             int nNewKV = nQuPathKVAfterAdding - nExistingKV;
 
-            Dialogs.showInfoNotification(title, String.format("Keep %d metadata and add %d new %s", nExistingKV,
+            Utils.infoLog(logger, title, String.format("Keep %d metadata and add %d new %s", nExistingKV,
                     nNewKV,
-                    (nNewKV <= 1 ? "KVP/tag" : "KVPs/tags")));
+                    (nNewKV <= 1 ? "KVP/tag" : "KVPs/tags")), true);
         }
         if(replaceMetadata) {
             // get the initial number of key values
@@ -96,9 +99,9 @@ public class OmeroRawImportMetadataCommand implements Runnable{
             int nQuPathKVAfterAdding = entry.getMetadataKeys().size();
             int nNewKV = nQuPathKVAfterAdding - nExistingKV;
 
-            Dialogs.showInfoNotification(title, String.format("Update %d metadata and add %d new %s", nExistingKV,
+            Utils.infoLog(logger, title, String.format("Update %d metadata and add %d new %s", nExistingKV,
                     nNewKV,
-                    (nNewKV <= 1 ? "KVP/tag" : "KVPs/tags")));
+                    (nNewKV <= 1 ? "KVP/tag" : "KVPs/tags")), true);
         }
         if(deleteMetadata) {
             // get the number of new key values
@@ -111,8 +114,8 @@ public class OmeroRawImportMetadataCommand implements Runnable{
             // get the number of new key values
             int nNewKV = entry.getMetadataKeys().size();
 
-            Dialogs.showInfoNotification(title, String.format("Delete %d previous metadata and add %d new %s", nExistingKV, nNewKV,
-                    (nNewKV <= 1 ? "KVP/tag" : "KVPs/tags")));
+            Utils.infoLog(logger, title, String.format("Delete %d previous metadata and add %d new %s", nExistingKV, nNewKV,
+                    (nNewKV <= 1 ? "KVP/tag" : "KVPs/tags")), true);
         }
     }
 

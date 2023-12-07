@@ -113,10 +113,10 @@ import javafx.util.StringConverter;
 import qupath.lib.common.ThreadTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.commands.ProjectCommands;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.prefs.PathPrefs;
 import qupath.lib.gui.tools.GuiTools;
-import qupath.lib.gui.tools.PaneTools;
+import qupath.fx.utils.GridPaneUtils;
 import qupath.lib.images.servers.ImageServerProvider;
 import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.CommentAnnotation;
 import qupath.ext.biop.servers.omero.raw.OmeroRawAnnotations.FileAnnotation;
@@ -304,9 +304,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         loadingOrphanedLabel = new Label();
         loadingOrphanedLabel.setGraphic(progressOrphaned);
 
-        PaneTools.addGridRow(loadingInfoPane, 0, 0, "OMERO objects are loaded in the background", loadingChildrenLabel);
-        PaneTools.addGridRow(loadingInfoPane, 1, 0, "OMERO objects are loaded in the background", loadingOrphanedLabel);
-        PaneTools.addGridRow(loadingInfoPane, 2, 0, "Thumbnails are loaded in the background", loadingThumbnailLabel);
+        GridPaneUtils.addGridRow(loadingInfoPane, 0, 0, "OMERO objects are loaded in the background", loadingChildrenLabel);
+        GridPaneUtils.addGridRow(loadingInfoPane, 1, 0, "OMERO objects are loaded in the background", loadingOrphanedLabel);
+        GridPaneUtils.addGridRow(loadingInfoPane, 2, 0, "Thumbnails are loaded in the background", loadingThumbnailLabel);
 
         // Info about the server to display at the top
         var hostLabel = new Label(serverURI.getHost());
@@ -401,8 +401,13 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             if (e.getClickCount() == 2) {
                 var selectedItem = tree.getSelectionModel().getSelectedItem().getValue();
                 if (selectedItem != null && selectedItem.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE && isSupported(selectedItem)) {
-                    if (qupath.getProject() == null)
-                        qupath.openImage(createObjectURI(selectedItem), true, true);
+                    if (qupath.getProject() == null) {
+                        try {
+                            qupath.openImage(QuPathGUI.getInstance().getViewer(), createObjectURI(selectedItem),  true, true);
+                        } catch (IOException ex) {
+                            Dialogs.showErrorMessage("Open image", ex);
+                        }
+                    }
                     else {
                         HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
                         promptToImportOmeroImages(createObjectURI(selectedItem));
@@ -438,7 +443,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     Dialogs.showPlainMessage("Requesting orphaned folder", "Link to orphaned folder does not exist!");
                     return;
                 }
-                QuPathGUI.launchBrowserWindow(createObjectURI(selected.get(0).getValue()).replace("-server",""));
+                QuPathGUI.openInBrowser(createObjectURI(selected.get(0).getValue()).replace("-server",""));
             }
         });
         openBrowserItem.disableProperty().bind(tree.getSelectionModel().selectedItemProperty().isNull()
@@ -463,9 +468,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 else
                     content.putString("[" + String.join(", ", uris) + "]");
                 Clipboard.getSystemClipboard().setContent(content);
-                Dialogs.showInfoNotification("Copy URI to clipboard", "URI" + (uris.size() > 1 ? "s " : " ") + "successfully copied to clipboard");
+                Utils.infoLog(logger, "Copy URI to clipboard", "URI" + (uris.size() > 1 ? "s " : " ") + "successfully copied to clipboard", true);
             } else
-                Dialogs.showWarningNotification("Copy URI to clipboard", "The item needs to be selected first!");
+                Utils.warnLog(logger,"Copy URI to clipboard", "The item needs to be selected first!", true);
         });
 
         // Collapse all items in the tree
@@ -617,7 +622,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         Button advancedSearchBtn = new Button("Advanced...");
         advancedSearchBtn.setOnAction(e -> new AdvancedSearch());
         GridPane searchAndAdvancedPane = new GridPane();
-        PaneTools.addGridRow(searchAndAdvancedPane, 0, 0, null, filter, advancedSearchBtn);
+        GridPaneUtils.addGridRow(searchAndAdvancedPane, 0, 0, null, filter, advancedSearchBtn);
 
         importBtn = new Button("Import image");
 
@@ -659,8 +664,13 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 return;
             }
             if (qupath.getProject() == null) {
-                if (validUris.length == 1)
-                    qupath.openImage(validUris[0], true, true);
+                if (validUris.length == 1) {
+                    try {
+                        qupath.openImage(QuPathGUI.getInstance().getViewer(), validUris[0], true, true);
+                    } catch (IOException ex) {
+                        Dialogs.showErrorMessage("Open image", ex);
+                    }
+                }
                 else
                     Dialogs.showErrorMessage("Open OMERO images", "If you want to handle multiple images, you need to create a project first."); // Same as D&D for images
                 return;
@@ -684,18 +694,18 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             }
         });
 
-        PaneTools.addGridRow(browseLeftPane, 0, 0, "Filter by", comboGroup, comboOwner);
-        PaneTools.addGridRow(browseLeftPane, 1, 0, null, tree, tree);
-        PaneTools.addGridRow(browseLeftPane, 2, 0, null, searchAndAdvancedPane, searchAndAdvancedPane);
-        PaneTools.addGridRow(browseLeftPane, 3, 0, null, importBtn, importBtn);
+        GridPaneUtils.addGridRow(browseLeftPane, 0, 0, "Filter by", comboGroup, comboOwner);
+        GridPaneUtils.addGridRow(browseLeftPane, 1, 0, null, tree, tree);
+        GridPaneUtils.addGridRow(browseLeftPane, 2, 0, null, searchAndAdvancedPane, searchAndAdvancedPane);
+        GridPaneUtils.addGridRow(browseLeftPane, 3, 0, null, importBtn, importBtn);
 
         canvas = new Canvas();
         canvas.setStyle("-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 4, 0, 1, 1);");
         description.getColumns().add(attributeCol);
         description.getColumns().add(valueCol);
 
-        PaneTools.addGridRow(browseRightPane, 0, 0, null, canvas);
-        PaneTools.addGridRow(browseRightPane, 1, 0, null, description);
+        GridPaneUtils.addGridRow(browseRightPane, 0, 0, null, canvas);
+        GridPaneUtils.addGridRow(browseRightPane, 1, 0, null, description);
 
         // Set alignment of canvas (with thumbnail)
         GridPane.setHalignment(canvas, HPos.CENTER);
@@ -895,10 +905,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         for (OmeroRawObjects.OmeroRawObject obj: list) {
             if (obj.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER) {
                 var filteredList = filterList(((OmeroRawObjects.OrphanedFolder)obj).getImageList(), comboGroup.getSelectionModel().getSelectedItem(), comboOwner.getSelectionModel().getSelectedItem(), null);
-                URIs.addAll(filteredList.stream().map(sub -> createObjectURI(sub)).collect(Collectors.toList()));
+                URIs.addAll(filteredList.stream().map(this::createObjectURI).collect(Collectors.toList()));
             } else {
                 try {
-                    URIs.addAll(OmeroRawTools.getURIs(URI.create(createObjectURI(obj)), client).stream().map(e -> e.toString()).collect(Collectors.toList()));
+                    URIs.addAll(OmeroRawTools.getURIs(URI.create(createObjectURI(obj)), client).stream().map(URI::toString).collect(Collectors.toList()));
                 } catch (IOException ex) {
                     logger.error("Could not get URI for " + obj.getName() + ": {}", ex.getLocalizedMessage());
                 } catch (DSOutOfServiceException | ExecutionException | DSAccessException e) {
@@ -963,7 +973,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             return new ReadOnlyObjectWrapper<>();
         String[] outString = new String[0];
         String name = omeroObject.getName();
-        String id = omeroObject.getId() + "";
+        String id = String.valueOf(omeroObject.getId());
         String owner = omeroObject.getOwner() == null ? null : omeroObject.getOwner().getName();
         String group = omeroObject.getGroup() == null ? null : omeroObject.getGroup().getName();
         if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER)
@@ -972,35 +982,35 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             String description = ((OmeroRawObjects.Project)omeroObject).getDescription();
             if (description == null || description.isEmpty())
                 description = "-";
-            String nChildren = omeroObject.getNChildren() + "";
+            String nChildren = String.valueOf(omeroObject.getNChildren());
             outString = new String[] {name, id, description, owner, group, nChildren};
 
         } else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.DATASET) {
             String description = ((OmeroRawObjects.Dataset) omeroObject).getDescription();
             if (description == null || description.isEmpty())
                 description = "-";
-            String nChildren = omeroObject.getNChildren() + "";
+            String nChildren = String.valueOf(omeroObject.getNChildren());
             outString = new String[]{name, id, description, owner, group, nChildren};}
 
         else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.SCREEN) {
             String description = ((OmeroRawObjects.Screen)omeroObject).getDescription();
             if (description == null || description.isEmpty())
                 description = "-";
-            String nChildren = omeroObject.getNChildren() + "";
+            String nChildren = String.valueOf(omeroObject.getNChildren());
             outString = new String[] {name, id, description, owner, group, nChildren};}
 
         else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.PLATE) {
             String description = ((OmeroRawObjects.Plate)omeroObject).getDescription();
             if (description == null || description.isEmpty())
                 description = "-";
-            String nChildren = omeroObject.getNChildren() + "";
+            String nChildren = String.valueOf(omeroObject.getNChildren());
             outString = new String[] {name, id, description, owner, group, nChildren};}
 
         else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.WELL) {
             String description = ((OmeroRawObjects.Well)omeroObject).getDescription();
             if (description == null || description.isEmpty())
                 description = "-";
-            String nChildren = omeroObject.getNChildren() + "";
+            String nChildren = String.valueOf(omeroObject.getNChildren());
             outString = new String[] {name, id, description, owner, group, nChildren};
 
         } else if (omeroObject.getType() == OmeroRawObjects.OmeroRawObjectType.IMAGE) {
@@ -1008,9 +1018,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             String acquisitionDate = obj.getAcquisitionDate() == -1 ? "-" : new Date(obj.getAcquisitionDate()).toString();
             String width = obj.getImageDimensions()[0] + " px";
             String height = obj.getImageDimensions()[1] + " px";
-            String c = obj.getImageDimensions()[2] + "";
-            String z = obj.getImageDimensions()[3] + "";
-            String t = obj.getImageDimensions()[4] + "";
+            String c = String.valueOf(obj.getImageDimensions()[2]);
+            String z = String.valueOf(obj.getImageDimensions()[3]);
+            String t = String.valueOf(obj.getImageDimensions()[4]);
             String pixelSizeX = obj.getPhysicalSizes()[0] == null ? "-" : obj.getPhysicalSizes()[0].getValue() + " " + obj.getPhysicalSizes()[0].getSymbol();
             String pixelSizeY = obj.getPhysicalSizes()[1] == null ? "-" : obj.getPhysicalSizes()[1].getValue() + " " + obj.getPhysicalSizes()[1].getSymbol();
             String pixelSizeZ = obj.getPhysicalSizes()[2] == null ? "-" : obj.getPhysicalSizes()[2].getValue() + obj.getPhysicalSizes()[2].getSymbol();
@@ -1465,14 +1475,14 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             nameLabel.setStyle(BOLD);
 
             int row = 0;
-            PaneTools.addGridRow(gp, row++, 0, null, new TitledPane(obj.getType().toString() + " Details", createObjectDetailsPane(obj)));
-            PaneTools.addGridRow(gp, row++, 0, null, createAnnotationsPane("Tags (" + tags.getSize() + ")", tags));
-            PaneTools.addGridRow(gp, row++, 0, null, createAnnotationsPane("Key-Value Pairs (" + keyValuePairs.getSize() + ")", keyValuePairs));
-//			PaneTools.addGridRow(gp, row++, 0, "Tables", new TitledPane("Tables", createAnnotationsPane(tables)));
-            PaneTools.addGridRow(gp, row++, 0, null, createAnnotationsPane("Attachments (" + attachments.getSize() + ")", attachments));
-            PaneTools.addGridRow(gp, row++, 0, null, createAnnotationsPane("Comments (" + comments.getSize() + ")", comments));
-            PaneTools.addGridRow(gp, row++, 0, "Ratings", createAnnotationsPane("Ratings (" + ratings.getSize() + ")", ratings));
-//			PaneTools.addGridRow(gp, row++, 0, "Others", new TitledPane("Others (" + others.getSize() + ")", createAnnotationsPane(others)));
+            GridPaneUtils.addGridRow(gp, row++, 0, null, new TitledPane(obj.getType().toString() + " Details", createObjectDetailsPane(obj)));
+            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Tags (" + tags.getSize() + ")", tags));
+            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Key-Value Pairs (" + keyValuePairs.getSize() + ")", keyValuePairs));
+//			GridPaneUtils.addGridRow(gp, row++, 0, "Tables", new TitledPane("Tables", createAnnotationsPane(tables)));
+            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Attachments (" + attachments.getSize() + ")", attachments));
+            GridPaneUtils.addGridRow(gp, row++, 0, null, createAnnotationsPane("Comments (" + comments.getSize() + ")", comments));
+            GridPaneUtils.addGridRow(gp, row++, 0, "Ratings", createAnnotationsPane("Ratings (" + ratings.getSize() + ")", ratings));
+//			GridPaneUtils.addGridRow(gp, row++, 0, "Others", new TitledPane("Others (" + others.getSize() + ")", createAnnotationsPane(others)));
 
             // Top: object name
             bp.setTop(nameLabel);
@@ -1546,14 +1556,14 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         var ann2 = (TagAnnotation)ann;
                         var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         var creator = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.getOwner().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         tooltip = String.format("Added by: %s%sCreated by: %s", addedBy, System.lineSeparator(), creator);
-                        PaneTools.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getValue()));
+                        GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getValue()));
                     }
                     break;
                 case MAP:
@@ -1561,11 +1571,11 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         var ann2 = (MapAnnotation)ann;
                         var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         var creator = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.getOwner().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         for (var value: ann2.getValues().entrySet())
                             addKeyValueToGrid(gp, true, "Added by: " + addedBy + System.lineSeparator() + "Created by: " + creator, value.getKey(), value.getValue().isEmpty() ? "-" : value.getValue());
@@ -1576,14 +1586,14 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         var ann2 = (FileAnnotation)ann;
                         var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         var creator = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.getOwner().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
                         tooltip = String.format("Added by: %s%sCreated by: %s%sType: %s", addedBy, System.lineSeparator(), creator, System.lineSeparator(), ann2.getMimeType());
-                        PaneTools.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getFilename() + " (" + ann2.getFileSize() + " bytes)"));
+                        GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, tooltip, new Label(ann2.getFilename() + " (" + ann2.getFileSize() + " bytes)"));
                     }
                     break;
                 case COMMENT:
@@ -1591,9 +1601,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         var ann2 = (CommentAnnotation)ann;
                         var addedBy = omeroRawAnnotations.getExperimenters().parallelStream()
                                 .filter(e -> e .getId() == ann2.addedBy().getId())
-                                .map(e -> e.getFullName())
+                                .map(OmeroRawObjects.Experimenter::getFullName)
                                 .findAny().get();
-                        PaneTools.addGridRow(gp, gp.getRowCount(), 0, "Added by " + addedBy, new Label(ann2.getValue()));
+                        GridPaneUtils.addGridRow(gp, gp.getRowCount(), 0, "Added by " + addedBy, new Label(ann2.getValue()));
                     }
                     break;
                 case RATING:
@@ -1624,7 +1634,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         private Node createObjectDetailsPane(OmeroRawObjects.OmeroRawObject obj) {
             GridPane gp = new GridPane();
 
-            addKeyValueToGrid(gp, true, "Id", "Id", obj.getId() + "");
+            addKeyValueToGrid(gp, true, "Id", "Id", String.valueOf(obj.getId()));
             addKeyValueToGrid(gp, true, "Owner", "Owner", obj.getOwner().getName());
             addKeyValueToGrid(gp, false, "Group", "Group", obj.getGroup().getName());
 
@@ -1640,9 +1650,9 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 addKeyValueToGrid(gp, true, "Acquisition date", "Acquisition date", acquisitionDate);
                 addKeyValueToGrid(gp, true, "Image width", "Image width", temp.getImageDimensions()[0] + " px");
                 addKeyValueToGrid(gp, true, "Image height", "Image height", temp.getImageDimensions()[1] + " px");
-                addKeyValueToGrid(gp, true, "Num. channels", "Num. channels", temp.getImageDimensions()[2] + "");
-                addKeyValueToGrid(gp, true, "Num. z-slices", "Num. z-slices", temp.getImageDimensions()[3] + "");
-                addKeyValueToGrid(gp, true, "Num. timepoints", "Num. timepoints", temp.getImageDimensions()[4] + "");
+                addKeyValueToGrid(gp, true, "Num. channels", "Num. channels", String.valueOf(temp.getImageDimensions()[2]));
+                addKeyValueToGrid(gp, true, "Num. z-slices", "Num. z-slices", String.valueOf(temp.getImageDimensions()[3]));
+                addKeyValueToGrid(gp, true, "Num. timepoints", "Num. timepoints", String.valueOf(temp.getImageDimensions()[4]));
                 addKeyValueToGrid(gp, true, "Pixel size X", "Pixel size X", pixelSizeX);
                 addKeyValueToGrid(gp, true, "Pixel size Y", "Pixel size Y", pixelSizeY);
                 addKeyValueToGrid(gp, true, "Pixel size Z", "Pixel size Z", pixelSizeZ);
@@ -1667,7 +1677,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             keyLabel.setStyle(BOLD);
             int row = gp.getRowCount();
 
-            PaneTools.addGridRow(gp, row, 0, tooltip, keyLabel, new Label(value));
+            GridPaneUtils.addGridRow(gp, row, 0, tooltip, keyLabel, new Label(value));
             if (addSeparator)
                 gp.add(new Separator(), 0, row + 1, gp.getColumnCount(), 1);
         }
@@ -1779,8 +1789,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 //    owners = new HashSet<>(tempOwners);
             });
 
-            PaneTools.addGridRow(comboPane, 0, 0, "Data owned by", new Label("Owned by:"),  ownedByCombo);
-            PaneTools.addGridRow(comboPane, 1, 0, "Data from group", new Label("Group:"), groupCombo);
+            GridPaneUtils.addGridRow(comboPane, 0, 0, "Data owned by", new Label("Owned by:"),  ownedByCombo);
+            GridPaneUtils.addGridRow(comboPane, 1, 0, "Data from group", new Label("Group:"), groupCombo);
 
             // Button pane
             GridPane buttonPane = new GridPane();
@@ -1841,7 +1851,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             }
                             return null;
                         })
-                        .map(item -> item.toString())
+                        .map(URI::toString)
                         .toArray(String[]::new);
                 if (URIs.length > 0) {
                     HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
@@ -1872,17 +1882,17 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
 
             int row = 0;
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "The query to search", queryPane);
-            PaneTools.addGridRow(searchOptionPane, row++, 0, null, new Separator());
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "Restrict by", new Label("Restrict by:"));
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "Restrict by", restrictByPane);
-            PaneTools.addGridRow(searchOptionPane, row++, 0, null, new Separator());
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "Search for", new Label("Search for:"));
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "Search for", searchForPane);
-            PaneTools.addGridRow(searchOptionPane, row++, 0, null, new Separator());
-            PaneTools.addGridRow(searchOptionPane, row++, 0, null, comboPane);
-            PaneTools.addGridRow(searchOptionPane, row++, 0, null, buttonPane);
-            PaneTools.addGridRow(searchOptionPane, row++, 0, "Import selected image", importBtn);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "The query to search", queryPane);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, new Separator());
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Restrict by", new Label("Restrict by:"));
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Restrict by", restrictByPane);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, new Separator());
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Search for", new Label("Search for:"));
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Search for", searchForPane);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, new Separator());
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, comboPane);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, null, buttonPane);
+            GridPaneUtils.addGridRow(searchOptionPane, row++, 0, "Import selected image", importBtn);
 
             TableColumn<SearchResult, SearchResult> typeCol = new TableColumn<>("Type");
             TableColumn<SearchResult, String> nameCol = new TableColumn<>("Name");
@@ -1960,7 +1970,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         return;
                     }
 
-                    button.setOnAction(e -> QuPathGUI.launchBrowserWindow(item.link.toString()));
+                    button.setOnAction(e -> QuPathGUI.openInBrowser(item.link.toString()));
                     setGraphic(button);
                 }
             });
@@ -1980,7 +1990,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     if (selectedItem != null) {
                         try {
                             List<URI> URIs = OmeroRawTools.getURIs(selectedItem.link.toURI(), client);
-                            var uriStrings = URIs.parallelStream().map(uriTemp -> uriTemp.toString()).toArray(String[]::new);
+                            var uriStrings = URIs.parallelStream().map(URI::toString).toArray(String[]::new);
                             if (URIs.size() > 0) {
                                 HashSet<ProjectImageEntry<BufferedImage>> beforeImport = new HashSet<>(qupath.getProject().getImageList());
                                 promptToImportOmeroImages(uriStrings);

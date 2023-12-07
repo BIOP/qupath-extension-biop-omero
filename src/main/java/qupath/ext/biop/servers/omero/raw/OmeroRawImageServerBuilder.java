@@ -2,7 +2,6 @@ package qupath.ext.biop.servers.omero.raw;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import qupath.lib.gui.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
 import qupath.lib.images.servers.ImageServerBuilder;
 
@@ -78,9 +77,7 @@ public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedIm
             // Add the client to the list (but not URI yet!)
             OmeroRawClients.addClient(client);
             return true;
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
+        } catch (MalformedURLException | URISyntaxException e) {
             e.printStackTrace();
         }
 
@@ -124,10 +121,8 @@ public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedIm
                 URI serverUri = OmeroRawTools.getServerURI(uri);
                 OmeroRawClient client = OmeroRawClients.getClientFromServerURI(serverUri);
                 return new OmeroRawImageServer(uri, client, args);
-            } catch (IOException e) {
-                Dialogs.showErrorNotification("OMERO raw server", uri + " - " + e.getLocalizedMessage());
             } catch (Exception e) {
-                e.printStackTrace();
+                Utils.errorLog(logger,"OMERO Raw server", "Could not build server " + uri, e,true);
             }
         }
         return null;
@@ -144,7 +139,7 @@ public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedIm
             try {
                 uris = getURIs(uri, args);
             } catch (IOException e) {
-                Dialogs.showErrorNotification("OMERO Raw server", e.getLocalizedMessage());
+                Utils.errorLog(logger,"OMERO Raw server","Could not get server URIs", e, true);
             }
 
             for (var subURI : uris) {
@@ -196,8 +191,8 @@ public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedIm
         Pattern[] similarPatterns = new Pattern[]{patternOldViewer, patternNewViewer, patternWebViewer};
 
         // Check for simpler patterns first
-        for (int i = 0; i < similarPatterns.length; i++) {
-            var matcher = similarPatterns[i].matcher(shortPath);
+        for (Pattern similarPattern : similarPatterns) {
+            var matcher = similarPattern.matcher(shortPath);
             if (matcher.find()) {
                 elemId += matcher.group(1);
                 list.add(URI.create(uri.getScheme() + "://" + uri.getHost() + "/webclient/?show" + equalSign + elemId));

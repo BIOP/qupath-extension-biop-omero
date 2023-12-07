@@ -19,7 +19,7 @@ import omero.rtypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.lib.display.ChannelDisplayInfo;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
 import qupath.lib.gui.scripting.QPEx;
 import qupath.lib.images.ImageData;
@@ -51,11 +51,11 @@ public class OmeroRawScripting {
 
     /**
      * This method creates an instance of simple-omero-client object to get access to the full simple-omero-client API,
-     * developed by Pierre Pouchin (https://github.com/GReD-Clermont/simple-omero-client).
+     * developed by Pierre Pouchin (<a href="https://github.com/GReD-Clermont/simple-omero-client">...</a>).
      *
      * @param imageServer : ImageServer of an image loaded from OMERO
      *
-     * @return  fr.igred.omero.Client object
+     * @return fr.igred.omero.Client object
      */
     public static Client getSimpleOmeroClientInstance(OmeroRawImageServer imageServer) throws DSOutOfServiceException {
         // get the current OmeroRawClient
@@ -295,7 +295,7 @@ public class OmeroRawScripting {
             }else{
                 qpMetadataKVP.put(key, qpMetadata.get(key));
             }
-        };
+        }
 
         // split QuPath metadata into those that already exist on OMERO and those that need to be added
         List<Map<String,String> > splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(omeroKeyValuePairs, qpMetadataKVP);
@@ -316,7 +316,7 @@ public class OmeroRawScripting {
             // add key value on OMERO
             wasAdded = OmeroRawTools.addKeyValuesOnOmero(newOmeroAnnotationMap, imageServer.getClient(), imageServer.getId());
         }else{
-            Dialogs.showInfoNotification("Save metadata on OMERO", "All metadata already exist on OMERO");
+            Utils.infoLog(logger, "Save metadata on OMERO", "All metadata already exist on OMERO", true);
         }
 
         // add tags on OMERO
@@ -359,7 +359,7 @@ public class OmeroRawScripting {
             }else{
                 qpMetadataKVP.put(key, qpMetadata.get(key));
             }
-        };
+        }
 
         // convert key value pairs to omero-compatible object NamedValue
         List<NamedValue> newNV = new ArrayList<>();
@@ -375,7 +375,7 @@ public class OmeroRawScripting {
             // add key value pairs On OMERO
             wasAdded = OmeroRawTools.addKeyValuesOnOmero(newOmeroAnnotationMap, imageServer.getClient(), imageServer.getId());
         }else{
-            Dialogs.showInfoNotification("Save metadata on OMERO", "No key values to send");
+            Utils.infoLog(logger,"Save metadata on OMERO", "No key values to send", true);
         }
 
         // delete current keyValues
@@ -424,7 +424,7 @@ public class OmeroRawScripting {
             }else{
                 qpMetadataKVP.put(key, qpMetadata.get(key));
             }
-        };
+        }
 
         // split QuPath metadata into those that already exist on OMERO and those that need to be added
         List<Map<String,String> > splitKeyValues = OmeroRawTools.splitNewAndExistingKeyValues(omeroKeyValuePairs, qpMetadataKVP);
@@ -452,7 +452,7 @@ public class OmeroRawScripting {
             // add key value pairs On OMERO
             wasAdded = OmeroRawTools.addKeyValuesOnOmero(newOmeroAnnotationMap, imageServer.getClient(), imageServer.getId());
         }else{
-            Dialogs.showInfoNotification("Save metadata on OMERO", "No key values to send");
+            Utils.infoLog(logger, "Save metadata on OMERO", "No key values to send", true);
         }
 
         // delete current keyValues
@@ -651,7 +651,7 @@ public class OmeroRawScripting {
         List<NamedValue> currentOmeroKeyValues = OmeroRawTools.readKeyValuesAsNamedValue(imageServer.getClient(), imageServer.getId());
 
         if (currentOmeroKeyValues.isEmpty()) {
-            Dialogs.showWarningNotification("Read key values on OMERO", "The current image does not have any KeyValues on OMERO");
+            Utils.warnLog(logger,"Read key values on OMERO", "The current image does not have any KeyValues on OMERO", true);
             return new HashMap<>();
         }
 
@@ -660,6 +660,7 @@ public class OmeroRawScripting {
 
         if (!uniqueOmeroKeys) {
             Dialogs.showErrorMessage("Keys not unique", "There are at least two identical keys on OMERO. Please make each key unique");
+            logger.error("There are at least two identical keys on OMERO. Please make each key unique");
             return null;
         }
 
@@ -706,7 +707,7 @@ public class OmeroRawScripting {
         tags.removeAll(currentTags);
 
         if(tags.isEmpty()) {
-            Dialogs.showInfoNotification("Sending tags", "All tags are already existing on OMERO.");
+            Utils.infoLog(logger, "Sending tags", "All tags are already existing on OMERO.", true);
             return true;
         }
 
@@ -986,7 +987,7 @@ public class OmeroRawScripting {
         ob.setImageData(imageData, pathObjects);
 
         // convert measurements to lists of strings to build the parent table
-        UtilityTools.buildListsOfStringsFromMeasurementTable(parentTable, ob, pathObjects, imageServer.getId());
+        Utils.buildListsOfStringsFromMeasurementTable(parentTable, ob, pathObjects, imageServer.getId());
     }
 
     /**
@@ -1036,7 +1037,7 @@ public class OmeroRawScripting {
                 OmeroRawTools.getCurrentDateAndHour();
 
         // build the CSV parent table
-        File parentCSVFile = UtilityTools.buildCSVFileFromListsOfStrings(parentTable, filename);
+        File parentCSVFile = Utils.buildCSVFileFromListsOfStrings(parentTable, filename);
 
         FileAnnotationData attachedFile = null;
         if (parentCSVFile.exists()) {
@@ -1130,7 +1131,7 @@ public class OmeroRawScripting {
                 OmeroRawTools.getCurrentDateAndHour();
 
         // build the OMERO.table parent table
-        TableData omeroTable = UtilityTools.buildOmeroTableFromListsOfStrings(parentTable, client);
+        TableData omeroTable = Utils.buildOmeroTableFromListsOfStrings(parentTable, client);
         FileAnnotationData attachedFile = null;
 
         // loop over all parents if images comes from more than one dataset
@@ -1369,7 +1370,7 @@ public class OmeroRawScripting {
 
         // check if we can access to rendering settings
         if(renderingSettings == null) {
-            Dialogs.showErrorNotification("Channel settings", "Cannot access to rendering settings of the image " + imageServer.getId());
+            Utils.errorLog(logger,"Channel settings", "Cannot access to rendering settings of the image " + imageServer.getId(), true);
             return;
         }
 
@@ -1381,7 +1382,8 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroNChannels != qpChannels.size()){
-            Dialogs.showWarningNotification("Channel settings", "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")");
+            Utils.warnLog(logger,"Channel settings",
+                    "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")", true);
             return;
         }
 
@@ -1419,7 +1421,7 @@ public class OmeroRawScripting {
 
         // check if we can access to rendering settings
         if(renderingSettings == null) {
-            Dialogs.showErrorNotification("Channel settings", "Cannot access to rendering settings of the image " + imageServer.getId());
+            Utils.errorLog(logger,"Channel settings", "Cannot access to rendering settings of the image " + imageServer.getId(), true);
             return;
         }
 
@@ -1431,7 +1433,8 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroNChannels != qpChannels.size()){
-            Dialogs.showWarningNotification("Channel settings", "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")");
+            Utils.warnLog(logger,"Channel settings",
+                    "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")", true);
             return;
         }
 
@@ -1497,7 +1500,8 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroChannels.size() != qpChannels.size()){
-            Dialogs.showWarningNotification("Channel settings", "The image on OMERO has not the same number of channels ("+omeroChannels.size()+" as the one in QuPath ("+imageServer.nChannels()+")");
+            Utils.warnLog(logger, "Channel settings",
+                    "The image on OMERO has not the same number of channels ("+omeroChannels.size()+" as the one in QuPath ("+imageServer.nChannels()+")", true);
             return;
         }
 
@@ -1533,7 +1537,7 @@ public class OmeroRawScripting {
 
         // check if we can access to rendering settings
         if(renderingSettings == null) {
-            Dialogs.showErrorNotification("OMERO channel settings", "Cannot access to rendering settings of the image " + imageServer.getId());
+            Utils.errorLog(logger,"OMERO channel settings", "Cannot access to rendering settings of the image " + imageServer.getId(), true);
             return false;
         }
 
@@ -1545,7 +1549,7 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroNChannels != qpChannels.size()){
-            Dialogs.showWarningNotification("OMERO channel settings", "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroNChannels+")");
+            Utils.warnLog(logger, "OMERO channel settings", "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroNChannels+")", true);
             return false;
         }
 
@@ -1591,7 +1595,8 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroChannels.size() != qpChannels.size()){ // can use imageServer.nChannels() to get the real number of channel
-            Dialogs.showWarningNotification("OMERO channel settings", "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroChannels.size()+")");
+            Utils.warnLog(logger, "OMERO channel settings",
+                    "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroChannels.size()+")", true);
             return false;
         }
 
@@ -1627,7 +1632,7 @@ public class OmeroRawScripting {
 
         // check if we can access to rendering settings
         if(renderingSettings == null) {
-            Dialogs.showErrorNotification("OMERO channel settings", "Cannot access to rendering settings of the image " + imageServer.getId());
+            Utils.errorLog(logger,"OMERO channel settings", "Cannot access to rendering settings of the image " + imageServer.getId(), true);
             return false;
         }
 
@@ -1639,7 +1644,8 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroNChannels != qpChannels.size()){ // can use imageServer.nChannels() to get the real number of channel
-            Dialogs.showWarningNotification("OMERO channel settings", "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroNChannels+")");
+            Utils.warnLog(logger, "OMERO channel settings",
+                    "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroNChannels+")", true);
             return false;
         }
 

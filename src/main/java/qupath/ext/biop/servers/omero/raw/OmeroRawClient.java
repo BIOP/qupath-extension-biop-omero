@@ -42,7 +42,7 @@ import omero.model.Experimenter;
 import omero.model.ExperimenterGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 
 import javax.naming.OperationNotSupportedException;
 import java.io.IOException;
@@ -187,9 +187,7 @@ public class OmeroRawClient {
         ExperimenterData exp = gateway.getLoggedInUser();
         long groupID = exp.getGroupId();
 
-        SecurityContext ctx = new SecurityContext(groupID);
-
-        this.securityContext = ctx;
+        this.securityContext = new SecurityContext(groupID);
         this.gateway = gateway;
 
         this.isAdminUser = !this.gateway.getAdminService(this.securityContext).getCurrentAdminPrivileges().isEmpty();
@@ -334,9 +332,9 @@ public class OmeroRawClient {
 
             // If we have previous URIs and the the username was different
             if (uris.size() > 0 && !usernameOld.isEmpty() && !usernameOld.equals(authentication.getUserName())) {
-                Dialogs.showInfoNotification("OMERO login", String.format("OMERO account switched from \"%s\" to \"%s\" for %s", usernameOld, authentication.getUserName(), serverURI));
+                Utils.infoLog(logger,"OMERO login", String.format("OMERO account switched from \"%s\" to \"%s\" for %s", usernameOld, authentication.getUserName(), serverURI), true);
             } else if (uris.size() == 0 || usernameOld.isEmpty())
-                Dialogs.showInfoNotification("OMERO login", String.format("Login successful: %s(\"%s\")", serverURI, authentication.getUserName()));
+                Utils.infoLog(logger,"OMERO login", String.format("Login successful: %s(\"%s\")", serverURI, authentication.getUserName()), true);
 
             // If a browser was currently opened with this client, close it
             if (OmeroRawExtension.getOpenedRawBrowsers().containsKey(this)) {
@@ -353,8 +351,9 @@ public class OmeroRawClient {
 
             return true;
         } catch (Exception ex) {
-            logger.error(ex.getLocalizedMessage());
-            Dialogs.showErrorNotification("OMERO raw server", "Could not connect to OMERO raw server.\nCheck the following:\n- Valid credentials.\n- Access permission.\n- Correct URL.");
+            Utils.errorLog(logger, "OMERO raw server",
+                    "Could not connect to OMERO raw server.\nCheck the following:\n- Valid credentials.\n- Access permission.\n- Correct URL.",
+                    ex, true);
         }
         return false;
     }
@@ -430,7 +429,7 @@ public class OmeroRawClient {
             try {
                 return Integer.parseInt(port);
             }catch(Exception e) {
-                Dialogs.showWarningNotification("Wrong port"," Port "+port+" is not recognized as a correct port. Default port 4064 is used instead");
+                Utils.warnLog(logger,"Wrong port"," Port "+port+" is not recognized as a correct port. Default port 4064 is used instead", true);
                 port = "4064";
                 return Integer.parseInt(port);
             }

@@ -33,10 +33,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.lib.gui.QuPathGUI;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
-import qupath.lib.gui.tools.PaneTools;
+import qupath.fx.utils.GridPaneUtils;
 import qupath.lib.objects.PathObject;
 
 /**
@@ -44,12 +46,12 @@ import qupath.lib.objects.PathObject;
  * current image is hosted.
  *
  * @author Melvin Gelbard
- *
+ * @deprecated This class will be removed in the next release because the detection objects are not send to OMERO.
  */
+@Deprecated
 public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
-
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawWriteDetectionObjectsCommand.class);
     private final String title = "Send objects to OMERO";
-
     private final QuPathGUI qupath;
 
     OmeroRawWriteDetectionObjectsCommand(QuPathGUI qupath) {
@@ -119,13 +121,13 @@ public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
             objs = selectedObjects;
 
             // Get annotations among the selection
-            var annotations = objs.stream().filter(e -> e.isAnnotation()).collect(Collectors.toList());
+            var annotations = objs.stream().filter(PathObject::isAnnotation).collect(Collectors.toList());
 
             // Give warning and filter out annotation objects
             if (annotations.size() > 0) {
-                Dialogs.showWarningNotification(title, String.format("Selected annotations will not be imported on OMERO (%d %s)",
+                Utils.warnLog(logger, title, String.format("Selected annotations will not be imported on OMERO (%d %s)",
                         annotations.size(),
-                        (annotations.size() == 1 ? "object" : "objects")));
+                        (annotations.size() == 1 ? "object" : "objects")), true);
 
                 objs = objs.stream().filter(e -> !e.isAnnotation()).collect(Collectors.toList());
             }
@@ -142,15 +144,15 @@ public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
         URI uri = server.getURIs().iterator().next();
         String objectString = "object" + (objs.size() == 1 ? "" : "s");
         pane = new GridPane();
-        PaneTools.addGridRow(pane, 0, 0, null, new Label(String.format("%d %s will be sent to:", objs.size(), objectString)));
-        PaneTools.addGridRow(pane, 1, 0, null, new Label(uri.toString()));
+        GridPaneUtils.addGridRow(pane, 0, 0, null, new Label(String.format("%d %s will be sent to:", objs.size(), objectString)));
+        GridPaneUtils.addGridRow(pane, 1, 0, null, new Label(uri.toString()));
         var confirm = Dialogs.showConfirmDialog("Send " + (selectedObjects.size() == 0 ? "all " : "") + objectString, pane);
         if (!confirm)
             return;
 
         // Write path object(s)
         // give to each pathObject a unique name
-        objs.forEach(pathObject -> pathObject.setName(""+ (new Date()).getTime() + pathObject.hashCode()));
+        objs.forEach(pathObject -> pathObject.setName(String.valueOf((new Date()).getTime()) + pathObject.hashCode()));
 
         // send detections to OMERO
         boolean hasBeenSaved = OmeroRawScripting.sendPathObjectsToOmero(omeroServer, objs, deleteRois, null);
@@ -167,9 +169,9 @@ public class OmeroRawWriteDetectionObjectsCommand implements Runnable {
         objs.forEach(pathObject -> pathObject.setName(null));
 
         if(hasBeenSaved)
-            Dialogs.showInfoNotification(StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully written to OMERO server",
+            Utils.infoLog(logger,StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully written to OMERO server",
                     objs.size(),
                     objectString,
-                    (objs.size() == 1 ? "was" : "were")));
+                    (objs.size() == 1 ? "was" : "were")), true);
     }
 }

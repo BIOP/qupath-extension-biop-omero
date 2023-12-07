@@ -34,9 +34,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.lib.gui.QuPathGUI;
-import qupath.lib.gui.dialogs.Dialogs;
-import qupath.lib.gui.tools.PaneTools;
+import qupath.fx.dialogs.Dialogs;
+import qupath.fx.utils.GridPaneUtils;
+
 import qupath.lib.objects.PathObject;
 
 
@@ -48,7 +51,7 @@ import qupath.lib.objects.PathObject;
  *
  */
 public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
-
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawWriteAnnotationObjectsCommand.class);
     private final String title = "Sending annotations";
     private final double MAX_FONT_SIZE = 16.0;
     private final QuPathGUI qupath;
@@ -126,8 +129,8 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
         URI uri = server.getURIs().iterator().next();
         String objectString = "object" + (objs.size() == 1 ? "" : "s");
         pane = new GridPane();
-        PaneTools.addGridRow(pane, 0, 0, null, new Label(String.format("%d %s will be sent to:", objs.size(), objectString)));
-        PaneTools.addGridRow(pane, 1, 0, null, new Label(uri.toString()));
+        GridPaneUtils.addGridRow(pane, 0, 0, null, new Label(String.format("%d %s will be sent to:", objs.size(), objectString)));
+        GridPaneUtils.addGridRow(pane, 1, 0, null, new Label(uri.toString()));
         var confirm = Dialogs.showConfirmDialog("Send " + (objs.size() == 0 ? "all " : "") + objectString, pane);
         if (!confirm)
             return;
@@ -143,10 +146,10 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
         // send annotations to OMERO
         boolean hasBeenSaved = OmeroRawScripting.sendPathObjectsToOmero(omeroServer, objs);
         if(hasBeenSaved)
-            Dialogs.showInfoNotification(StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully written to OMERO server",
+            Utils.infoLog(logger,StringUtils.capitalize(objectString) + " written successfully", String.format("%d %s %s successfully written to OMERO server",
                     objs.size(),
                     objectString,
-                    (objs.size() == 1 ? "was" : "were")));
+                    (objs.size() == 1 ? "was" : "were")), true);
         else {
             Dialogs.showErrorMessage("Sending annotations", "Cannot send annotations to OMERO. Please look at the log console to know more (View->Show log).");
             return;
@@ -199,14 +202,14 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
 
         if(detectionMap || annotationMap)
             if(nWrittenTables > 0) {
-                Dialogs.showInfoNotification(StringUtils.capitalize(objectString) + " written successfully", String.format("%d measurement %s were successfully sent to OMERO server",
-                        nWrittenTables, nWrittenTables == 1 ? "table" : "tables"));
+                Utils.infoLog(logger, StringUtils.capitalize(objectString) + " written successfully", String.format("%d measurement %s were successfully sent to OMERO server",
+                        nWrittenTables, nWrittenTables == 1 ? "table" : "tables"), true);
                 int totalNumberOfTable = (detectionMap && annotationMap ? 4 : 2);
                 if(nWrittenTables < totalNumberOfTable)
-                    Dialogs.showInfoNotification(StringUtils.capitalize(objectString) + " writing failure", String.format("%d measurement %s were not sent to OMERO server",
-                            totalNumberOfTable-nWrittenTables, totalNumberOfTable-nWrittenTables == 1 ? "table" : "tables"));
+                    Utils.infoLog(logger, StringUtils.capitalize(objectString) + " writing failure", String.format("%d measurement %s were not sent to OMERO server",
+                            totalNumberOfTable-nWrittenTables, totalNumberOfTable-nWrittenTables == 1 ? "table" : "tables"), true);
             }
             else
-                Dialogs.showErrorNotification(StringUtils.capitalize(objectString) + " writing failure", String.format("No measurement tables were sent to OMERO"));
+                Utils.errorLog(logger, StringUtils.capitalize(objectString) + " writing failure", "No measurement tables were sent to OMERO", true);
     }
 }

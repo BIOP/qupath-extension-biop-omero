@@ -6,7 +6,7 @@ import omero.gateway.model.TableDataColumn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.lib.common.GeneralTools;
-import qupath.lib.gui.dialogs.Dialogs;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
 import qupath.lib.objects.PathObject;
 import qupath.lib.scripting.QP;
@@ -27,11 +27,80 @@ import java.util.Map;
 /**
  * Private class regrouping all tools that are not restricted to OMERO.
  */
-class UtilityTools {
-    private final static Logger logger = LoggerFactory.getLogger(UtilityTools.class);
+class Utils {
+    private final static Logger logger = LoggerFactory.getLogger(Utils.class);
     protected static final String NUMERIC_FIELD_ID = "\\$";
     protected static final String IMAGE_ID_HEADER = NUMERIC_FIELD_ID + "Image_ID";
 
+
+    /**
+     * Info Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param qpNotif
+     */
+    public static void infoLog(Logger logger, String title, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showInfoNotification(title, message);
+        logger.info("["+title+"] -- "+message);
+    }
+
+    /**
+     * Info Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param e
+     * @param qpNotif
+     */
+    public static void infoLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showInfoNotification(title, message);
+        logger.info("["+title+"] -- "+message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+    }
+
+    /**
+     * Error Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param qpNotif
+     */
+    public static void errorLog(Logger logger, String title, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message);
+    }
+
+    /**
+     * Error Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param e
+     * @param qpNotif
+     */
+    public static void errorLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+    }
+
+    /**
+     * Warning Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param qpNotif
+     */
+    public static void warnLog(Logger logger, String title, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message);
+    }
+
+    /**
+     * Warning Logger to inform in QuPath GUI and / or in the logger window
+     * @param title
+     * @param message
+     * @param e
+     * @param qpNotif
+     */
+    public static void warnLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+OmeroRawTools.getErrorStackTraceAsString(e));
+    }
 
     /**
      * Convert a map < header, list_of_values > into a CSV file
@@ -258,8 +327,8 @@ class UtilityTools {
                     parentTable.put(header, new ArrayList<>());
             }
         } else if(headersSize != (ob.getAllNames().size() + 1)){
-            Dialogs.showWarningNotification("Parent Table - Compatibility issue","Size of headers ("+ob.getAllNames().size()+
-                    ") is different from existing table size ("+headersSize+"). Parent table is not populated");
+            Utils.errorLog(logger,"Parent Table","Compatibility issue - Size of headers ("+ob.getAllNames().size()+
+                    ") is different from existing table size ("+headersSize+"). Parent table is not populated", true);
             return;
         }
 
@@ -275,7 +344,7 @@ class UtilityTools {
                 List<String> listedValues = parentTable.get(col);
 
                 if(listedValues == null){
-                    Dialogs.showErrorNotification("Parent Table - Compatibility issue","There is no columns named "+col);
+                    Utils.errorLog(logger, "Parent Table","Compatibility issue - There is no columns named "+col, true);
                     throw new RuntimeException();
                 }
 
@@ -283,7 +352,7 @@ class UtilityTools {
                     parentTable.get(col).add(NUMERIC_FIELD_ID +
                             ob.getNumericValue(pathObject, col.replace(NUMERIC_FIELD_ID,"")));
                 } else {
-                    parentTable.get(col).add(""+ob.getStringValue(pathObject, col)); // need to keep the empty space because of null values
+                    parentTable.get(col).add(String.valueOf(ob.getStringValue(pathObject, col))); // need to keep the empty space because of null values
                 }
             }
         }
@@ -310,9 +379,7 @@ class UtilityTools {
             buffer.close();
 
         } catch (IOException e) {
-            Dialogs.showErrorNotification("Write CSV file", "An error has occurred when trying to save the csv file");
-            logger.error("" + e);
-            logger.error(OmeroRawTools.getErrorStackTraceAsString(e));
+            Utils.errorLog(logger,"CSV file", "An error has occurred when trying to save the csv file",e ,true);
         }
         return file;
     }
