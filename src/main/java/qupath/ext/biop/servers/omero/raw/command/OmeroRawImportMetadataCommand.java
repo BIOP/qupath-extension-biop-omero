@@ -1,13 +1,15 @@
 package qupath.ext.biop.servers.omero.raw.command;
 
+import javafx.geometry.Orientation;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
-import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
@@ -15,6 +17,7 @@ import qupath.lib.images.servers.ImageServer;
 import qupath.lib.projects.ProjectImageEntry;
 
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,21 +55,56 @@ public class OmeroRawImportMetadataCommand implements Runnable{
         GridPane pane = new GridPane();
         final ToggleGroup group = new ToggleGroup();
 
-        RadioButton rbKeepMetadata = new RadioButton("Keep existing and add new");
+        RadioButton rbKeepMetadata = new RadioButton("Only add new");
         rbKeepMetadata.setToggleGroup(group);
 
-        RadioButton rbReplaceMetadata = new RadioButton("Replace existing and add new");
+        RadioButton rbReplaceMetadata = new RadioButton("Update and add new");
         rbReplaceMetadata.setToggleGroup(group);
         rbReplaceMetadata.setSelected(true);
 
-        RadioButton rbDeleteMetadata = new RadioButton("Delete all and add new");
+        RadioButton rbDeleteMetadata = new RadioButton("Delete and add new");
         rbDeleteMetadata.setToggleGroup(group);
 
+        CheckBox cbTags = new CheckBox("Tags");
+        cbTags.setSelected(true);
+
+        CheckBox cbKeyValues = new CheckBox("Key-values");
+        cbKeyValues.setSelected(true);
+        cbKeyValues.selectedProperty().addListener((v, o, n) -> {
+            if(!cbKeyValues.isSelected() && !cbTags.isSelected()) {
+                rbKeepMetadata.setDisable(true);
+                rbReplaceMetadata.setDisable(true);
+                rbDeleteMetadata.setDisable(true);
+            }else{
+                rbKeepMetadata.setDisable(false);
+                rbReplaceMetadata.setDisable(false);
+                rbDeleteMetadata.setDisable(false);
+            }
+        });
+
+        cbTags.selectedProperty().addListener((v, o, n) -> {
+            if(!cbKeyValues.isSelected() && !cbTags.isSelected()) {
+                rbKeepMetadata.setDisable(true);
+                rbReplaceMetadata.setDisable(true);
+                rbDeleteMetadata.setDisable(true);
+            }else{
+                rbKeepMetadata.setDisable(false);
+                rbReplaceMetadata.setDisable(false);
+                rbDeleteMetadata.setDisable(false);
+            }
+        });
+
+        Separator separator2 = new Separator();
+        separator2.setOrientation(Orientation.VERTICAL);
+
         int row = 0;
-        pane.add(new Label("Select import options"), 0, row++, 2, 1);
-        pane.add(rbKeepMetadata, 0, row++);
-        pane.add(rbReplaceMetadata, 0, row++);
-        pane.add(rbDeleteMetadata, 0, row);
+        pane.add(new Label("Select import options from OMERO"), 0, row++, 2, 1);
+        pane.add(cbKeyValues, 0, row);
+        pane.add(separator2, 1, row,1,4);
+        pane.add(rbKeepMetadata, 2, row++);
+        pane.add(rbReplaceMetadata, 2, row++);
+        pane.add(cbTags, 0, row);
+        pane.add(rbDeleteMetadata, 2, row);
 
         pane.setHgap(5);
         pane.setVgap(5);
@@ -74,7 +112,11 @@ public class OmeroRawImportMetadataCommand implements Runnable{
         if (!Dialogs.showConfirmDialog(title, pane))
             return;
 
-        // get user choice
+        if(!cbKeyValues.isSelected() && !cbTags.isSelected()){
+            Utils.warnLog(title, "No option were selected. Nothing imported", true);
+            return;
+        }
+
         // get user choice
         Utils.UpdatePolicy policy;
         if(rbReplaceMetadata.isSelected())
@@ -83,14 +125,24 @@ public class OmeroRawImportMetadataCommand implements Runnable{
             policy = Utils.UpdatePolicy.DELETE_KEYS;
         else policy = Utils.UpdatePolicy.KEEP_KEYS;
 
+        Utils.UpdatePolicy secondPolicy;
+        if(cbKeyValues.isSelected() && cbTags.isSelected())
+            secondPolicy = Utils.UpdatePolicy.KEEP_KEYS;
+        else secondPolicy = policy;
+
         // read keyValue from QuPath
         ProjectImageEntry<BufferedImage> entry = this.qupath.getProject().getEntry(this.qupath.getImageData());
         // get the initial number of key values
         int nExistingKV = entry.getMetadataKeys().size();
 
         // add new keyValues from omero
-        Map<String, String> keyValueMap = OmeroRawScripting.addKeyValuesToQuPath((OmeroRawImageServer) imageServer, policy, true);
-        List<String> tagList = OmeroRawScripting.addTagsToQuPath((OmeroRawImageServer) imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
+        Map<String, String> keyValueMap = new HashMap<>();
+        List<String> tagList = new ArrayList<>();
+
+        if(cbKeyValues.isSelected())
+            keyValueMap = OmeroRawScripting.addKeyValuesToQuPath((OmeroRawImageServer) imageServer, policy, true);
+        if(cbTags.isSelected())
+            tagList = OmeroRawScripting.addTagsToQuPath((OmeroRawImageServer) imageServer, secondPolicy, true);
 
         String message = "";
         switch(policy){

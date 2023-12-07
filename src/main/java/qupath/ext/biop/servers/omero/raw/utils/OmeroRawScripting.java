@@ -505,6 +505,7 @@ public class OmeroRawScripting {
                 Map<String, Map<String,String>> splitKeyValues2 = Utils.splitNewAndExistingKeyValues(qpMetadata, kvps);
                 Map<String,String> newKV2 = splitKeyValues2.get(Utils.NEW_KVP);
                 newMetadata.putAll(newKV2);
+            default: break;
         }
 
         newMetadata.forEach(entry::putMetadataValue);
