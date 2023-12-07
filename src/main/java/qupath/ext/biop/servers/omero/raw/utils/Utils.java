@@ -75,7 +75,10 @@ public class Utils {
         UPDATE_KEYS,
 
         /** Delete all existing keys */
-        DELETE_KEYS
+        DELETE_KEYS,
+
+        /** Do not modify the target neither add new stuff */
+        NO_UPDATE
     }
 
     /**

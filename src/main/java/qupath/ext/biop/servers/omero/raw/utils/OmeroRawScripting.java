@@ -219,14 +219,15 @@ public class OmeroRawScripting {
      * <p>
      * @param qpMetadata Map of key-value
      * @param imageServer ImageServer of an image loaded from OMERO
-     * @param policy replacement policy you choose to replace annotations on OMERO
+     * @param kvpPolicy replacement policy you choose to replace key-value pairs on OMERO
+     * @param tagPolicy replacement policy you choose to replace tags on OMERO
      * @param qpNotif true to display a QuPath notification
      *
      * @return a map containing the key-values / tags sent. Use {@link Utils#KVP_KEY} and {@link Utils#TAG_KEY} to access
      * the corresponding map. For tag, the returned map has identical key:value
      */
     public static Map<String, Map<String, String>> sendQPMetadataToOmero(Map<String, String> qpMetadata, OmeroRawImageServer imageServer,
-                                                Utils.UpdatePolicy policy, boolean qpNotif) {
+                                                Utils.UpdatePolicy kvpPolicy, Utils.UpdatePolicy tagPolicy, boolean qpNotif) {
         // Extract tags
         List<String> qpMetadataTags = new ArrayList<>();
         Map<String, String> qpMetadataKVP = new HashMap<>();
@@ -243,9 +244,9 @@ public class OmeroRawScripting {
         resultsMap.put(Utils.KVP_KEY, new HashMap<>());
         resultsMap.put(Utils.TAG_KEY, new HashMap<>());
 
-        if(sendKeyValuesToOmero(qpMetadataKVP, imageServer, policy, qpNotif))
+        if(!kvpPolicy.equals(Utils.UpdatePolicy.NO_UPDATE) && sendKeyValuesToOmero(qpMetadataKVP, imageServer, kvpPolicy, qpNotif))
             resultsMap.put(Utils.KVP_KEY, qpMetadataKVP);
-        if(sendTagsToOmero(qpMetadataTags, imageServer, policy, qpNotif))
+        if(!tagPolicy.equals(Utils.UpdatePolicy.NO_UPDATE) && sendTagsToOmero(qpMetadataTags, imageServer, tagPolicy, qpNotif))
             resultsMap.put(Utils.TAG_KEY, qpMetadataTags.stream().collect(Collectors.toMap(e->e, e->e)));
 
         return resultsMap;
@@ -261,6 +262,11 @@ public class OmeroRawScripting {
      * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
      */
     public static boolean sendKeyValuesToOmero(Map<String, String> qpMetadataKVP, OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif){
+        if(policy.equals(Utils.UpdatePolicy.NO_UPDATE)) {
+            Utils.infoLog("OMERO - KVPs", "No metadata sent as KVPs and nothing updated on OMERO", qpNotif);
+            return true;
+        }
+
         // read OMERO key-values and check if they are unique
         List<MapAnnotationWrapper> omeroKVPsWrapperList;
         try {
@@ -276,7 +282,7 @@ public class OmeroRawScripting {
         try {
             omeroKVPs = Utils.convertMapAnnotationWrapperToMap(flattenMapWrapper);
         }catch(IllegalStateException e){
-            if(!policy.equals(Utils.UpdatePolicy.DELETE_KEYS)){
+            if(policy.equals(Utils.UpdatePolicy.KEEP_KEYS) || policy.equals(Utils.UpdatePolicy.UPDATE_KEYS)){
                 Utils.errorLog("OMERO - KVPs", "Keys not unique on OMERO. Please make them unique", qpNotif);
                 return false;
             }
@@ -326,7 +332,7 @@ public class OmeroRawScripting {
         }
 
         // delete current keyValues
-        if(!policy.equals(Utils.UpdatePolicy.KEEP_KEYS)){
+        if(policy.equals(Utils.UpdatePolicy.DELETE_KEYS) || policy.equals(Utils.UpdatePolicy.UPDATE_KEYS)){
             try{
                 imageServer.getClient().getSimpleClient().delete(omeroKVPsWrapperList);
             }catch(OMEROServerError | InterruptedException | ServiceException | AccessException | ExecutionException e){
@@ -347,6 +353,11 @@ public class OmeroRawScripting {
      * @return Sending status (true if tags have been sent ; false if there were troubles during the sending process)
      */
     public static boolean sendTagsToOmero(List<String> tags, OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif){
+        if(policy.equals(Utils.UpdatePolicy.NO_UPDATE)) {
+            Utils.infoLog("OMERO - tags", "No metadata sent as tags and nothing updated on OMERO", qpNotif);
+            return true;
+        }
+
         // unlink tags on OMERO
         if(policy.equals(Utils.UpdatePolicy.DELETE_KEYS))
             OmeroRawTools.unlinkTags(imageServer);
@@ -443,6 +454,11 @@ public class OmeroRawScripting {
      *
      * add Key-Value pairs as QuPath metadata to the current image in the QuPath project.
      *
+     * WARNING : If you run {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * before {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * and if you would like to use the policy {@link Utils.UpdatePolicy#DELETE_KEYS}, then you should apply this policy
+     * to the first method but NOT to the second one (use {@link Utils.UpdatePolicy#KEEP_KEYS} instead)
+     *
      * @param kvps map containing the key-value to add
      * @param policy replacement policy you choose to replace annotations on OMERO
      * @param qpNotif true to display a QuPath notification
@@ -496,6 +512,11 @@ public class OmeroRawScripting {
 
     /**
      * Read, from OMERO, tags attached to the current image and add them as QuPath metadata fields
+     *
+     * WARNING : If you run {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * before {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * and if you would like to use the policy {@link Utils.UpdatePolicy#DELETE_KEYS}, then you should apply this policy
+     * to the first method but NOT to the second one (use {@link Utils.UpdatePolicy#KEEP_KEYS} instead)
      *
      * @param imageServer ImageServer of an image loaded from OMERO
      * @return list of OMERO tags.
@@ -1796,11 +1817,11 @@ public class OmeroRawScripting {
      * @param qpMetadata Map of key-value
      * @param imageServer ImageServer of an image loaded from OMERO
      * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
-     * @deprecated use {@link OmeroRawScripting#sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, Utils.UpdatePolicy, boolean)} instead
      */
     @Deprecated
     public static boolean sendMetadataOnOmero(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
-        Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
+        Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.KEEP_KEYS, Utils.UpdatePolicy.KEEP_KEYS,true);
         return !(results.get(Utils.KVP_KEY).isEmpty() || results.get(Utils.TAG_KEY).isEmpty());
     }
 
@@ -1819,11 +1840,11 @@ public class OmeroRawScripting {
      * @param qpMetadata Map of key-value
      * @param imageServer ImageServer of an image loaded from OMERO
      * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
-     * @deprecated use {@link OmeroRawScripting#sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, Utils.UpdatePolicy, boolean)} instead
      */
     @Deprecated
     public static boolean sendMetadataOnOmeroAndDeleteKeyValues(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
-        Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.DELETE_KEYS, true);
+        Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.DELETE_KEYS, Utils.UpdatePolicy.KEEP_KEYS, true);
         return !(results.get(Utils.KVP_KEY).isEmpty() || results.get(Utils.TAG_KEY).isEmpty());
     }
 
@@ -1842,11 +1863,11 @@ public class OmeroRawScripting {
      * @param qpMetadata Map of key-value
      * @param imageServer ImageServer of an image loaded from OMERO
      * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
-     * @deprecated use {@link OmeroRawScripting#sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, Utils.UpdatePolicy, boolean)} instead
      */
     @Deprecated
     public static boolean sendMetadataOnOmeroAndUpdateKeyValues(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
-        Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.UPDATE_KEYS, true);
+        Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.UPDATE_KEYS, Utils.UpdatePolicy.KEEP_KEYS, true);
         return !(results.get(Utils.KVP_KEY).isEmpty() || results.get(Utils.TAG_KEY).isEmpty());
     }
 
