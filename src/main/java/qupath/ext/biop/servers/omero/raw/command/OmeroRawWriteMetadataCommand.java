@@ -5,6 +5,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
 import qupath.ext.biop.servers.omero.raw.utils.Utils;
@@ -25,7 +27,7 @@ import java.util.Map;
  *
  */
 public class OmeroRawWriteMetadataCommand  implements Runnable{
-
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawImportMetadataCommand.class);
     private final String title = "Sending metadata";
     private final QuPathGUI qupath;
     public OmeroRawWriteMetadataCommand(QuPathGUI qupath)  {
@@ -39,7 +41,7 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
 
         // Check if OMERO server
         if (!(imageServer instanceof OmeroRawImageServer)) {
-            Utils.errorLog(title, "The current image is not from OMERO!", true);
+            Utils.errorLog(logger, title, "The current image is not from OMERO!", true);
             return;
         }
 
@@ -47,7 +49,7 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
         ProjectImageEntry<BufferedImage> entry = this.qupath.getProject().getEntry(this.qupath.getImageData());
         Map<String, String> keyValues = entry.getMetadataMap();
         if (keyValues.size() == 0) {
-            Utils.warnLog(title, "The current image does not contain any metadata", true);
+            Utils.warnLog(logger, title, "The current image does not contain any metadata", true);
             return;
         }
 
@@ -132,7 +134,7 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
 
         // give feedback
         if(!tags.isEmpty())
-            Utils.infoLog("TAG"+ (tags.size() == 1 ? "":"s") + " written successfully",
+            Utils.infoLog(logger, "TAG"+ (tags.size() == 1 ? "":"s") + " written successfully",
                     String.format("%d %s %s successfully sent to OMERO server",
                     tags.size(),
                     ("TAG"+ (tags.size() == 1 ? "":"s")),
@@ -140,7 +142,7 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
 
 
         if(!kvps.isEmpty())
-            Utils.infoLog("KVP"+ (kvps.size() == 1 ? "":"s") + " written successfully",
+            Utils.infoLog(logger, "KVP"+ (kvps.size() == 1 ? "":"s") + " written successfully",
                     String.format("%d %s %s successfully sent to OMERO server",
                             kvps.size(),
                             ("KVP"+ (kvps.size() == 1 ? "":"s")),

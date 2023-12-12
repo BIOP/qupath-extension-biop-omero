@@ -8,6 +8,8 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
 import qupath.ext.biop.servers.omero.raw.utils.Utils;
@@ -32,6 +34,7 @@ import java.util.Map;
  *
  */
 public class OmeroRawImportMetadataCommand implements Runnable{
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawImportMetadataCommand.class);
     private final String title = "Import KeyValues / Tags from OMERO";
     private final QuPathGUI qupath;
 
@@ -113,7 +116,7 @@ public class OmeroRawImportMetadataCommand implements Runnable{
             return;
 
         if(!cbKeyValues.isSelected() && !cbTags.isSelected()){
-            Utils.warnLog(title, "No option were selected. Nothing imported", true);
+            Utils.warnLog(logger, title, "No option were selected. Nothing imported", true);
             return;
         }
 
@@ -156,7 +159,7 @@ public class OmeroRawImportMetadataCommand implements Runnable{
                 message = "Delete %d previous metadata";
         }
 
-        Utils.infoLog(title, String.format(message + ", add %d new %s and add %d new %s", nExistingKV,
+        Utils.infoLog(logger, title, String.format(message + ", add %d new %s and add %d new %s", nExistingKV,
                 keyValueMap == null ? 0 : keyValueMap.size(),
                 ((keyValueMap != null && keyValueMap.size() <= 1) ? "KVP" : "KVPs"),
                 tagList == null ? 0 : tagList.size(),

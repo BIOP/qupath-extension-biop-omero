@@ -87,7 +87,7 @@ public class OmeroRawScripting {
         try{
             roiWrappers = client.getSimpleClient().getImage(imageId).getROIs(client.getSimpleClient());
         }catch(fr.igred.omero.exception.ServiceException | AccessException | ExecutionException e){
-            Utils.errorLog("OMERO - ROIs", "Cannot get ROIs from image '"+imageId, e, qpNotif);
+            Utils.errorLog(logger,"OMERO - ROIs", "Cannot get ROIs from image '"+imageId, e, qpNotif);
             return Collections.emptyList();
         }
 
@@ -175,7 +175,7 @@ public class OmeroRawScripting {
             try {
                 existingROIs = imageServer.getImageWrapper().getROIs(client.getSimpleClient());
             }catch(ServiceException | AccessException | ExecutionException e){
-                Utils.errorLog("OMERO - ROIs", "Cannot get ROIs from image '"+imageId, e, qpNotif);
+                Utils.errorLog(logger,"OMERO - ROIs", "Cannot get ROIs from image '"+imageId, e, qpNotif);
                 return null;
             }
 
@@ -183,7 +183,7 @@ public class OmeroRawScripting {
             try {
                 omeroROIs = imageServer.getImageWrapper().saveROIs(client.getSimpleClient(), omeroROIs);
             }catch(ServiceException | AccessException | ExecutionException e){
-                Utils.errorLog("OMERO - ROIs", "Cannot add ROIs from image '"+imageId, e, qpNotif);
+                Utils.errorLog(logger,"OMERO - ROIs", "Cannot add ROIs from image '"+imageId, e, qpNotif);
                 return null;
             }
 
@@ -194,7 +194,7 @@ public class OmeroRawScripting {
             try {
                 client.getSimpleClient().delete(filteredROIs);
             }catch(ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e){
-                Utils.errorLog("OMERO - ROIs", "Cannot delete ROIs from image '"+imageId+"' for the owner '"+owner+"'", e, qpNotif);
+                Utils.errorLog(logger,"OMERO - ROIs", "Cannot delete ROIs from image '"+imageId+"' for the owner '"+owner+"'", e, qpNotif);
             }
 
             return omeroROIs;
@@ -202,7 +202,7 @@ public class OmeroRawScripting {
             try {
                 return imageServer.getImageWrapper().saveROIs(client.getSimpleClient(), omeroROIs);
             }catch(ServiceException | AccessException | ExecutionException e){
-                Utils.errorLog("OMERO - ROIs", "Cannot add ROIs on image '"+imageId, e, qpNotif);
+                Utils.errorLog(logger,"OMERO - ROIs", "Cannot add ROIs on image '"+imageId, e, qpNotif);
                 return null;
             }
         }
@@ -263,7 +263,7 @@ public class OmeroRawScripting {
      */
     public static boolean sendKeyValuesToOmero(Map<String, String> qpMetadataKVP, OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif){
         if(policy.equals(Utils.UpdatePolicy.NO_UPDATE)) {
-            Utils.infoLog("OMERO - KVPs", "No metadata sent as KVPs and nothing updated on OMERO", qpNotif);
+            Utils.infoLog(logger,"OMERO - KVPs", "No metadata sent as KVPs and nothing updated on OMERO", qpNotif);
             return true;
         }
 
@@ -272,7 +272,7 @@ public class OmeroRawScripting {
         try {
             omeroKVPsWrapperList = imageServer.getImageWrapper().getMapAnnotations(imageServer.getClient().getSimpleClient());
         }catch(ServiceException | AccessException | ExecutionException e){
-            Utils.errorLog("OMERO - KVPs", "Cannot get KVPs to the image '"+imageServer.getId()+"'", e, qpNotif);
+            Utils.errorLog(logger,"OMERO - KVPs", "Cannot get KVPs to the image '"+imageServer.getId()+"'", e, qpNotif);
             return false;
         }
 
@@ -283,7 +283,7 @@ public class OmeroRawScripting {
             omeroKVPs = Utils.convertMapAnnotationWrapperToMap(flattenMapWrapper);
         }catch(IllegalStateException e){
             if(policy.equals(Utils.UpdatePolicy.KEEP_KEYS) || policy.equals(Utils.UpdatePolicy.UPDATE_KEYS)){
-                Utils.errorLog("OMERO - KVPs", "Keys not unique on OMERO. Please make them unique", qpNotif);
+                Utils.errorLog(logger,"OMERO - KVPs", "Keys not unique on OMERO. Please make them unique", qpNotif);
                 return false;
             }
         }
@@ -324,11 +324,11 @@ public class OmeroRawScripting {
             try{
                 imageServer.getImageWrapper().link(imageServer.getClient().getSimpleClient(), newOmeroAnnotationMap);
             }catch(ServiceException | AccessException | ExecutionException e){
-                Utils.errorLog("OMERO - KVPs", "Cannot add KVPs to the image '"+imageServer.getId()+"'", e, qpNotif);
+                Utils.errorLog(logger,"OMERO - KVPs", "Cannot add KVPs to the image '"+imageServer.getId()+"'", e, qpNotif);
                 return false;
             }
         }else{
-            Utils.warnLog("OMERO - KVPs", "No key values to send", qpNotif);
+            Utils.warnLog(logger,"OMERO - KVPs", "No key values to send", qpNotif);
         }
 
         // delete current keyValues
@@ -336,7 +336,7 @@ public class OmeroRawScripting {
             try{
                 imageServer.getClient().getSimpleClient().delete(omeroKVPsWrapperList);
             }catch(OMEROServerError | InterruptedException | ServiceException | AccessException | ExecutionException e){
-                Utils.errorLog("OMERO - KVPs", "Cannot delete KVPs to the image '"+imageServer.getId()+"'", e, qpNotif);
+                Utils.errorLog(logger,"OMERO - KVPs", "Cannot delete KVPs to the image '"+imageServer.getId()+"'", e, qpNotif);
             }
         }
 
@@ -354,7 +354,7 @@ public class OmeroRawScripting {
      */
     public static boolean sendTagsToOmero(List<String> tags, OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif){
         if(policy.equals(Utils.UpdatePolicy.NO_UPDATE)) {
-            Utils.infoLog("OMERO - tags", "No metadata sent as tags and nothing updated on OMERO", qpNotif);
+            Utils.infoLog(logger,"OMERO - tags", "No metadata sent as tags and nothing updated on OMERO", qpNotif);
             return true;
         }
 
@@ -367,7 +367,7 @@ public class OmeroRawScripting {
         try {
             omeroTagAnnotations = imageServer.getImageWrapper().getTags(imageServer.getClient().getSimpleClient());
         }catch(ServiceException | AccessException | ExecutionException e){
-            Utils.errorLog("OMERO - tags", "Cannot get tags to the image '"+imageServer.getId()+"'", e, qpNotif);
+            Utils.errorLog(logger,"OMERO - tags", "Cannot get tags to the image '"+imageServer.getId()+"'", e, qpNotif);
             return false;
         }
         List<String> currentTags = omeroTagAnnotations.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList());
@@ -385,7 +385,7 @@ public class OmeroRawScripting {
         try {
             groupTags= imageServer.getClient().getSimpleClient().getTags();
         }catch(ServiceException  | OMEROServerError e){
-            Utils.errorLog("OMERO - tags",
+            Utils.errorLog(logger,"OMERO - tags",
                     "Cannot read tags from the current user '"+imageServer.getClient().getSimpleClient().getUser().getUserName()+"'", e, qpNotif);
             return false;
         }
@@ -407,7 +407,7 @@ public class OmeroRawScripting {
         try {
             imageServer.getImageWrapper().link(imageServer.getClient().getSimpleClient(), tagsToAdd.toArray(TagAnnotationWrapper[]::new));
         }catch(ServiceException | AccessException | ExecutionException e){
-            Utils.errorLog("OMERO - tags", "Cannot add tags to the image '"+imageServer.getId()+"'", e, qpNotif);
+            Utils.errorLog(logger,"OMERO - tags", "Cannot add tags to the image '"+imageServer.getId()+"'", e, qpNotif);
             return false;
         }
 
@@ -429,7 +429,7 @@ public class OmeroRawScripting {
         try {
             omeroKVPsWrapperList = imageServer.getImageWrapper().getMapAnnotations(imageServer.getClient().getSimpleClient());
         }catch(ServiceException | AccessException | ExecutionException e){
-            Utils.errorLog("OMERO - KVPs", "Cannot get KVPs from the image '"+imageServer.getId()+"'", e, qpNotif);
+            Utils.errorLog(logger,"OMERO - KVPs", "Cannot get KVPs from the image '"+imageServer.getId()+"'", e, qpNotif);
             return null;
         }
 
@@ -439,7 +439,7 @@ public class OmeroRawScripting {
         try {
             omeroKVPs = Utils.convertMapAnnotationWrapperToMap(flattenMapWrapper);
         }catch(IllegalStateException e){
-            Utils.errorLog("OMERO - KVPs", "Keys not unique on OMERO. Please make them unique", qpNotif);
+            Utils.errorLog(logger,"OMERO - KVPs", "Keys not unique on OMERO. Please make them unique", qpNotif);
             return null;
         }
 
@@ -528,7 +528,7 @@ public class OmeroRawScripting {
         try {
             tagWrapperList =  imageServer.getImageWrapper().getTags(imageServer.getClient().getSimpleClient());
         }catch(ServiceException | AccessException | ExecutionException e){
-            Utils.errorLog("OMERO - KVPs", "Cannot get KVPs from the image '"+imageServer.getId()+"'", e, qpNotif);
+            Utils.errorLog(logger,"OMERO - KVPs", "Cannot get KVPs from the image '"+imageServer.getId()+"'", e, qpNotif);
             return null;
         }
         if(tagWrapperList.isEmpty())
@@ -1187,7 +1187,7 @@ public class OmeroRawScripting {
         try {
             omeroNChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient()).size();
         }catch(AccessException | ServiceException | ExecutionException e){
-            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
             return;
         }
 
@@ -1243,7 +1243,7 @@ public class OmeroRawScripting {
         try {
             omeroNChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient()).size();
         }catch(AccessException | ServiceException | ExecutionException e){
-            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
             return;
         }
 
@@ -1315,7 +1315,7 @@ public class OmeroRawScripting {
         try {
             omeroChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient());
         }catch(AccessException | ServiceException | ExecutionException e){
-            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
             return;
         }
 
@@ -1368,7 +1368,7 @@ public class OmeroRawScripting {
         try {
             omeroNChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient()).size();
         }catch(AccessException | ServiceException | ExecutionException e){
-            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
             return false;
         }
 
@@ -1420,7 +1420,7 @@ public class OmeroRawScripting {
         try {
             omeroChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient());
         }catch(AccessException | ServiceException | ExecutionException e){
-            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
             return false;
         }
 
@@ -1473,7 +1473,7 @@ public class OmeroRawScripting {
         try {
             omeroNChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient()).size();
         }catch(AccessException | ServiceException | ExecutionException e){
-            Utils.errorLog("OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
             return false;
         }
 

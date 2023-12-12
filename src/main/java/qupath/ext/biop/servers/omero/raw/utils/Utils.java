@@ -112,7 +112,7 @@ public class Utils {
      * @param message
      * @param qpNotif
      */
-    public static void infoLog(String title, String message, boolean qpNotif){
+    public static void infoLog(Logger logger, String title, String message, boolean qpNotif){
         if(qpNotif) Dialogs.showInfoNotification(title, message);
         logger.info("["+title+"] -- "+message);
     }
@@ -124,7 +124,7 @@ public class Utils {
      * @param e
      * @param qpNotif
      */
-    public static void infoLog(String title, String message, Exception e, boolean qpNotif){
+    public static void infoLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
         if(qpNotif) Dialogs.showInfoNotification(title, message);
         logger.info("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
     }
@@ -135,7 +135,7 @@ public class Utils {
      * @param message
      * @param qpNotif
      */
-    public static void errorLog(String title, String message, boolean qpNotif){
+    public static void errorLog(Logger logger, String title, String message, boolean qpNotif){
         if(qpNotif) Dialogs.showErrorNotification(title, message);
         logger.error("["+title+"] -- "+message);
     }
@@ -147,7 +147,7 @@ public class Utils {
      * @param e
      * @param qpNotif
      */
-    public static void errorLog(String title, String message, Exception e, boolean qpNotif){
+    public static void errorLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
         if(qpNotif) Dialogs.showErrorNotification(title, message);
         logger.error("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
     }
@@ -158,7 +158,7 @@ public class Utils {
      * @param message
      * @param qpNotif
      */
-    public static void warnLog(String title, String message, boolean qpNotif){
+    public static void warnLog(Logger logger, String title, String message, boolean qpNotif){
         if(qpNotif) Dialogs.showErrorNotification(title, message);
         logger.error("["+title+"] -- "+message);
     }
@@ -170,7 +170,7 @@ public class Utils {
      * @param e
      * @param qpNotif
      */
-    public static void warnLog(String title, String message, Exception e, boolean qpNotif){
+    public static void warnLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
         if(qpNotif) Dialogs.showErrorNotification(title, message);
         logger.error("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
     }
