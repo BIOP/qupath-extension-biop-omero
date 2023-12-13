@@ -69,7 +69,20 @@ public class OmeroRawScripting {
      * @return The list of OMERO rois converted into pathObjects
      */
     public static Collection<PathObject> getROIs(OmeroRawImageServer imageServer, String owner, boolean qpNotif) {
-        return getROIs(imageServer.getClient(), imageServer.getId(), owner, qpNotif);
+        List<ROIWrapper> roiWrappers;
+        try{
+            roiWrappers = imageServer.getImageWrapper().getROIs(imageServer.getClient().getSimpleClient());
+        }catch(ServiceException | ExecutionException | AccessException e){
+            Utils.errorLog(logger,"OMERO - ROIs", "Cannot get ROIs from image '"+imageServer.getId(), e, qpNotif);
+            return Collections.emptyList();
+        }
+
+        if(roiWrappers.isEmpty())
+            return new ArrayList<>();
+
+        List<ROIWrapper> filteredROIs = OmeroRawShapes.filterByOwner(imageServer.getClient(), roiWrappers, owner);
+
+        return OmeroRawShapes.createPathObjectsFromOmeroROIs(filteredROIs);
     }
 
     /**
@@ -112,7 +125,7 @@ public class OmeroRawScripting {
     public static Collection<PathObject> addROIsToQuPath(OmeroRawImageServer imageServer, boolean removePathObjects,
                                                  String owner, boolean qpNotif) {
         // read OMERO ROIs
-        Collection<PathObject> pathObjects = getROIs(imageServer.getClient(), imageServer.getId(), owner, qpNotif);
+        Collection<PathObject> pathObjects = getROIs(imageServer,  owner, qpNotif);
 
         // get the current hierarchy
         PathObjectHierarchy hierarchy = QP.getCurrentHierarchy();
