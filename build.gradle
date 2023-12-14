@@ -34,7 +34,7 @@ dependencies {
     implementation "io.github.qupath:qupath-core:${qupathVersion}"
     implementation "io.github.qupath:qupath-gui-fx:${qupathVersion}"
 
-    implementation "org.openmicroscopy:omero-gateway:5.8.1"
+    implementation "org.openmicroscopy:omero-gateway:5.9.0"
     implementation "fr.igred:simple-omero-client:5.16.0"
 
     //testImplementation libs.junit

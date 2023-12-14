@@ -499,14 +499,7 @@ final class OmeroRawObjects {
         protected Owner(ExperimenterWrapper experimenterWrapper) {
             this.id = experimenterWrapper.getId();
             this.firstName = experimenterWrapper.getFirstName()==null ? "" : experimenterWrapper.getFirstName();
-            //TODO see when this issue is solved https://github.com/ome/omero-gateway-java/issues/83
-            String middleName = "";
-            try{
-                middleName = experimenterWrapper.getMiddleName();
-            }catch (Exception e){
-
-            }
-            this.middleName = middleName;
+            this.middleName = experimenterWrapper.getMiddleName() == null ? "" : experimenterWrapper.getMiddleName();
             this.lastName = experimenterWrapper.getLastName()==null ? "" : experimenterWrapper.getLastName();
 
             this.emailAddress = experimenterWrapper.getEmail()==null ? "" : experimenterWrapper.getEmail();;
