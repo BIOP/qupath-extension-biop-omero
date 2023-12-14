@@ -600,6 +600,7 @@ public class OmeroRawScripting {
 
         // convert the table to OMERO.table
         TableWrapper tableWrapper = new TableWrapper(Utils.buildOmeroTableFromMeasurementTable(pathObjects, ob, imageWrapper));
+        tableWrapper.setName(tableName);
         List<FileAnnotationWrapper> tableList = new ArrayList<>();
 
         if(deleteOlderVersions) {
@@ -920,12 +921,13 @@ public class OmeroRawScripting {
                                                                  OmeroRawClient client, Collection<GenericRepositoryObjectWrapper<?>> parents,
                                                                  boolean deleteOlderVersions, String owner, boolean qpNotif){
         // set the file name
-        String filename = summaryFileBaseName + "_" +
+        String tableName = summaryFileBaseName + "_" +
                 QPEx.getQuPath().getProject().getName().split("/")[0] + "_"+
                 Utils.getCurrentDateAndHour();
 
         // build the OMERO.table parent table
         TableWrapper omeroTable = new TableWrapper(Utils.buildOmeroTableFromListsOfStrings(parentTable, client));
+        omeroTable.setName(tableName);
         FileAnnotationWrapper attachedFileWrapper = null;
 
         // loop over all parents if images comes from more than one dataset
@@ -969,10 +971,10 @@ public class OmeroRawScripting {
 
             // delete previous files
             if (deleteOlderVersions && attachedFileWrapper != null) {
-                String[] groups = filename.split(FILE_NAME_SPLIT_REGEX);
+                String[] groups = tableName.split(FILE_NAME_SPLIT_REGEX);
                 String matchedFileName;
                 if(groups.length == 0)
-                    matchedFileName = filename.substring(0, filename.lastIndexOf("_"));
+                    matchedFileName = tableName.substring(0, tableName.lastIndexOf("_"));
                 else matchedFileName = groups[0];
 
                 try{
