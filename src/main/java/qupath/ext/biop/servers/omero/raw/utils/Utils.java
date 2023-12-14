@@ -1,6 +1,8 @@
 package qupath.ext.biop.servers.omero.raw.utils;
 
 import fr.igred.omero.annotations.MapAnnotationWrapper;
+import fr.igred.omero.annotations.TableWrapper;
+import fr.igred.omero.repository.ImageWrapper;
 import omero.gateway.model.ImageData;
 import omero.gateway.model.TableData;
 import omero.gateway.model.TableDataColumn;
@@ -384,22 +386,20 @@ public class Utils {
      *
      * @param pathObjects
      * @param ob
-     * @param client
-     * @param imageId
+     * @param imageWrapper
      * @return The corresponding OMERO.Table
      */
-    protected static TableData buildOmeroTableFromMeasurementTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, OmeroRawClient client, long imageId) {
+    protected static TableData buildOmeroTableFromMeasurementTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, ImageWrapper imageWrapper) {
         List<TableDataColumn> columns = new ArrayList<>();
         List<List<Object>> measurements = new ArrayList<>();
         int i = 0;
 
         // add the first column with the image data (linkable on OMERO)
         columns.add(new TableDataColumn("Image ID",i++, ImageData.class));
-        ImageData image = OmeroRawTools.readOmeroImage(client, imageId);
         List<Object> imageData = new ArrayList<>();
 
         for (PathObject ignored : pathObjects) {
-            imageData.add(image);
+            imageData.add(imageWrapper.asDataObject());
         }
         measurements.add(imageData);
 

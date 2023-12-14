@@ -742,9 +742,18 @@ public final class OmeroRawTools {
      * @param client
      * @param imageId
      * @return The corresponding OMERO.Table
+     * @deprecated Method moved with a non-public access
      */
+    @Deprecated
     public static TableData convertMeasurementTableToOmeroTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, OmeroRawClient client, long imageId) {
-        return Utils.buildOmeroTableFromMeasurementTable(pathObjects, ob, client, imageId);
+        ImageWrapper imgWrapper;
+        try {
+            imgWrapper = client.getSimpleClient().getImage(imageId);
+        }catch(Exception e){
+            Utils.errorLog(logger, "Measurement table conversion", "Cannot read the image "+imageId+" from OMERO", true);
+            return null;
+        }
+        return Utils.buildOmeroTableFromMeasurementTable(pathObjects, ob, imgWrapper);
     }
 
     /**
@@ -924,7 +933,9 @@ public final class OmeroRawTools {
      * @param annotationData
      * @param obj
      * @return
+     * @deprecated use {@link GenericRepositoryObjectWrapper#link(Client, GenericAnnotationWrapper[])} instead
      */
+    @Deprecated
     static AnnotationData linkAnnotationToOmero(OmeroRawClient client, AnnotationData annotationData, DataObject obj) {
         try{
             // attach the omero.table to the image
@@ -1075,7 +1086,9 @@ public final class OmeroRawTools {
      * @param name file name
      * @param path where to save the newly created CSV file.
      * @return CSV file of measurement table.
+     * @deprecated Method moved to a non-public class
      */
+    @Deprecated
     public static File buildCSVFileFromMeasurementTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, long imageId, String name, String path) {
         return Utils.buildCSVFileFromMeasurementTable(pathObjects, ob, imageId, name);
     }
@@ -1158,7 +1171,9 @@ public final class OmeroRawTools {
      * @param client
      * @param imageId
      * @return Sending status (True if retrieved ; false with error message otherwise)
+     * @deprecated use {@link ImageWrapper#getTables(Client)} instead
      */
+    @Deprecated
     public static Collection<FileAnnotationData> readTables(OmeroRawClient client, long imageId) {
         try{
             // read image

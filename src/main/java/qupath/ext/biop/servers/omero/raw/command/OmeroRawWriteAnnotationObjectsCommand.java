@@ -120,7 +120,7 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
 
         // get user choice
         boolean annotationMap = cbAnnotationsMap.isSelected();
-        boolean deletePreviousExperiments = cbDeleteRois.isSelected();
+        boolean delPrevExp = cbDeleteRois.isSelected();
         boolean detectionMap = cbDetectionsMap.isSelected();
         boolean deleteOnlyFilesIOwn = cbDeleteMyRois.isSelected();
 
@@ -144,10 +144,10 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
             return;
 
         // get the current ROIs and tables
-        List<FileAnnotationData> tmpFileList = new ArrayList<>();
-        if(deletePreviousExperiments){
+       /* List<FileAnnotationData> tmpFileList = new ArrayList<>();
+        if(delPrevExp){
             tmpFileList = OmeroRawTools.readAttachments(omeroServer.getClient(), omeroServer.getId());
-        }
+        }*/
 
         String ownerToDelete;
         if(deleteOnlyFilesIOwn)
@@ -155,7 +155,7 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
         else ownerToDelete = Utils.ALL_USERS;
 
         // send annotations to OMERO
-        List<ROIWrapper> roiWrappers = OmeroRawScripting.sendPathObjectsToOmero(omeroServer, objs, deletePreviousExperiments, ownerToDelete, false);
+        List<ROIWrapper> roiWrappers = OmeroRawScripting.sendPathObjectsToOmero(omeroServer, objs, delPrevExp, ownerToDelete, false);
         if(roiWrappers == null){
             Dialogs.showErrorMessage("Sending annotations", "Cannot send annotations to OMERO. Please look at the log console to know more (View->Show log).");
             return;
@@ -172,10 +172,10 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
         int nWrittenTables = 0;
         if(annotationMap) {
             // send table to OMERO
-            if(OmeroRawScripting.sendAnnotationMeasurementTable(objs, omeroServer, qupath.getImageData())) nWrittenTables++;
+            if(OmeroRawScripting.sendAnnotationMeasurementsToOmero(omeroServer, objs, qupath.getImageData(), delPrevExp, ownerToDelete, true) > 0) nWrittenTables++;
 
             // send the corresponding csv file
-            if(OmeroRawScripting.sendAnnotationMeasurementTableAsCSV(objs, omeroServer, qupath.getImageData())) nWrittenTables++;
+            if(OmeroRawScripting.sendAnnotationMeasurementsAsCSVToOmero(omeroServer, objs, qupath.getImageData(), delPrevExp, ownerToDelete, true) > 0) nWrittenTables++;
         }
 
         if(detectionMap){
@@ -185,16 +185,16 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
             // send detection measurement map
             if(detections.size() > 0) {
                 // send table to OMERO
-                if(OmeroRawScripting.sendDetectionMeasurementTable(detections, omeroServer, qupath.getImageData())) nWrittenTables++;
+                if(OmeroRawScripting.sendDetectionMeasurementToOmero(omeroServer, detections, qupath.getImageData(), delPrevExp, ownerToDelete, true) > 0) nWrittenTables++;
 
                 // send the corresponding csv file
-                if(OmeroRawScripting.sendDetectionMeasurementTableAsCSV(detections, omeroServer, qupath.getImageData())) nWrittenTables++;
+                if(OmeroRawScripting.sendDetectionMeasurementsAsCSVToOmero(omeroServer, detections, qupath.getImageData(), delPrevExp, ownerToDelete, true) > 0) nWrittenTables++;
             }
             else Dialogs.showErrorMessage(title, "No detection objects , cannot send detection map!");
         }
 
         // delete all previous ROIs and related tables (detection and annotations)
-        if(deletePreviousExperiments) {
+        /*if(delPrevExp) {
             String currentLoggedInUser = omeroServer.getClient().getLoggedInUser().getUserName();
 
             if(!deleteOnlyFilesIOwn)
@@ -202,7 +202,7 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
 
             OmeroRawScripting.deleteAnnotationFiles(omeroServer, tmpFileList, currentLoggedInUser);
             OmeroRawScripting.deleteDetectionFiles(omeroServer, tmpFileList, currentLoggedInUser);
-        }
+        }*/
 
         if(detectionMap || annotationMap)
             if(nWrittenTables > 0) {
