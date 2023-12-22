@@ -20,7 +20,7 @@ You can find all the documentation on how to use this extension on our [wiki pag
 - If you haven't installed any extensions before, you'll be prompted to select a QuPath user directory.
 The extension will then be copied to a location inside that directory.
 
-- The `OMERO-java dependencies` are required to make this extension working. Download the .zip file from the [OMERO download page](https://www.openmicroscopy.org/omero/downloads/), under "OMERO Java". Unzip it and copy the "libs" folder in your extension directory.
+- The `OMERO-java dependencies` are required to make this extension working. Download the .jar file from the [OMERO download page](https://www.openmicroscopy.org/omero/downloads/), under "Imagej / Fiji" and copy it in your extension directory.
 
 
 *Update*
@@ -29,7 +29,7 @@ The extension will then be copied to a location inside that directory.
 
 ## Building
 
-You can build the extension using OpenJDK 11 or later with
+You can build the extension using OpenJDK 17 or later with
 
 ```bash
 gradlew clean build
