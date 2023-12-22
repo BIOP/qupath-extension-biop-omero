@@ -20,7 +20,12 @@ You can find all the documentation on how to use this extension on our [wiki pag
 - If you haven't installed any extensions before, you'll be prompted to select a QuPath user directory.
 The extension will then be copied to a location inside that directory.
 
-- The `OMERO-java dependencies` are required to make this extension working. Download the .jar file from the [OMERO download page](https://www.openmicroscopy.org/omero/downloads/), under "Imagej / Fiji" and copy it in your extension directory.
+- The `OMERO-java dependencies` are required to make this extension working. Download the .zip file from the [OMERO download page](https://www.openmicroscopy.org/omero/downloads/), under "OMERO java". Unzip it and copy the ``libs`` folder in your extension directory.
+
+> WARNING
+> 
+> Due to an unexpected bug in QuPath 0.5.0, the dependencies nested in sub-folder are not read anymore. Alternatively, and until this QuPath bug will be fixed, instead of the ``libs`` folder, you can add the ``OMERO-Fiji plugin Image J / Fiji - omero_ij-5.8.3-all.jar``. This fat jar replaces the ``libs`` folder. It can be dowloaded from here https://www.openmicroscopy.org/omero/downloads/.
+
 
 
 *Update*
