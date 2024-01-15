@@ -20,6 +20,7 @@ import fr.igred.omero.repository.ScreenWrapper;
 import fr.igred.omero.repository.WellWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 import javafx.collections.ObservableList;
+import omero.ServerError;
 import omero.gateway.exception.DSAccessException;
 import omero.gateway.exception.DSOutOfServiceException;
 import omero.gateway.facility.TablesFacility;
@@ -1097,11 +1098,17 @@ public class OmeroRawScripting {
      */
     public static void setChannelsDisplayRangeFromOmeroChannel(OmeroRawImageServer imageServer) {
         // get the OMERO rendering settings to get channel info
-        RenderingDef renderingSettings = OmeroRawTools.readOmeroRenderingSettings(imageServer.getClient(), imageServer.getId());
+        RenderingDef renderingSettings;
+        try {
+            renderingSettings = OmeroRawTools.readOmeroRenderingSettings(imageServer.getClient(), imageServer.getImageWrapper().getPixels().getId());
+        }catch(DSOutOfServiceException | ServerError e){
+            Dialogs.showErrorNotification("OMERO - Channels", "Cannot access to rendering settings of the image " + imageServer.getId());
+            return;
+        }
 
         // check if we can access to rendering settings
         if(renderingSettings == null) {
-            Dialogs.showErrorNotification("Channel settings", "Cannot access to rendering settings of the image " + imageServer.getId());
+            Dialogs.showErrorNotification("OMERO - Channels", "Cannot read to rendering settings of the image " + imageServer.getId());
             return;
         }
 
@@ -1119,7 +1126,7 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroNChannels != qpChannels.size()){
-            Dialogs.showWarningNotification("Channel settings", "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")");
+            Dialogs.showWarningNotification("OMERO - Channels", "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")");
             return;
         }
 
@@ -1153,11 +1160,17 @@ public class OmeroRawScripting {
      */
     public static void setChannelsColorFromOmeroChannel(OmeroRawImageServer imageServer){
         // get the OMERO rendering settings to get channel info
-        RenderingDef renderingSettings = OmeroRawTools.readOmeroRenderingSettings(imageServer.getClient(), imageServer.getId());
+        RenderingDef renderingSettings;
+        try {
+            renderingSettings = OmeroRawTools.readOmeroRenderingSettings(imageServer.getClient(), imageServer.getImageWrapper().getPixels().getId());
+        }catch(DSOutOfServiceException | ServerError e){
+            Dialogs.showErrorNotification("OMERO - Channels", "Cannot access to rendering settings of the image " + imageServer.getId());
+            return;
+        }
 
         // check if we can access to rendering settings
         if(renderingSettings == null) {
-            Dialogs.showErrorNotification("Channel settings", "Cannot access to rendering settings of the image " + imageServer.getId());
+            Dialogs.showErrorNotification("OMERO - Channels", "Cannot read to rendering settings of the image " + imageServer.getId());
             return;
         }
 
@@ -1175,7 +1188,7 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroNChannels != qpChannels.size()){
-            Dialogs.showWarningNotification("Channel settings", "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")");
+            Dialogs.showWarningNotification("OMERO - Channels", "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")");
             return;
         }
 
@@ -1279,11 +1292,17 @@ public class OmeroRawScripting {
      */
     public static boolean sendChannelsDisplayRangeToOmero(OmeroRawImageServer imageServer){
         // get the OMERO rendering settings to get channel info
-        RenderingDef renderingSettings = OmeroRawTools.readOmeroRenderingSettings(imageServer.getClient(), imageServer.getId());
+        RenderingDef renderingSettings;
+        try {
+            renderingSettings = OmeroRawTools.readOmeroRenderingSettings(imageServer.getClient(), imageServer.getImageWrapper().getPixels().getId());
+        }catch(DSOutOfServiceException | ServerError e){
+            Dialogs.showErrorNotification("OMERO - Channels", "Cannot access to rendering settings of the image " + imageServer.getId());
+            return false;
+        }
 
         // check if we can access to rendering settings
         if(renderingSettings == null) {
-            Dialogs.showErrorNotification("OMERO channel settings", "Cannot access to rendering settings of the image " + imageServer.getId());
+            Dialogs.showErrorNotification("OMERO - Channels", "Cannot read to rendering settings of the image " + imageServer.getId());
             return false;
         }
 
@@ -1300,7 +1319,7 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroNChannels != qpChannels.size()){
-            Dialogs.showWarningNotification("OMERO channel settings", "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroNChannels+")");
+            Dialogs.showWarningNotification("OMERO - Channels", "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroNChannels+")");
             return false;
         }
 
@@ -1352,7 +1371,7 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroChannels.size() != qpChannels.size()){ // can use imageServer.nChannels() to get the real number of channel
-            Dialogs.showWarningNotification("OMERO channel settings", "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroChannels.size()+")");
+            Dialogs.showWarningNotification("OMERO - Channels", "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroChannels.size()+")");
             return false;
         }
 
@@ -1384,11 +1403,17 @@ public class OmeroRawScripting {
      */
     public static boolean sendChannelsColorToOmero(OmeroRawImageServer imageServer){
         // get the OMERO rendering settings to get channel info
-        RenderingDef renderingSettings = OmeroRawTools.readOmeroRenderingSettings(imageServer.getClient(), imageServer.getId());
+        RenderingDef renderingSettings;
+        try {
+            renderingSettings = OmeroRawTools.readOmeroRenderingSettings(imageServer.getClient(), imageServer.getImageWrapper().getPixels().getId());
+        }catch(DSOutOfServiceException | ServerError e){
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot access to rendering settings of the image " + imageServer.getId(),e,true);
+            return false;
+        }
 
         // check if we can access to rendering settings
         if(renderingSettings == null) {
-            Dialogs.showErrorNotification("OMERO channel settings", "Cannot access to rendering settings of the image " + imageServer.getId());
+            Dialogs.showErrorNotification("OMERO - Channels", "Cannot read to rendering settings of the image " + imageServer.getId());
             return false;
         }
 
@@ -1405,7 +1430,7 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroNChannels != qpChannels.size()){ // can use imageServer.nChannels() to get the real number of channel
-            Dialogs.showWarningNotification("OMERO channel settings", "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroNChannels+")");
+            Dialogs.showWarningNotification("OMERO - Channels", "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroNChannels+")");
             return false;
         }
 
