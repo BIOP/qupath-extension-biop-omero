@@ -1096,19 +1096,19 @@ public class OmeroRawScripting {
      *
      * @param imageServer ImageServer of an image loaded from OMERO
      */
-    public static void setChannelsDisplayRangeFromOmeroChannel(OmeroRawImageServer imageServer) {
+    public static void copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer imageServer, boolean qpNotif) {
         // get the OMERO rendering settings to get channel info
         RenderingDef renderingSettings;
         try {
             renderingSettings = OmeroRawTools.readOmeroRenderingSettings(imageServer.getClient(), imageServer.getImageWrapper().getPixels().getId());
         }catch(DSOutOfServiceException | ServerError e){
-            Dialogs.showErrorNotification("OMERO - Channels", "Cannot access to rendering settings of the image " + imageServer.getId());
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot access to rendering settings of the image " + imageServer.getId(), e, qpNotif);
             return;
         }
 
         // check if we can access to rendering settings
         if(renderingSettings == null) {
-            Dialogs.showErrorNotification("OMERO - Channels", "Cannot read to rendering settings of the image " + imageServer.getId());
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read to rendering settings of the image " + imageServer.getId(), qpNotif);
             return;
         }
 
@@ -1117,7 +1117,7 @@ public class OmeroRawScripting {
         try {
             omeroNChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient()).size();
         }catch(AccessException | ServiceException | ExecutionException e){
-            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), qpNotif);
             return;
         }
 
@@ -1126,7 +1126,8 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroNChannels != qpChannels.size()){
-            Dialogs.showWarningNotification("OMERO - Channels", "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")");
+            Utils.warnLog(logger, "OMERO - Channels",
+                    "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")", qpNotif);
             return;
         }
 
@@ -1158,19 +1159,19 @@ public class OmeroRawScripting {
      *
      * @param imageServer ImageServer of an image loaded from OMERO
      */
-    public static void setChannelsColorFromOmeroChannel(OmeroRawImageServer imageServer){
+    public static void copyOmeroChannelsColorToQuPath(OmeroRawImageServer imageServer, boolean qpNotif){
         // get the OMERO rendering settings to get channel info
         RenderingDef renderingSettings;
         try {
             renderingSettings = OmeroRawTools.readOmeroRenderingSettings(imageServer.getClient(), imageServer.getImageWrapper().getPixels().getId());
         }catch(DSOutOfServiceException | ServerError e){
-            Dialogs.showErrorNotification("OMERO - Channels", "Cannot access to rendering settings of the image " + imageServer.getId());
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot access to rendering settings of the image " + imageServer.getId(), e, qpNotif);
             return;
         }
 
         // check if we can access to rendering settings
         if(renderingSettings == null) {
-            Dialogs.showErrorNotification("OMERO - Channels", "Cannot read to rendering settings of the image " + imageServer.getId());
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read to rendering settings of the image " + imageServer.getId(), qpNotif);
             return;
         }
 
@@ -1179,7 +1180,7 @@ public class OmeroRawScripting {
         try {
             omeroNChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient()).size();
         }catch(AccessException | ServiceException | ExecutionException e){
-            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), qpNotif);
             return;
         }
 
@@ -1188,7 +1189,8 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroNChannels != qpChannels.size()){
-            Dialogs.showWarningNotification("OMERO - Channels", "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")");
+            Utils.warnLog(logger, "OMERO - Channels",
+                    "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")", qpNotif);
             return;
         }
 
@@ -1205,7 +1207,6 @@ public class OmeroRawScripting {
 
         // Update the thumbnail
         updateQuPathThumbnail();
-
     }
 
     /**
@@ -1245,13 +1246,13 @@ public class OmeroRawScripting {
      *
      * @param imageServer ImageServer of an image loaded from OMERO
      */
-    public static void setChannelsNameFromOmeroChannel(OmeroRawImageServer imageServer){
+    public static void copyOmeroChannelsNameToQuPath(OmeroRawImageServer imageServer, boolean qpNotif){
         // get the number of the channels in OMERO
         List<ChannelWrapper> omeroChannels;
         try {
             omeroChannels = imageServer.getImageWrapper().getChannels(imageServer.getClient().getSimpleClient());
         }catch(AccessException | ServiceException | ExecutionException e){
-            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), true);
+            Utils.errorLog(logger,"OMERO - Channels", "Cannot read channels on image "+imageServer.getId(), e, qpNotif);
             return;
         }
 
@@ -1260,7 +1261,8 @@ public class OmeroRawScripting {
 
         // check if both images has the same number of channels
         if(omeroChannels.size() != qpChannels.size()){
-            Dialogs.showWarningNotification("Channel settings", "The image on OMERO has not the same number of channels ("+omeroChannels.size()+" as the one in QuPath ("+imageServer.nChannels()+")");
+           Utils.warnLog(logger, "Channel settings",
+                   "The image on OMERO has not the same number of channels ("+omeroChannels.size()+" as the one in QuPath ("+imageServer.nChannels()+")", qpNotif);
             return;
         }
 
@@ -2416,4 +2418,62 @@ public class OmeroRawScripting {
         }
         return sendParentMeasurementsAsCSVToOmero(parentTable, client, parentWrappers, deletePreviousTable, owner, true) > 0;
     }
+
+    /**
+     * Set the minimum and maximum display range value of each channel on QuPath, based on OMERO settings.<br>
+     * QuPath image and thumbnail are updated accordingly.<br>
+     * Channel indices are taken as reference.
+     *
+     * <p>
+     * <ul>
+     * <li> Only works for fluorescence images </li>
+     * </ul>
+     * <p>
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer, boolean)} instead
+     */
+    @Deprecated
+    public static void setChannelsDisplayRangeFromOmeroChannel(OmeroRawImageServer imageServer) {
+        copyOmeroChannelsDisplayRangeToQuPath(imageServer, true);
+    }
+
+
+    /**
+     * Set the color of each channel on QuPath, based on OMERO settings.<br>
+     * QuPath image and thumbnail are updated accordingly.<br>
+     * Channel indices are taken as reference.
+     * <p>
+     * <ul>
+     * <li> Only works for fluorescence images </li>
+     * </ul>
+     * <p>
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsColorToQuPath(OmeroRawImageServer, boolean)} instead
+     */
+    @Deprecated
+    public static void setChannelsColorFromOmeroChannel(OmeroRawImageServer imageServer){
+        copyOmeroChannelsColorToQuPath(imageServer, true);
+    }
+
+
+    /**
+     * Set the name of each channel on QuPath, based on OMERO settings.
+     * Channel indices are taken as reference.
+     * <p>
+     * <ul>
+     * <li> Only works for fluorescence images </li>
+     * </ul>
+     * <p>
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsNameToQuPath(OmeroRawImageServer, boolean)} instead
+     */
+    @Deprecated
+    public static void setChannelsNameFromOmeroChannel(OmeroRawImageServer imageServer){
+        copyOmeroChannelsNameToQuPath(imageServer, true);
+    }
+
+
 }

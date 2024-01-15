@@ -69,11 +69,11 @@ public class OmeroRawImportChannelSettingsCommand implements Runnable {
 
         // set OMERO display settings on QuPath image
         if(channelDisplayRange)
-            OmeroRawScripting.setChannelsDisplayRangeFromOmeroChannel((OmeroRawImageServer)imageServer);
+            OmeroRawScripting.copyOmeroChannelsDisplayRangeToQuPath((OmeroRawImageServer)imageServer, true);
         if(channelColor)
-            OmeroRawScripting.setChannelsColorFromOmeroChannel((OmeroRawImageServer)imageServer);
+            OmeroRawScripting.copyOmeroChannelsColorToQuPath((OmeroRawImageServer)imageServer, true);
         if(channelNames)
-            OmeroRawScripting.setChannelsNameFromOmeroChannel((OmeroRawImageServer)imageServer);
+            OmeroRawScripting.copyOmeroChannelsNameToQuPath((OmeroRawImageServer)imageServer, true);
 
         Dialogs.showInfoNotification("Channel settings import","Channel settings successfully set the current image");
     }
