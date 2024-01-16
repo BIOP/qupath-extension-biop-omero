@@ -33,7 +33,8 @@ import java.util.concurrent.ExecutionException;
 /**
  * Class that handles the More info dialog to make appear all the annotations linked to the selected image / container
  *
- * @author Rémy Dornier (based on Melvin Gelbard's work)
+ * @author Melvin Gelbard
+ * @author Rémy Dornier
  */
 class AdvancedObjectInfo {
     private static final String BOLD = "-fx-font-weight: bold";
@@ -123,7 +124,7 @@ class AdvancedObjectInfo {
         dialog.showAndWait();
     }
 
-    /*
+    /**
      * Create a ScrollPane in which each row is an annotation value
      */
     private Node createAnnotationsPane(String title, OmeroRawAnnotations omeroRawAnnotations) {

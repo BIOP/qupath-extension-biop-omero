@@ -66,6 +66,11 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+/**
+ * Static class which groups the methods of the scripting API for an OMERORawImageServer
+ *
+ * @author Rémy Dornier
+ */
 public class OmeroRawScripting {
 
     private static final String detectionFileBaseName = "QP detection table";
@@ -487,7 +492,7 @@ public class OmeroRawScripting {
     /**
      *
      * add Key-Value pairs as QuPath metadata to the current image in the QuPath project.
-     *
+     * <p>
      * WARNING : If you run {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
      * before {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
      * and if you would like to use the policy {@link Utils.UpdatePolicy#DELETE_KEYS}, then you should apply this policy
@@ -547,7 +552,7 @@ public class OmeroRawScripting {
 
     /**
      * Read, from OMERO, tags attached to the current image and add them as QuPath metadata fields
-     *
+     * <p>
      * WARNING : If you run {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
      * before {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
      * and if you would like to use the policy {@link Utils.UpdatePolicy#DELETE_KEYS}, then you should apply this policy

@@ -23,7 +23,7 @@ import java.util.Map;
  * Command to import QuPath metadata to OMERO server where the
  * current image is hosted. Metadata are added as a new key-value pair.
  *
- * @author Rémy Dornier (parts of the code are taken from {@link OmeroRawWriteAnnotationObjectsCommand}).
+ * @author Rémy Dornier
  *
  */
 public class OmeroRawWriteMetadataCommand  implements Runnable{

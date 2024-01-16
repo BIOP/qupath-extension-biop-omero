@@ -46,6 +46,7 @@ import qupath.lib.objects.PathObject;
  * current image is hosted.
  *
  * @author Melvin Gelbard
+ * @author Rémy Dornier
  *
  */
 public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {

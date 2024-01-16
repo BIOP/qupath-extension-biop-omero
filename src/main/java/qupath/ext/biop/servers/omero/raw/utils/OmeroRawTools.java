@@ -116,7 +116,7 @@ import javax.imageio.ImageIO;
 /**
  * Static helper methods related to OMERORawImageServer.
  *
- * @author Melvin Gelbard
+ * @author Rémy Dornier
  *
  */
 public final class OmeroRawTools {
@@ -133,11 +133,12 @@ public final class OmeroRawTools {
     }
 
     /**
-     * Retrieve the group of which an image is part of.
+     * get the group of which an image is part of. This method is particularly helpful for admins to deal
+     * with images that are not in the default group.
      *
-     * @param client
-     * @param imageId
-     * @return The group id
+     * @param client the client that handles the OMERO connection
+     * @param imageId the id of the image to retrieve
+     * @return The group id, -1 if the image cannot be fetched.
      */
     public static long getGroupIdFromImageId(OmeroRawClient client, long imageId){
         try {
@@ -153,13 +154,17 @@ public final class OmeroRawTools {
     }
 
     /**
-     * Retrieve parents of OMERO containers (i.e. Image, Dataset, Well and Plate). For Project, Screen and other, it
-     * returns an empty list.
+     * fetch parents container of OMERO containers
      *
-     * @param client
+     * @param client the client that handles the OMERO connection
      * @param container child image or container
      * @param qpNotif true to display a QuPath notification
-     * @return List of object's parent(s) or empty list
+     * @return List of Image's, Dataset's, Well's or Plate's parent(s) ; empty list otherwise
+     *
+     * @throws ServiceException   Cannot connect to OMERO.
+     * @throws AccessException    Data cannot be accessed
+     * @throws OMEROServerError   An error occurred server side
+     * @throws ExecutionException The result of a task cannot be retrieved
      */
     public static List<? extends GenericRepositoryObjectWrapper<?>> getParentContainer(OmeroRawClient client, GenericRepositoryObjectWrapper<?> container, boolean qpNotif)
             throws ServiceException, OMEROServerError, AccessException, ExecutionException {
@@ -240,12 +245,15 @@ public final class OmeroRawTools {
 
 
     /**
-     * Get the rendering settings object linked to the specified image.
-     * Code partially copied from Pierre Pouchin from {simple-omero-client} project, {ImageWrapper} class, {getChannelColor} method
+     * read the rendering settings object linked to the specified pixels
+     * Code partially copied {@link ImageWrapper#getChannelColor(Client, int)}
      *
-     * @param client
-     * @param pixelsId
+     * @param client the client that handles the OMERO connection
+     * @param pixelsId the id of the image pixels 
      * @return Image's rendering settings object
+     *
+     * @throws DSOutOfServiceException   Cannot connect to OMERO
+     * @throws ServerError   An error occurred server side
      */
     public static RenderingDef readOmeroRenderingSettings(OmeroRawClient client, long pixelsId)
             throws DSOutOfServiceException, ServerError {
@@ -272,14 +280,17 @@ public final class OmeroRawTools {
     }
 
     /**
-     * Get all OMERO datasets corresponding to the list of ids.
+     * fetch all OMERO plates corresponding to the list of ids.
      * <br>
      * <p>This method is necessary to retrieve the entire Plate object for the OMERO browser and cannot
      * be replaced by client.getPlates().</p>
      *
-     * @param client
-     * @param plateIds
-     * @return List of OMERO dataset objects
+     * @param client the client that handles the OMERO connection
+     * @param plateIds the list of ids to fetch
+     * @return List of OMERO plates objects
+     *
+     * @throws ServiceException   Cannot connect to OMERO.
+     * @throws ServerError   An error occurred server side
      */
     public static List<PlateWrapper> readPlates(OmeroRawClient client, List<Long> plateIds)
             throws ServiceException, ServerError {
@@ -302,13 +313,13 @@ public final class OmeroRawTools {
 
 
     /**
-     * Update the thumbnail of an OMERO image, specified by its id, and given the ID of the updated RenderingDef object linked to that image.
+     * Update the thumbnail of an OMERO image.
      * <br> <br>
      * Be careful : the image should already have an OMERO ID.
      *
-     * @param client
-     * @param imageId
-     * @param objectId
+     * @param client the client that handles the OMERO connection
+     * @param imageId the id of teh image
+     * @param objectId renderingSettings ID
      * @return Updating status (True if updated ; false with error message otherwise)
      */
     public static boolean updateOmeroThumbnail(OmeroRawClient client, long imageId, long objectId){
@@ -365,13 +376,13 @@ public final class OmeroRawTools {
     /**
      * read an image stored in the resource folder of the main class
      *
-     * @param imageName
+     * @param imageName name of the image to read
      * @return The read image or null if cannot be read
      */
     public static BufferedImage readLocalImage(String imageName){
         try {
             return ImageIO.read(OmeroRawTools.class.getClassLoader().getResource("images/"+imageName));
-        }catch(IOException e){
+        }catch(Exception e){
             return new BufferedImage(256,256, BufferedImage.TYPE_BYTE_GRAY);
         }
     }
@@ -447,7 +458,7 @@ public final class OmeroRawTools {
     /**
      * Get user's orphaned datasets from the OMERO server
      *
-     * @param client the client {@link OmeroRawClient} object
+     * @param client the client that handles the OMERO connection
      * @param user
      * @return List orphaned of datasets
      */
@@ -475,7 +486,7 @@ public final class OmeroRawTools {
     /**
      * Get user's orphaned images from the OMERO server
      *
-     * @param client
+     * @param client the client that handles the OMERO connection
      * @param user
      * @return List of orphaned images
      */
@@ -495,7 +506,7 @@ public final class OmeroRawTools {
      * get all the groups on OMERO server. This functionality is reserved to Admin people. In case you are not
      * Admin, {@link ExperimenterWrapper#getGroups()} method is called instead.
      *
-     * @param client
+     * @param client the client that handles the OMERO connection
      * @return The list of all groups on OMERO server
      */
     //TODO remove it when the PR is accepted and released (PR all-groups)

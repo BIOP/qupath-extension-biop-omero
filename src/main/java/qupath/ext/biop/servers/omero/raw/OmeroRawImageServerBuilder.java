@@ -25,6 +25,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+/**
+ * Builder for ImageServers that make use of the OMERO-java library.
+ *
+ * @author Olivier Burri & Rémy Dornier
+ *
+ */
 public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedImage> {
 
     final private static Logger logger = LoggerFactory.getLogger(OmeroRawImageServerBuilder.class);

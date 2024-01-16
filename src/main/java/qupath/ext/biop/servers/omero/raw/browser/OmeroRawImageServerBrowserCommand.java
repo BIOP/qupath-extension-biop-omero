@@ -98,7 +98,8 @@ import qupath.lib.projects.ProjectImageEntry;
 /**
  * Command to browse a specified OMERO server and import images from that server
  *
- * @author Rémy Dornier (based on Melvin Gelbard's work)
+ * @author Melvin Gelbard
+ * @author Rémy Dornier
  */
 public class OmeroRawImageServerBrowserCommand implements Runnable {
     private static final String BOLD = "-fx-font-weight: bold";

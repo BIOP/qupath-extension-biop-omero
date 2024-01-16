@@ -48,7 +48,8 @@ import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
  * Note: Tables annotations are ignored (the Table harmonica in OMERO webclient)
  * but the OMERO.tables are still fetched.
  *
- * @author Rémy Dornier (based on Melvin Gelbard's work)
+ * @author Melvin Gelbard
+ * @author Rémy Dornier
  */
 final class OmeroRawAnnotations {
 

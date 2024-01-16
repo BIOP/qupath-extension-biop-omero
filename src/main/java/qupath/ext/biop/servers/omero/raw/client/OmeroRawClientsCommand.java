@@ -59,9 +59,10 @@ import qupath.fx.utils.GridPaneUtils;
 
 /**
  * Command to manually manage OMERO web clients. This offers the possibility to log in/off
- * and 'forget' OMERO web clients.
+ * and 'forget' OMERO raw clients.
  *
  * @author Melvin Gelbard
+ * @author Rémy Dornier
  */
 public class OmeroRawClientsCommand implements Runnable {
 
@@ -126,7 +127,7 @@ public class OmeroRawClientsCommand implements Runnable {
     }
 
 
-    // TODO have to look to the issue when mulptiple servers are connected
+    // TODO have to look to the issue when multiple servers are connected
     private void refreshServerGrid() {
         mainPane.getChildren().clear();
         var allClients = OmeroRawClients.getAllClients();

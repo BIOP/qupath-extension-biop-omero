@@ -37,7 +37,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
- * Private class regrouping all tools that are not restricted to OMERO.
+ * Utils class regrouping tools that are not restricted to OMERO.
+ * @author Rémy Dornier
  */
 public class Utils {
     private final static Logger logger = LoggerFactory.getLogger(Utils.class);
@@ -67,6 +68,10 @@ public class Utils {
 
     }
 
+    /**
+     * @param e the exception
+     * @return the exception stack trace as a formatted string
+     */
     public static String getErrorStackTraceAsString(Exception e){
         return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
     }
@@ -84,6 +89,135 @@ public class Utils {
         /** Do not modify the target neither add new stuff */
         NO_UPDATE
     }
+
+    /**
+     * Info Logger to inform in QuPath GUI and / or in the logger window
+     * @param title notification title
+     * @param message notification message
+     * @param qpNotif true to display a QuPath notification
+     */
+    public static void infoLog(Logger logger, String title, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showInfoNotification(title, message);
+        logger.info("["+title+"] -- "+message);
+    }
+
+    /**
+     * Info Logger to inform in QuPath GUI and / or in the logger window
+     * @param title notification title
+     * @param message notification message
+     * @param e the exception
+     * @param qpNotif true to display a QuPath notification
+     */
+    public static void infoLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showInfoNotification(title, message);
+        logger.info("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
+    }
+
+    /**
+     * Error Logger to inform in QuPath GUI and / or in the logger window
+     * @param title notification title
+     * @param message notification message
+     * @param qpNotif true to display a QuPath notification
+     */
+    public static void errorLog(Logger logger, String title, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message);
+    }
+
+    /**
+     * Error Logger to inform in QuPath GUI and / or in the logger window
+     * @param title notification title
+     * @param message notification message
+     * @param e the exception
+     * @param qpNotif true to display a QuPath notification
+     */
+    public static void errorLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
+    }
+
+    /**
+     * Warning Logger to inform in QuPath GUI and / or in the logger window
+     * @param title notification title
+     * @param message notification message
+     * @param qpNotif true to display a QuPath notification
+     */
+    public static void warnLog(Logger logger, String title, String message, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message);
+    }
+
+    /**
+     * Warning Logger to inform in QuPath GUI and / or in the logger window
+     * @param title notification title
+     * @param message notification message
+     * @param e the exception
+     * @param qpNotif true to display a QuPath notification
+     */
+    public static void warnLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
+        if(qpNotif) Dialogs.showErrorNotification(title, message);
+        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
+    }
+
+    /**
+     * Splits the "target" map into two parts : one part containing key/values that are referenced in the "reference" map and
+     * the other containing remaining key/values that are not referenced in the "reference".
+     * <p>
+     * <ul>
+     * <li> The new key values can be accessed with {@link Utils#NEW_KVP} key </li>
+     * <li> The existing key values can be accessed with {@link Utils#EXISTING_KVP} key </li>
+     * </ul>
+     * <p>
+     *
+     * @param reference map of referenced key-value pairs
+     * @param target map of new key-value pairs that should be checked against the referenced ones
+     * @return Map of new kvp and existing kvp maps
+     */
+    public static Map<String, Map<String, String>> splitNewAndExistingKeyValues(Map<String, String> reference, Map<String, String> target){
+        Map<String, String> existingKVP = new HashMap<>();
+
+        // filter key/values that are contained in the reference
+        reference.forEach((key, value) -> existingKVP.putAll(target.keySet()
+                .stream()
+                .filter(f -> f.equals(key))
+                .collect(Collectors.toMap(e->key,e->target.get(key)))));
+
+        // filter the new key values
+        Map<String,String> updatedKV = target.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        existingKVP.forEach(updatedKV::remove);
+
+        // add the two separate maps to a list.
+        Map<String, Map<String, String>> results = new HashMap<>();
+        results.put(EXISTING_KVP, existingKVP);
+        results.put(NEW_KVP, updatedKV);
+
+        return results;
+    }
+
+    /**
+     * Try to solve an error in OMERO regarding the keys creation.
+     * On OMERO, it is possible to have two identical keys with a different value. This should normally never append.
+     * This method checks if all keys are unique and output false if there is at least two identical keys.
+     *
+     * @param keyValues to check
+     * @return true if all keys unique ; false otherwise
+     */
+    protected static boolean checkUniqueKeyInAnnotationMap(List<NamedValue> keyValues){ // not possible to have a map because it allows only unique keys
+        boolean uniqueKey = true;
+
+        for(int i = 0; i < keyValues.size()-1;i++){
+            for(int j = i+1;j < keyValues.size();j++){
+                if(keyValues.get(i).name.equals(keyValues.get(j).name)){
+                    uniqueKey = false;
+                    break;
+                }
+            }
+            if(!uniqueKey)
+                break;
+        }
+        return uniqueKey;
+    }
+
 
     /**
      * Utils to convert the MapAnnotationWrapper object into a map of the OMERO key-values
@@ -108,134 +242,6 @@ public class Utils {
                 .stream()
                 .flatMap(e-> e.getContent().stream())
                 .collect(Collectors.toList()));
-    }
-
-    /**
-     * Info Logger to inform in QuPath GUI and / or in the logger window
-     * @param title
-     * @param message
-     * @param qpNotif
-     */
-    public static void infoLog(Logger logger, String title, String message, boolean qpNotif){
-        if(qpNotif) Dialogs.showInfoNotification(title, message);
-        logger.info("["+title+"] -- "+message);
-    }
-
-    /**
-     * Info Logger to inform in QuPath GUI and / or in the logger window
-     * @param title
-     * @param message
-     * @param e
-     * @param qpNotif
-     */
-    public static void infoLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
-        if(qpNotif) Dialogs.showInfoNotification(title, message);
-        logger.info("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
-    }
-
-    /**
-     * Error Logger to inform in QuPath GUI and / or in the logger window
-     * @param title
-     * @param message
-     * @param qpNotif
-     */
-    public static void errorLog(Logger logger, String title, String message, boolean qpNotif){
-        if(qpNotif) Dialogs.showErrorNotification(title, message);
-        logger.error("["+title+"] -- "+message);
-    }
-
-    /**
-     * Error Logger to inform in QuPath GUI and / or in the logger window
-     * @param title
-     * @param message
-     * @param e
-     * @param qpNotif
-     */
-    public static void errorLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
-        if(qpNotif) Dialogs.showErrorNotification(title, message);
-        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
-    }
-
-    /**
-     * Warning Logger to inform in QuPath GUI and / or in the logger window
-     * @param title
-     * @param message
-     * @param qpNotif
-     */
-    public static void warnLog(Logger logger, String title, String message, boolean qpNotif){
-        if(qpNotif) Dialogs.showErrorNotification(title, message);
-        logger.error("["+title+"] -- "+message);
-    }
-
-    /**
-     * Warning Logger to inform in QuPath GUI and / or in the logger window
-     * @param title
-     * @param message
-     * @param e
-     * @param qpNotif
-     */
-    public static void warnLog(Logger logger, String title, String message, Exception e, boolean qpNotif){
-        if(qpNotif) Dialogs.showErrorNotification(title, message);
-        logger.error("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
-    }
-
-    /**
-     * Try to solve an error in OMERO regarding the keys creation.
-     * On OMERO, it is possible to have two identical keys with a different value. This should normally never append.
-     * This method checks if all keys are unique and output false if there is at least two identical keys.
-     *
-     * @param keyValues
-     * @return Check status (True if all keys unique ; false otherwise)
-     */
-    protected static boolean checkUniqueKeyInAnnotationMap(List<NamedValue> keyValues){ // not possible to have a map because it allows only unique keys
-        boolean uniqueKey = true;
-
-        for(int i = 0; i < keyValues.size()-1;i++){
-            for(int j = i+1;j < keyValues.size();j++){
-                if(keyValues.get(i).name.equals(keyValues.get(j).name)){
-                    uniqueKey = false;
-                    break;
-                }
-            }
-            if(!uniqueKey)
-                break;
-        }
-        return uniqueKey;
-    }
-
-    /**
-     * Splits the "target" map into two parts : one part containing key/values that are referenced in the "reference" map and
-     * the other containing remaining key/values that are not referenced in the "reference".
-     * <p>
-     * <ul>
-     * <li> The new key values can be accessed with {@link Utils#NEW_KVP} key </li>
-     * <li> The existing key values can be accessed with {@link Utils#EXISTING_KVP} key </li>
-     * </ul>
-     * <p>
-     *
-     * @param reference
-     * @param target
-     * @return List of new kvp and existing kvp maps
-     */
-    public static Map<String, Map<String, String>> splitNewAndExistingKeyValues(Map<String, String> reference, Map<String, String> target){
-        Map<String, String> existingKVP = new HashMap<>();
-
-        // filter key/values that are contained in the reference
-        reference.forEach((key, value) -> existingKVP.putAll(target.keySet()
-                .stream()
-                .filter(f -> f.equals(key))
-                .collect(Collectors.toMap(e->key,e->target.get(key)))));
-
-        // filter the new key values
-        Map<String,String> updatedKV = target.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        existingKVP.forEach(updatedKV::remove);
-
-        // add the two separate maps to a list.
-        Map<String, Map<String, String>> results = new HashMap<>();
-        results.put(EXISTING_KVP, existingKVP);
-        results.put(NEW_KVP, updatedKV);
-
-        return results;
     }
 
     /**
@@ -268,7 +274,7 @@ public class Utils {
             }
 
         } else {
-            logger.warn("Build CSV file from list of string -- There is no measurement to add. Write an empty file");
+            logger.warn("Build CSV file from list of string -- There is no measurement to add. Writing an empty file");
         }
 
         String path = QP.buildFilePath(QP.PROJECT_BASE_DIR, name + ".csv");
@@ -279,7 +285,7 @@ public class Utils {
      * Convert a map < header, list_of_values > into an OMERO.table
      *
      * @param parentTable the map containing headers and values
-     * @param client
+     * @param client the client that handles the OMERO connection
      * @return the OMERO table
      */
     protected static TableData buildOmeroTableFromListsOfStrings(LinkedHashMap<String, List<String>> parentTable, OmeroRawClient client){
@@ -309,7 +315,7 @@ public class Utils {
                     imageData = client.getSimpleClient().getImage(imageId).asDataObject();
                 }catch(ServiceException | AccessException | ExecutionException e){
                     imageData = null;
-                    Utils.errorLog(logger, "OMERO - Image", "Impossible to retrieve image "+imageId, e,true);
+                    errorLog(logger, "OMERO - Image", "Impossible to retrieve image "+imageId, e,true);
                 }
                 imageDataField.add(imageData);
                 mapImages.put(item, imageData);
@@ -354,9 +360,9 @@ public class Utils {
      * Convert a QuPath measurement table into a CSV file,
      * including the OMERO image ID on which the measurements are referring to.
      *
-     * @param pathObjects
-     * @param ob
-     * @param imageId
+     * @param pathObjects  QuPath annotations or detections objects
+     * @param ob QuPath Measurements table for the current image
+     * @param imageId the id of the current image
      * @param name file name
      * @return CSV file of measurement table.
      */
@@ -393,9 +399,9 @@ public class Utils {
     /**
      * Convert a QuPath measurement table to an OMERO table
      *
-     * @param pathObjects
-     * @param ob
-     * @param imageWrapper
+     * @param pathObjects  QuPath annotations or detections objects
+     * @param ob QuPath Measurements table for the current image
+     * @param imageWrapper current OMERO image object
      * @return The corresponding OMERO.Table
      */
     protected static TableData buildOmeroTableFromMeasurementTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, ImageWrapper imageWrapper) {
@@ -468,8 +474,8 @@ public class Utils {
                     parentTable.put(header, new ArrayList<>());
             }
         } else if(headersSize != (ob.getAllNames().size() + 1)){
-            Dialogs.showWarningNotification("Parent Table - Compatibility issue","Size of headers ("+ob.getAllNames().size()+
-                    ") is different from existing table size ("+headersSize+"). Parent table is not populated");
+            warnLog(logger,"Parent Table - Compatibility issue","Size of headers ("+ob.getAllNames().size()+
+                    ") is different from existing table size ("+headersSize+"). Parent table is not populated", true);
             return;
         }
 
@@ -485,7 +491,7 @@ public class Utils {
                 List<String> listedValues = parentTable.get(col);
 
                 if(listedValues == null){
-                    Dialogs.showErrorNotification("Parent Table - Compatibility issue","There is no columns named "+col);
+                    errorLog(logger,"Parent Table - Compatibility issue","There is no columns named "+col, true);
                     throw new RuntimeException();
                 }
 
@@ -520,9 +526,7 @@ public class Utils {
             buffer.close();
 
         } catch (IOException e) {
-            Dialogs.showErrorNotification("Write CSV file", "An error has occurred when trying to save the csv file");
-            logger.error(String.valueOf(e));
-            logger.error(getErrorStackTraceAsString(e));
+            errorLog(logger, "Write CSV file", "An error has occurred when trying to save the csv file", e, true);
         }
         return file;
     }

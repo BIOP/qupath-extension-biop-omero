@@ -21,7 +21,6 @@
 
 package qupath.ext.biop.servers.omero.raw;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -96,8 +95,6 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 		var actionRawImportDisplaySettingsObjects = ActionTools.createAction(new OmeroRawImportChannelSettingsCommand(qupath), "Channels settings");
 		Menu browseRawServerMenu = new Menu("Browse server...");
 
-//		actionRawClients.disabledProperty().bind(qupath.projectProperty().isNull());
-//		browseRawServerMenu.disableProperty().bind(qupath.projectProperty().isNull());
 		actionRawSendAnnotationObjects.disabledProperty().bind(qupath.imageDataProperty().isNull());
 		actionRawImportAnnotationObjects.disabledProperty().bind(qupath.imageDataProperty().isNull());
 		actionRawSendMetadataObjects.disabledProperty().bind(qupath.imageDataProperty().isNull());
@@ -118,7 +115,6 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 
 		// Add the default OMERO server address to the QuPath Preferences
 		omeroDefaultServerAddress = PathPrefs.createPersistentPreference("omeroDefaultServer", "https://omero-server.epfl.ch");
-
 	}
 	
 
@@ -209,8 +205,6 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 					} else    // Request focus for already-existing browser
 						browser.getStage().requestFocus();
 
-				} catch (FileNotFoundException ex) {
-					Dialogs.showErrorMessage("OMERO-RAW server", String.format("An error occurred when trying to reach %s: %s\"", path, ex.getLocalizedMessage()));
 				} catch (IOException | URISyntaxException ex) {
 					Dialogs.showErrorMessage("OMERO-RAW server", ex.getLocalizedMessage());
 					return;

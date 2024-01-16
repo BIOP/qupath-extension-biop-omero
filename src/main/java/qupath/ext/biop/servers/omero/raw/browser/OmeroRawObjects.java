@@ -44,7 +44,8 @@ import omero.gateway.model.DataObject;
 /**
  * Class regrouping all OMERO objects used to create the browser.
  *
- * @author Rémy Dornier (based on Melvin Gelbard's work)
+ * @author Melvin Gelbard
+ * @author Rémy Dornier
  */
 final class OmeroRawObjects {
 

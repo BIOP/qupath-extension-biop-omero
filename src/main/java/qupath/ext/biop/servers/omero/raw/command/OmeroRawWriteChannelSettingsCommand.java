@@ -12,6 +12,12 @@ import qupath.lib.images.servers.ImageServer;
 
 import java.awt.image.BufferedImage;
 
+/**
+ * Command to send QuPath channel settings (display range, colors and name)
+ * to the corresponding image on OMERO
+ *
+ * @author Rémy Dornier
+ */
 public class OmeroRawWriteChannelSettingsCommand implements Runnable {
     private final String title = "Sending image & channels settings";
     private final QuPathGUI qupath;

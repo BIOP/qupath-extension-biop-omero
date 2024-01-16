@@ -119,11 +119,9 @@ import java.util.stream.Collectors;
  *
  */
 public class OmeroRawImageServer extends AbstractTileableImageServer implements PathObjectReader {
-
 	private static final Logger logger = LoggerFactory.getLogger(OmeroRawImageServer.class);
 	private static final int MIN_TILE_SIZE = 512;
 	private static final int MAX_TILE_SIZE = 2048;
-
 
 	private final URI uri;
 	private final String[] args;
