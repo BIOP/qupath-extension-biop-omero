@@ -22,27 +22,17 @@
 package qupath.ext.biop.servers.omero.raw.command;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-
-import fr.igred.omero.exception.AccessException;
-import fr.igred.omero.exception.OMEROServerError;
-import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.roi.ROIWrapper;
 import javafx.scene.control.CheckBox;
 import javafx.scene.text.Font;
-import omero.gateway.model.FileAnnotationData;
-import omero.gateway.model.ROIData;
 import org.apache.commons.lang3.StringUtils;
 
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
-import qupath.ext.biop.servers.omero.raw.utils.OmeroRawShapes;
-import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
@@ -143,12 +133,6 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
         if (!confirm)
             return;
 
-        // get the current ROIs and tables
-       /* List<FileAnnotationData> tmpFileList = new ArrayList<>();
-        if(delPrevExp){
-            tmpFileList = OmeroRawTools.readAttachments(omeroServer.getClient(), omeroServer.getId());
-        }*/
-
         String ownerToDelete;
         if(deleteOnlyFilesIOwn)
             ownerToDelete = omeroServer.getClient().getLoggedInUser().getUserName();
@@ -192,17 +176,6 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
             }
             else Dialogs.showErrorMessage(title, "No detection objects , cannot send detection map!");
         }
-
-        // delete all previous ROIs and related tables (detection and annotations)
-        /*if(delPrevExp) {
-            String currentLoggedInUser = omeroServer.getClient().getLoggedInUser().getUserName();
-
-            if(!deleteOnlyFilesIOwn)
-                currentLoggedInUser = null;
-
-            OmeroRawScripting.deleteAnnotationFiles(omeroServer, tmpFileList, currentLoggedInUser);
-            OmeroRawScripting.deleteDetectionFiles(omeroServer, tmpFileList, currentLoggedInUser);
-        }*/
 
         if(detectionMap || annotationMap)
             if(nWrittenTables > 0) {

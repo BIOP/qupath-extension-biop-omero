@@ -54,7 +54,6 @@ import omero.gateway.model.LineData;
 import omero.gateway.model.PointData;
 import omero.gateway.model.PolygonData;
 import omero.gateway.model.PolylineData;
-import omero.gateway.model.ROIData;
 import omero.gateway.model.RectangleData;
 import omero.gateway.model.ShapeData;
 
@@ -74,7 +73,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
-import qupath.fx.dialogs.Dialogs;
 import qupath.lib.color.ColorToolsAwt;
 import qupath.lib.geom.Point2;
 import qupath.lib.gui.scripting.QPEx;

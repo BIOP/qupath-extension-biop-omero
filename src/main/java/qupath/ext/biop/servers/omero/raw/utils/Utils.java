@@ -1,9 +1,7 @@
 package qupath.ext.biop.servers.omero.raw.utils;
 
 import fr.igred.omero.annotations.MapAnnotationWrapper;
-import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.exception.AccessException;
-import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.repository.ImageWrapper;
 import omero.gateway.model.ImageData;
