@@ -2,6 +2,9 @@ package qupath.ext.biop.servers.omero.raw.utils;
 
 import fr.igred.omero.annotations.MapAnnotationWrapper;
 import fr.igred.omero.annotations.TableWrapper;
+import fr.igred.omero.exception.AccessException;
+import fr.igred.omero.exception.OMEROServerError;
+import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.repository.ImageWrapper;
 import omero.gateway.model.ImageData;
 import omero.gateway.model.TableData;
@@ -32,6 +35,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -301,7 +305,14 @@ public class Utils {
             if(mapImages.containsKey(item)){
                 imageDataField.add(mapImages.get(item));
             }else {
-                ImageData imageData = OmeroRawTools.readOmeroImage(client, Long.parseLong(item.replace(NUMERIC_FIELD_ID, "")));
+                ImageData imageData;
+                long imageId = Long.parseLong(item.replace(NUMERIC_FIELD_ID, ""));
+                try {
+                    imageData = client.getSimpleClient().getImage(imageId).asDataObject();
+                }catch(ServiceException | AccessException | ExecutionException e){
+                    imageData = null;
+                    Utils.errorLog(logger, "OMERO - Image", "Impossible to retrieve image "+imageId, e,true);
+                }
                 imageDataField.add(imageData);
                 mapImages.put(item, imageData);
             }

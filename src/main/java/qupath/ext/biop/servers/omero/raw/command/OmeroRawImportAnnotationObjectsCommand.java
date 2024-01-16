@@ -1,5 +1,6 @@
 package qupath.ext.biop.servers.omero.raw.command;
 
+import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.meta.ExperimenterWrapper;
 import javafx.collections.FXCollections;
 import javafx.scene.control.CheckBox;
@@ -8,9 +9,13 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
+import omero.ServerError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
+import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
@@ -31,6 +36,7 @@ import java.util.stream.Collectors;
  *
  */
 public class OmeroRawImportAnnotationObjectsCommand implements Runnable{
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawImportAnnotationObjectsCommand.class);
     private final String title = "Import objects from OMERO";
     private final QuPathGUI qupath;
     private final double MAX_FONT_SIZE = 16.0;
@@ -55,10 +61,17 @@ public class OmeroRawImportAnnotationObjectsCommand implements Runnable{
         // get the list of available user for the current group (i.e. the one of the current image)
         OmeroRawImageServer omeroServer = ((OmeroRawImageServer) imageServer);
         long groupID = OmeroRawTools.getGroupIdFromImageId(omeroServer.getClient(), omeroServer.getId());
-        List<String> userList = OmeroRawTools.getGroupUsers(omeroServer.getClient(), groupID)
-                .stream()
-                .map(ExperimenterWrapper::getUserName)
-                .collect(Collectors.toList());
+        List<String> userList;
+
+        try{
+           userList = omeroServer.getClient().getSimpleClient().getGroup(groupID).getExperimenters()
+                    .stream()
+                    .map(ExperimenterWrapper::getUserName)
+                    .collect(Collectors.toList());
+        }catch(ServerError | ServiceException e){
+            Utils.errorLog(logger, "OMERO - Admin", "Cannot read the group "+groupID, e, true);
+            return;
+        }
 
         userList.add(0, ALL_USER_CHOICE);
 

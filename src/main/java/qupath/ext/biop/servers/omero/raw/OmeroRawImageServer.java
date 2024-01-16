@@ -1043,7 +1043,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 				// if image unreadable, check all groups the current user is part of
 				if(image == null){
-					List<GroupWrapper> availableGroups = OmeroRawTools.getUserGroups(currentClient);
+					List<GroupWrapper> availableGroups = currentClient.getLoggedInUser().getGroups();
 					for(GroupWrapper group:availableGroups) {
 						// switch the user to another group
 						currentClient.switchGroup(group.getId());

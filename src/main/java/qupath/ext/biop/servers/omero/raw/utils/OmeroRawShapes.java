@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import fr.igred.omero.exception.OMEROServerError;
+import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.meta.ExperimenterWrapper;
 import fr.igred.omero.roi.EllipseWrapper;
 import fr.igred.omero.roi.GenericShapeWrapper;
@@ -72,6 +74,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.color.ColorToolsAwt;
 import qupath.lib.geom.Point2;
 import qupath.lib.gui.scripting.QPEx;
@@ -808,7 +811,13 @@ public class OmeroRawShapes {
             if(ownerMap.containsKey(ownerId)){
                 roiOwner = ownerMap.get(ownerId);
             }else{
-                ExperimenterWrapper ownerObj = OmeroRawTools.getUser(client, ownerId);
+                ExperimenterWrapper ownerObj;
+                try {
+                    ownerObj = client.getSimpleClient().getUser(ownerId);
+                }catch(ServiceException | OMEROServerError e){
+                    Utils.errorLog(logger, "OMERO - Admin", "Impossible to retrieve owner "+ownerId, e,true);
+                    continue;
+                }
                 roiOwner = ownerObj.getUserName();
                 ownerMap.put(ownerId, roiOwner);
             }

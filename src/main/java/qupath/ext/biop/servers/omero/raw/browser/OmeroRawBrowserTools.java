@@ -96,9 +96,26 @@ public class OmeroRawBrowserTools {
         if (parent == null)
             return new ArrayList<>();
 
-        // get OMERO owner and group
-        ExperimenterWrapper user = OmeroRawTools.getUser(client, owner.getId());
-        GroupWrapper userGroup = OmeroRawTools.getGroup(client, group.getId());
+        // get OMERO owner
+        ExperimenterWrapper user;
+        try {
+            user = client.getSimpleClient().getUser(owner.getId());
+        }catch(ServiceException | OMEROServerError e){
+            Dialogs.showErrorNotification("Reading group", "Impossible to retrieve group "+group.getId());
+            logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+
+        // get OMERO group
+        GroupWrapper userGroup;
+        try {
+            userGroup = client.getSimpleClient().getGroup(group.getId());
+        }catch(ServiceException | OMEROServerError e){
+            Dialogs.showErrorNotification("Reading group", "Impossible to retrieve group "+group.getId());
+            logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
+            return Collections.emptyList();
+        }
+
         List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
 
         switch (parent.getType()){
@@ -450,29 +467,41 @@ public class OmeroRawBrowserTools {
 
         // get all available groups for the current user according to his admin rights
         List<GroupWrapper> groups;
+        ExperimenterWrapper loggedInUser;
+        try {
+            loggedInUser = client.getSimpleClient().getUser(client.getLoggedInUser().getId());
+        }catch(ServiceException | OMEROServerError e){
+            Utils.errorLog(logger, "OMERO - Admin", "Cannot retrieve the user logged in user",e,true);
+            return Collections.emptyMap();
+        }
+
         if(client.isAdmin())
             groups = OmeroRawTools.getAllGroups(client);
         else
-            groups = OmeroRawTools.getUserGroups(client, client.getLoggedInUser().getId());
+            groups = loggedInUser.getGroups();
 
         // remove "system" and "user" groups
         groups.stream()
                 .filter(group->group.getId() != 0 && group.getId() != 1)
                 .collect(Collectors.toList())
                 .forEach(group-> {
-                    // Create the group object
-                    OmeroRawObjects.Group userGroup = new OmeroRawObjects.Group(group, group.getId(), group.getName());
+                    try {
+                        // Create the group object
+                        OmeroRawObjects.Group userGroup = new OmeroRawObjects.Group(group, group.getId(), group.getName());
 
-                    // get all available users for the current group
-                    List<OmeroRawObjects.Owner> owners = OmeroRawTools.getGroupUsers(client, group.getId())
-                            .stream()
-                            .map(OmeroRawObjects.Owner::new)
-                            .sorted(Comparator.comparing(OmeroRawObjects.Owner::getName))
-                            .collect(Collectors.toList());
+                        // get all available users for the current group
+                        List<OmeroRawObjects.Owner> owners = client.getSimpleClient().getGroup(group.getId()).getExperimenters()
+                                .stream()
+                                .map(OmeroRawObjects.Owner::new)
+                                .sorted(Comparator.comparing(OmeroRawObjects.Owner::getName))
+                                .collect(Collectors.toList());
 
-                    // Add All members at the beginning of the list
-                    owners.add(0,OmeroRawObjects.Owner.getAllMembersOwner());
-                    map.put(userGroup, owners);
+                        // Add All members at the beginning of the list
+                        owners.add(0, OmeroRawObjects.Owner.getAllMembersOwner());
+                        map.put(userGroup, owners);
+                    }catch(ServiceException | OMEROServerError e){
+                        Utils.errorLog(logger, "OMERO - Admin", "Cannot read the group "+group.getId(),e, true);
+                    }
                 });
 
         return new TreeMap<>(map);
@@ -845,14 +874,14 @@ public class OmeroRawBrowserTools {
             Collection<ImageWrapper> orphanedImages = OmeroRawTools.readOrphanedImages(client, owner.getWrapper());
 
             // get OMERO user and group
-            ExperimenterWrapper user = OmeroRawTools.getUser(client, owner.getId());
-            GroupWrapper userGroup = OmeroRawTools.getGroup(client, group.getId());
+            ExperimenterWrapper user = client.getSimpleClient().getUser(owner.getId());
+            GroupWrapper userGroup = client.getSimpleClient().getGroup(group.getId());
 
             // convert dataset to OmeroRawObject
             orphanedImages.forEach( e ->
                     list.add(new OmeroRawObjects.Image(e, e.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE, new OmeroRawObjects.Server(client.getServerURI()), user, userGroup))
             );
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | ServiceException | OMEROServerError e) {
             Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+owner.getId());
             logger.error(String.valueOf(e));
             logger.error(Utils.getErrorStackTraceAsString(e));
