@@ -14,6 +14,7 @@ import fr.igred.omero.repository.WellSampleWrapper;
 import fr.igred.omero.repository.WellWrapper;
 import javafx.scene.Node;
 import javafx.util.StringConverter;
+import omero.ServerError;
 import omero.gateway.exception.DSAccessException;
 import omero.gateway.exception.DSOutOfServiceException;
 import omero.gateway.model.ExperimenterData;
@@ -415,7 +416,12 @@ public class OmeroRawBrowserTools {
         // if the current screen has some plates
         if(parent.getNChildren() > 0){
             List<Long> plateIds = screenWrapper.getPlates().stream().map(PlateWrapper::getId).collect(Collectors.toList());
-            Collection<PlateWrapper> plates = OmeroRawTools.readPlates(client, plateIds);
+            List<PlateWrapper> plates = new ArrayList<>();
+            try{
+                plates = OmeroRawTools.readPlates(client, plateIds);
+            }catch(ServerError | ServiceException e){
+                Utils.errorLog(logger, "OMERO plates", "Cannot retrieve plates from OMERO",e,true);
+            }
 
             // build plate object
             for(PlateWrapper plate : plates)

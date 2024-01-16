@@ -52,6 +52,9 @@ import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.GenericRepositoryObjectWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.PlateWrapper;
+import fr.igred.omero.repository.ProjectWrapper;
+import fr.igred.omero.repository.ScreenWrapper;
+import fr.igred.omero.repository.WellWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 
 import omero.RLong;
@@ -136,50 +139,6 @@ public final class OmeroRawTools {
     }
 
     /**
-     * get all the groups on OMERO server. This functionality is reserved to Admin people. In case you are not
-     * Admin, {@link ExperimenterWrapper#getGroups()} method is called instead.
-     *
-     * @param client
-     * @return The list of all groups on OMERO server
-     */
-    @Deprecated
-    public static List<ExperimenterGroup> getAllOmeroGroups(OmeroRawClient client) {
-        return getAllGroups(client).stream()
-                .map(GroupWrapper::asDataObject)
-                .map(GroupData::asGroup)
-                .collect(Collectors.toList());
-    }
-
-
-    /**
-     * get all the groups on OMERO server. This functionality is reserved to Admin people. In case you are not
-     * Admin, {@link ExperimenterWrapper#getGroups()} method is called instead.
-     *
-     * @param client
-     * @return The list of all groups on OMERO server
-     */
-    public static List<GroupWrapper> getAllGroups(OmeroRawClient client) {
-        try {
-            if(client.isAdmin()) {
-                List<ExperimenterGroup> allGroups = client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).lookupGroups();
-                 return allGroups.stream().map(GroupData::new).map(GroupWrapper::new).collect(Collectors.toList());
-            }
-            else {
-                Dialogs.showWarningNotification("OMERO admin", "You are not allowed to see all OMERO groups. Only available groups for you are loaded");
-                return client.getLoggedInUser().getGroups();
-            }
-        }catch(DSOutOfServiceException | ServerError e){
-            Dialogs.showErrorMessage("OMERO admin", "Cannot retrieve all OMERO groups");
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-            throw new RuntimeException(e);
-        }
-    }
-
-
-
-
-    /**
      * Retrieve the group of which an image is part of.
      *
      * @param client
@@ -194,134 +153,94 @@ public final class OmeroRawTools {
             return img.getGroupId();
 
         } catch (DSOutOfServiceException | NoSuchElementException | ExecutionException | DSAccessException e) {
-            Dialogs.showErrorNotification("Get group id","Cannot retrieved group id from image "+imageId);
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
+            Utils.errorLog(logger,"OMERO Group", "Cannot retrieved group id from image "+imageId, e,false);
             return -1;
         }
     }
-
-
 
     /**
      * Retrieve parents of OMERO containers (i.e. Image, Dataset, Well and Plate). For Project, Screen and other, it
      * returns an empty list.
      *
      * @param client
-     * @param dataType image or container denomination (no case sensitive)
-     * @param id image or container id
+     * @param container child image or container
+     * @param qpNotif true to display a QuPath notification
      * @return List of object's parent(s) or empty list
      */
-    public static Collection<? extends DataObject> getParent(OmeroRawClient client, String dataType, long id){
-        try{
-            switch(dataType.toLowerCase()) {
-                case "image":
-                    // get the image
-                    Image image = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), id).asImage();
+    public static List<? extends GenericRepositoryObjectWrapper<?>> getParentContainer(OmeroRawClient client, GenericRepositoryObjectWrapper<?> container, boolean qpNotif)
+            throws ServiceException, OMEROServerError, AccessException, ExecutionException {
+        long id = container.getId();
 
-                    // get the parent datasets
-                    List<IObject> datasetObjects = client.getSimpleClient().getGateway()
-                            .getQueryService(client.getSimpleClient().getCtx())
-                            .findAllByQuery("select link.parent from DatasetImageLink as link " +
-                                    "where link.child=" + id, null);
+        if(container instanceof ImageWrapper) {
+            // get the parent datasets
+            List<IObject> datasetObjects = client.getSimpleClient()
+                    .findByQuery("select link.parent from DatasetImageLink as link where link.child=" + id);
 
-                    if(!datasetObjects.isEmpty()) {
-                        logger.info("The current image " + id + " has a dataset as parent");
-                        // get projects' id
-                        List<Long> ids = datasetObjects.stream()
-                                .map(IObject::getId)
-                                .map(RLong::getValue)
-                                .distinct()
-                                .collect(Collectors.toList());
+            if (!datasetObjects.isEmpty()) {
+                logger.info("The current image " + id + " has a dataset as parent");
+                // get projects' id
+                Long[] ids = datasetObjects.stream()
+                        .map(IObject::getId)
+                        .map(RLong::getValue)
+                        .distinct()
+                        .toArray(Long[]::new);
 
-                        return client.getSimpleClient().getGateway()
-                                .getFacility(BrowseFacility.class)
-                                .getDatasets(client.getSimpleClient().getCtx(), ids);
-                    }else{
-                        logger.info("The current image " + id + " has a well as parent");
+                return client.getSimpleClient().getDatasets(ids);
+            } else {
+                logger.info("The current image " + id + " has a well as parent");
 
-                        List<IObject> wellSamplesObjects = client.getSimpleClient().getGateway()
-                                .getQueryService(client.getSimpleClient().getCtx())
-                                .findAllByQuery("select ws from WellSample ws where image=" + id, null);
+                List<IObject> wellSamplesObjects = client.getSimpleClient().findByQuery("select ws from WellSample ws where image=" + id);
 
-                        List<Long> ids = wellSamplesObjects.stream()
-                                .map(WellSample.class::cast)
-                                .map(WellSample::getWell)
-                                .map(IObject::getId)
-                                .map(RLong::getValue)
-                                .collect(Collectors.toList());
+                Long[] ids = wellSamplesObjects.stream()
+                        .map(WellSample.class::cast)
+                        .map(WellSample::getWell)
+                        .map(IObject::getId)
+                        .map(RLong::getValue)
+                        .toArray(Long[]::new);
 
-                        if(!ids.isEmpty())
-                            return client.getSimpleClient().getGateway()
-                                    .getFacility(BrowseFacility.class)
-                                    .getWells(client.getSimpleClient().getCtx(), ids);
-                        else {
-                            Dialogs.showErrorNotification("Getting parent of image", "The current image " + id + " has no parent.");
-                            break;
-                        }
-                    }
-
-                case "dataset":
-                    // get the parent projects
-                    List<IObject> projectObjects = client.getSimpleClient().getGateway()
-                            .getQueryService(client.getSimpleClient().getCtx())
-                            .findAllByQuery("select link.parent from ProjectDatasetLink as link " +
-                                    "where link.child=" + id, null);
-
-                    // get projects' id
-                    List<Long> projectIds = projectObjects.stream()
-                            .map(IObject::getId)
-                            .map(RLong::getValue)
-                            .distinct()
-                            .collect(Collectors.toList());
-
-                    return client.getSimpleClient().getGateway()
-                            .getFacility(BrowseFacility.class)
-                            .getProjects(client.getSimpleClient().getCtx(), projectIds);
-
-                case "well":
-                    return Collections.singletonList(client.getSimpleClient().getGateway()
-                                    .getFacility(BrowseFacility.class)
-                                    .getWells(client.getSimpleClient().getCtx(), Collections.singletonList(id))
-                                    .iterator()
-                                    .next()
-                                    .getPlate());
-
-                case "plate":
-                    // get parent screen
-                    List<IObject> screenObjects = client.getSimpleClient().getGateway()
-                            .getQueryService(client.getSimpleClient().getCtx())
-                            .findAllByQuery("select link.parent from ScreenPlateLink as link " +
-                                    "where link.child=" + id, null);
-
-                    // get screens' id
-                    List<Long> screenIds = screenObjects.stream()
-                            .map(IObject::getId)
-                            .map(RLong::getValue)
-                            .distinct()
-                            .collect(Collectors.toList());
-
-                    return client.getSimpleClient().getGateway()
-                            .getFacility(BrowseFacility.class)
-                            .getScreens(client.getSimpleClient().getCtx(), screenIds);
-
-                case "project":
-                case "screen":
-                    Dialogs.showWarningNotification("Getting parent","No parent for "+dataType+" id "+id);
-                    break;
-                default:
-                    Dialogs.showWarningNotification("Getting parent","Unsupported object : "+dataType+" id "+id);
+                if (ids.length != 0)
+                    return client.getSimpleClient().getWells(ids);
+                else {
+                    Utils.errorLog(logger, "OMERO parent container", "The current image " + id + " has no parent.", qpNotif);
+                    return Collections.emptyList();
+                }
             }
-        } catch (ServerError | DSOutOfServiceException | ExecutionException e) {
-            Dialogs.showErrorNotification("Getting parent","Cannot retrieved the parent of "+dataType+" id "+id);
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-        } catch (DSAccessException e) {
-            Dialogs.showErrorNotification("Getting parent","You do not have access to "+dataType+" id "+id);
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-        }
 
+        }else if (container instanceof DatasetWrapper) {
+            // get the parent projects
+            List<IObject> projectObjects = client.getSimpleClient().findByQuery("select link.parent from ProjectDatasetLink as link " +
+                    "where link.child=" + id);
+
+            // get projects' id
+            Long[] projectIds = projectObjects.stream()
+                    .map(IObject::getId)
+                    .map(RLong::getValue)
+                    .distinct()
+                    .toArray(Long[]::new);
+
+            return client.getSimpleClient().getProjects(projectIds);
+
+        }else if (container instanceof WellWrapper) {
+            return Collections.singletonList(client.getSimpleClient().getWell(id).getPlate());
+        }else if (container instanceof PlateWrapper) {
+            // get parent screen
+            List<IObject> screenObjects = client.getSimpleClient().findByQuery("select link.parent from ScreenPlateLink as link " +
+                    "where link.child=" + id);
+
+            // get screens' id
+            Long[] screenIds = screenObjects.stream()
+                    .map(IObject::getId)
+                    .map(RLong::getValue)
+                    .distinct()
+                    .toArray(Long[]::new);
+
+            return client.getSimpleClient().getScreens(screenIds);
+
+        }else if (container instanceof ProjectWrapper || container instanceof ScreenWrapper) {
+            Utils.warnLog(logger, "OMERO parent container", "No parent for " + container.getClass().getSimpleName() + " id " + id, qpNotif);
+        }else{
+            Utils.warnLog(logger, "OMERO parent container","Unsupported object : "+container.getClass().getSimpleName()+" id "+id, qpNotif);
+        }
         return Collections.emptyList();
     }
 
@@ -337,61 +256,54 @@ public final class OmeroRawTools {
     public static RenderingDef readOmeroRenderingSettings(OmeroRawClient client, long pixelsId)
             throws DSOutOfServiceException, ServerError {
 
-            Gateway gateway = client.getSimpleClient().getGateway();
-            SecurityContext ctx = client.getSimpleClient().getCtx();
+        Gateway gateway = client.getSimpleClient().getGateway();
+        SecurityContext ctx = client.getSimpleClient().getCtx();
 
-            // get rendering settings
-            RenderingDef renderingDef = gateway.getRenderingSettingsService(ctx).getRenderingSettings(pixelsId);
+        // get rendering settings
+        RenderingDef renderingDef = gateway.getRenderingSettingsService(ctx).getRenderingSettings(pixelsId);
 
-            if(renderingDef == null) {
-                // load rendering settings if they were not automatically loaded
-                RenderingEnginePrx re = gateway.getRenderingService(ctx, pixelsId);
-                re.lookupPixels(pixelsId);
-                if (!(re.lookupRenderingDef(pixelsId))) {
-                    re.resetDefaultSettings(true);
-                    re.lookupRenderingDef(pixelsId);
-                }
-                re.load();
-                re.close();
-                return gateway.getRenderingSettingsService(ctx).getRenderingSettings(pixelsId);
+        if(renderingDef == null) {
+            // load rendering settings if they were not automatically loaded
+            RenderingEnginePrx re = gateway.getRenderingService(ctx, pixelsId);
+            re.lookupPixels(pixelsId);
+            if (!(re.lookupRenderingDef(pixelsId))) {
+                re.resetDefaultSettings(true);
+                re.lookupRenderingDef(pixelsId);
             }
-            return renderingDef;
+            re.load();
+            re.close();
+            return gateway.getRenderingSettingsService(ctx).getRenderingSettings(pixelsId);
+        }
+        return renderingDef;
     }
 
     /**
-     * Get all OMERO datasets corresponding to the list of ids
+     * Get all OMERO datasets corresponding to the list of ids.
+     * <br>
+     * <p>This method is necessary to retrieve the entire Plate object for the OMERO browser and cannot
+     * be replaced by client.getPlates().</p>
      *
      * @param client
      * @param plateIds
      * @return List of OMERO dataset objects
      */
-    //TODO can be modified because new method
-    public static Collection<PlateWrapper> readPlates(OmeroRawClient client, List<Long> plateIds){
+    public static List<PlateWrapper> readPlates(OmeroRawClient client, List<Long> plateIds)
+            throws ServiceException, ServerError {
 
         String GET_PLATE_QUERY = "select p from Plate as p " +
                 "left join fetch p.wells as w " +
                 "left join fetch p.plateAcquisitions as pa " +
                 "where p.id in (:ids)";
-        try {
-            IQueryPrx qs = client.getSimpleClient().getQueryService();
-            ParametersI param = new ParametersI();
 
-            param.addIds(plateIds);
-            return qs.findAllByQuery(GET_PLATE_QUERY, param).stream()
-                    .map(PlateI.class::cast)
-                    .map(PlateData::new)
-                    .map(PlateWrapper::new)
-                    .collect(Collectors.toList());
+        IQueryPrx qs = client.getSimpleClient().getQueryService();
+        ParametersI param = new ParametersI();
 
-        }catch(DSOutOfServiceException | ServerError e){
-            Dialogs.showErrorNotification("Reading plates","An error occurs when reading OMERO plates "+plateIds);
-            logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }catch (NoSuchElementException e){
-            Dialogs.showErrorNotification("Reading plates","You don't have the right to access OMERO plates "+plateIds);
-            logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
-            return Collections.emptyList();
-        }
+        param.addIds(plateIds);
+        return qs.findAllByQuery(GET_PLATE_QUERY, param).stream()
+                .map(PlateI.class::cast)
+                .map(PlateData::new)
+                .map(PlateWrapper::new)
+                .collect(Collectors.toList());
     }
 
 
@@ -417,13 +329,12 @@ public final class OmeroRawTools {
             image = client.getSimpleClient().getImage(imageId);
             store = client.getSimpleClient().getGateway().getThumbnailService(client.getSimpleClient().getCtx());
         } catch(DSOutOfServiceException | AccessException | ExecutionException e){
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
+            Utils.errorLog(logger,"OMERO Thumbnail", "Cannot read the Thumbnail service for image " + imageId,true);
            return false;
         }
 
         if(store == null){
-            Dialogs.showErrorNotification("Update OMERO Thumbnail", "Cannot get the Thumbnail service for image " + imageId);
+            Utils.errorLog(logger,"OMERO Thumbnail", "Cannot get the Thumbnail service for image " + imageId,true);
             return false;
         }
 
@@ -439,15 +350,11 @@ public final class OmeroRawTools {
                 // update the thumbnail
                 store.createThumbnails();
             } catch (ServerError e) {
-                logger.error("Error during thumbnail creation but thumbnail is updated ");
-                logger.error(String.valueOf(e));
-                logger.error(Utils.getErrorStackTraceAsString(e));
+                Utils.errorLog(logger,"OMERO Thumbnail", "Error during thumbnail creation but thumbnail is updated", e,false);
             }
 
         } catch (NullPointerException | ServerError e) {
-            Dialogs.showErrorNotification("Update OMERO Thumbnail", "Thumbnail cannot be updated for image " + imageId);
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
+            Utils.errorLog(logger,"OMERO Thumbnail", "Thumbnail cannot be updated for image " + imageId, e,true);
             wasAdded = false;
         }
 
@@ -455,52 +362,11 @@ public final class OmeroRawTools {
             // close the store
             store.close();
         } catch (ServerError e) {
-            Dialogs.showErrorNotification("Update OMERO Thumbnail", "Cannot close the ThumbnailStore");
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
+            Utils.errorLog(logger,"OMERO Thumbnail", "Cannot close the ThumbnailStore", e,true);
         }
 
         return wasAdded;
     }
-
-    /**
-     *  Create a new dataset on OMERO.
-     *  If the project ID > 0, then the dataset is link to the specified project. Otherwise, the dataset is orphaned
-     *  (i.e. to create an orphaned dataset, set the project ID to -1)
-     *
-     * @param client
-     * @param datasetName
-     * @param datasetDescription
-     * @param projectId
-     * @return
-     * @throws ExecutionException
-     * @throws DSOutOfServiceException
-     * @throws DSAccessException
-     */
-    public static DatasetWrapper createNewDataset(OmeroRawClient client,  String datasetName, String datasetDescription, long projectId)
-            throws ExecutionException, DSOutOfServiceException, DSAccessException {
-
-        // create a new dataset
-        Dataset dataset = new DatasetI();
-        dataset.setName(omero.rtypes.rstring(datasetName));
-        dataset.setDescription(omero.rtypes.rstring(datasetDescription));
-        IObject objTosave;
-
-        if(projectId > 0) {
-            // link the dataset to a project
-            ProjectDatasetLink link = new ProjectDatasetLinkI();
-            link.setChild(dataset);
-            link.setParent(new ProjectI(projectId, false));
-            objTosave = link;
-        }else{
-            objTosave = dataset;
-        }
-
-        // send the new dataset to OMERO
-        IObject r = client.getSimpleClient().getDm().saveAndReturnObject(client.getSimpleClient().getCtx(), objTosave);
-        return client.getSimpleClient().getDataset(r.getId().getValue());
-    }
-
 
     /**
      * read an image stored in the resource folder of the main class
@@ -629,6 +495,30 @@ public final class OmeroRawTools {
                 .stream()
                 .map(ImageWrapper::new)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * get all the groups on OMERO server. This functionality is reserved to Admin people. In case you are not
+     * Admin, {@link ExperimenterWrapper#getGroups()} method is called instead.
+     *
+     * @param client
+     * @return The list of all groups on OMERO server
+     */
+    //TODO remove it when the PR is accepted and released (PR all-groups)
+    public static List<GroupWrapper> getAllGroups(OmeroRawClient client) {
+        try {
+            if(client.isAdmin()) {
+                List<ExperimenterGroup> allGroups = client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).lookupGroups();
+                return allGroups.stream().map(GroupData::new).map(GroupWrapper::new).collect(Collectors.toList());
+            }
+            else {
+                Dialogs.showWarningNotification("OMERO admin", "You are not allowed to see all OMERO groups. Only available groups for you are loaded");
+                return client.getLoggedInUser().getGroups();
+            }
+        }catch(DSOutOfServiceException | ServerError e){
+            Utils.errorLog(logger,"OMERO admin", "Cannot retrieve all OMERO groups",e ,true);
+            throw new RuntimeException(e);
+        }
     }
 
     /*
@@ -904,7 +794,14 @@ public final class OmeroRawTools {
      */
     @Deprecated
     public static Collection<PlateData> readOmeroPlates(OmeroRawClient client, List<Long> plateIds){
-        return readPlates(client, plateIds).stream().map(PlateWrapper::asDataObject).collect(Collectors.toList());
+        List<PlateWrapper> plates;
+        try{
+            plates = readPlates(client, plateIds);
+        }catch(ServerError | ServiceException e){
+            Utils.errorLog(logger, "OMERO plates", "Cannot retrieve plates from OMERO",e,true);
+            return Collections.emptyList();
+        }
+        return plates.stream().map(PlateWrapper::asDataObject).collect(Collectors.toList());
     }
 
 
@@ -1321,12 +1218,13 @@ public final class OmeroRawTools {
      * @param datasetDescription
      * @return OMERO dataset
      *
-     * @deprecated use {@link OmeroRawTools#createNewDataset(OmeroRawClient, String, String, long)} instead
+     * @deprecated use {@link ProjectWrapper#addDataset(Client, String, String)} instead
      */
     @Deprecated
     public static DatasetData createNewDataset(OmeroRawClient client, long projectId, String datasetName, String datasetDescription) {
         try {
-            return createNewDataset(client, datasetName, datasetDescription, projectId).asDataObject();
+            ProjectWrapper projectWrapper = client.getSimpleClient().getProject(projectId);
+            return projectWrapper.addDataset(client.getSimpleClient(), datasetName, datasetDescription).asDataObject();
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName+" in the project "+projectId);
             logger.error(String.valueOf(e));
@@ -1347,12 +1245,14 @@ public final class OmeroRawTools {
      * @param datasetName
      * @param datasetDescription
      * @return OMERO dataset
-     * @deprecated use {@link OmeroRawTools#createNewDataset(OmeroRawClient, String, String, long)} instead
+     * @deprecated use {@link DatasetWrapper#DatasetWrapper(String, String)} instead followed by {@link DatasetWrapper#saveAndUpdate(Client)}
      */
     @Deprecated
     public static DatasetData createNewDataset(OmeroRawClient client, String datasetName, String datasetDescription){
         try {
-            return createNewDataset(client, datasetName, datasetDescription, -1).asDataObject();
+            DatasetWrapper datasetWrapper = new DatasetWrapper(datasetName, datasetDescription);
+            datasetWrapper.saveAndUpdate(client.getSimpleClient());
+            return datasetWrapper.asDataObject();
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName);
             logger.error(String.valueOf(e));
@@ -1372,12 +1272,14 @@ public final class OmeroRawTools {
      * @param client
      * @param datasetName
      * @return OMERO dataset
-     * @deprecated use {@link OmeroRawTools#createNewDataset(OmeroRawClient, String, String, long)} instead
+     * @deprecated use {@link DatasetWrapper#DatasetWrapper(String, String)} instead followed by {@link DatasetWrapper#saveAndUpdate(Client)}
      */
     @Deprecated
     public static DatasetData createNewDataset(OmeroRawClient client, String datasetName){
         try {
-            return createNewDataset(client, datasetName, "", -1).asDataObject();
+            DatasetWrapper datasetWrapper = new DatasetWrapper(datasetName,"");
+            datasetWrapper.saveAndUpdate(client.getSimpleClient());
+            return datasetWrapper.asDataObject();
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName);
             logger.error(String.valueOf(e));
@@ -1398,12 +1300,13 @@ public final class OmeroRawTools {
      * @param projectId
      * @param datasetName
      * @return OMERO dataset
-     * @deprecated use {@link OmeroRawTools#createNewDataset(OmeroRawClient, String, String, long)} instead
+     * @deprecated use {@link ProjectWrapper#addDataset(Client, String, String)} instead
      */
     @Deprecated
     public static DatasetData createNewDataset(OmeroRawClient client, long projectId, String datasetName){
         try {
-            return createNewDataset(client, datasetName, "", projectId).asDataObject();
+            ProjectWrapper projectWrapper = client.getSimpleClient().getProject(projectId);
+            return projectWrapper.addDataset(client.getSimpleClient(), datasetName, "").asDataObject();
         }catch(ExecutionException | DSOutOfServiceException  e) {
             Dialogs.showErrorNotification("Create New dataset", "Cannot create dataset "+datasetName);
             logger.error(String.valueOf(e));
@@ -2256,4 +2159,69 @@ public final class OmeroRawTools {
             throw new RuntimeException(e);
         }
     }
+
+    /**
+     * get all the groups on OMERO server. This functionality is reserved to Admin people. In case you are not
+     * Admin, {@link ExperimenterWrapper#getGroups()} method is called instead.
+     *
+     * @param client
+     * @return The list of all groups on OMERO server
+     */
+    @Deprecated
+    public static List<ExperimenterGroup> getAllOmeroGroups(OmeroRawClient client) {
+        return getAllGroups(client).stream()
+                .map(GroupWrapper::asDataObject)
+                .map(GroupData::asGroup)
+                .collect(Collectors.toList());
+    }
+
+
+    /**
+     * Retrieve parents of OMERO containers (i.e. Image, Dataset, Well and Plate). For Project, Screen and other, it
+     * returns an empty list.
+     *
+     * @param client
+     * @param dataType image or container denomination (no case sensitive)
+     * @param id image or container id
+     * @return List of object's parent(s) or empty list
+     * @deprecated use {@link OmeroRawTools#getParentContainer(OmeroRawClient, GenericRepositoryObjectWrapper, boolean)} instead
+     */
+    @Deprecated
+    public static Collection<? extends DataObject> getParent(OmeroRawClient client, String dataType, long id){
+        try {
+            GenericRepositoryObjectWrapper<?> container;
+            switch(dataType.toLowerCase()){
+                case "image":
+                    container = client.getSimpleClient().getImage(id);
+                    break;
+                case "dataset":
+                    container = client.getSimpleClient().getDataset(id);
+                    break;
+                case "project":
+                    container = client.getSimpleClient().getProject(id);
+                    break;
+                case "well":
+                    container = client.getSimpleClient().getWell(id);
+                    break;
+                case "plate":
+                    container = client.getSimpleClient().getPlate(id);
+                    break;
+                case "screen":
+                    container = client.getSimpleClient().getScreen(id);
+                    break;
+                default: container = null;
+            }
+            if(container != null) {
+                List<? extends GenericRepositoryObjectWrapper<?>> parentList = getParentContainer(client, container, true);
+                return parentList.stream().map(GenericRepositoryObjectWrapper::asDataObject).collect(Collectors.toList());
+            }else{
+                Utils.errorLog(logger, "OMERO parent container", "The container '"+dataType+"' ; id "+id+", is not supported ", true);
+                return Collections.emptyList();
+            }
+        }catch(ServiceException | OMEROServerError | AccessException | ExecutionException e){
+            Utils.errorLog(logger, "OMERO parent container", "Cannot get the parent of container "+dataType+" ; id "+id, true);
+            return Collections.emptyList();
+        }
+    }
+
 }
