@@ -953,7 +953,9 @@ public final class OmeroRawTools {
      * @param client
      * @param objects
      * @return Updating status (True if updated ; false with error message otherwise)
+     * @deprecated Method removed
      */
+    @Deprecated
     public static boolean updateObjectsOnOmero(OmeroRawClient client, List<IObject> objects){
        boolean wasAdded = true;
         try{
@@ -985,7 +987,7 @@ public final class OmeroRawTools {
         boolean wasAdded = true;
         try{
             // update the object on OMERO
-            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).updateObject(client.getSimpleClient().getCtx(), object, null);
+            client.getSimpleClient().getDm().updateObject(client.getSimpleClient().getCtx(), object, null);
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Update object","Error during updating object on OMERO.");
             logger.error(String.valueOf(e));

@@ -71,13 +71,13 @@ public class OmeroRawWriteChannelSettingsCommand implements Runnable {
 
         // send display settings to OMERO
         if(imageName)
-            wasSaved = OmeroRawScripting.sendImageNameToOmero((OmeroRawImageServer)imageServer);
+            wasSaved = OmeroRawScripting.sendQuPathImageNameToOmero((OmeroRawImageServer)imageServer, true);
         if(channelDisplayRange)
-            wasSaved = OmeroRawScripting.sendChannelsDisplayRangeToOmero((OmeroRawImageServer)imageServer);
+            wasSaved = OmeroRawScripting.sendQuPathChannelsDisplayRangeToOmero((OmeroRawImageServer)imageServer, true);
         if(channelColor)
-            wasSaved = OmeroRawScripting.sendChannelsColorToOmero((OmeroRawImageServer)imageServer);
+            wasSaved = OmeroRawScripting.sendQuPathChannelsColorToOmero((OmeroRawImageServer)imageServer, true);
         if(channelNames)
-            wasSaved = OmeroRawScripting.sendChannelsNameToOmero((OmeroRawImageServer)imageServer);
+            wasSaved = OmeroRawScripting.sendQuPathChannelsNameToOmero((OmeroRawImageServer)imageServer, true);
 
         if(wasSaved)
             Dialogs.showInfoNotification(" Image update successfully", "Image & channels settings have been successfully updated");
