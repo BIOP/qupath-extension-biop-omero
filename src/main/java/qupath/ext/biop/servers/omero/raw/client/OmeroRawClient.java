@@ -45,7 +45,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawExtension;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
+import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.fx.dialogs.Dialogs;
+import qupath.lib.gui.prefs.PathPrefs;
 
 import java.net.Authenticator;
 import java.net.MalformedURLException;
@@ -66,11 +68,16 @@ import java.util.Objects;
  * @author Olivier Burri & Rémy Dornier
  */
 public class OmeroRawClient {
-
     final private static Logger logger = LoggerFactory.getLogger(OmeroRawClient.class);
+
     private final IntegerProperty port;
     private final BooleanProperty isAdminUser;
     private final Client simpleClient;
+
+    /**
+     * default username appearing when log-in on OMERO
+     */
+    private static StringProperty defaultUsername;
 
     /**
      * List of all URIs supported by this client.
@@ -109,6 +116,9 @@ public class OmeroRawClient {
         this.isAdminUser = new SimpleBooleanProperty(false);
         this.port = new SimpleIntegerProperty(4064);
         this.simpleClient = new Client();
+
+        // Add the default OMERO server address to the QuPath Preferences
+        defaultUsername = PathPrefs.createPersistentPreference("defaultUsername", "");
     }
 
     private boolean authenticate(final PasswordAuthentication authentication) throws Exception {
@@ -240,7 +250,7 @@ public class OmeroRawClient {
                 logger.debug("Username & password parsed from args");
                 authentication = new PasswordAuthentication(usernameOld, password);
             } else
-                authentication = OmeroAuthenticatorFX.getPasswordAuthentication("Please enter your login details for OMERO server", serverURI.toString(), usernameOld);
+                authentication = OmeroAuthenticatorFX.getPasswordAuthentication("Please enter your login details for OMERO server", serverURI.toString());
             if (authentication == null)
                 return false;
 
@@ -252,9 +262,9 @@ public class OmeroRawClient {
 
             // If we have previous URIs and the username was different
             if (uris.size() > 0 && usernameOld != null && !usernameOld.isEmpty() && !usernameOld.equals(authentication.getUserName())) {
-                Dialogs.showInfoNotification("OMERO login", String.format("OMERO account switched from \"%s\" to \"%s\" for %s", usernameOld, authentication.getUserName(), serverURI));
+                Utils.infoLog(logger,"OMERO login", String.format("OMERO account switched from \"%s\" to \"%s\" for %s", usernameOld, authentication.getUserName(), serverURI), true);
             } else if (uris.size() == 0 || usernameOld == null || usernameOld.isEmpty())
-                Dialogs.showInfoNotification("OMERO login", String.format("Login successful: %s(\"%s\")", serverURI, authentication.getUserName()));
+                Utils.infoLog(logger,"OMERO login", String.format("Login successful: %s(\"%s\")", serverURI, authentication.getUserName()), true);
 
             // If a browser was currently opened with this client, close it
             if (OmeroRawExtension.getOpenedRawBrowsers().containsKey(this)) {
@@ -270,9 +280,9 @@ public class OmeroRawClient {
             });
 
             return true;
-        } catch (Exception ex) {
-            logger.error(ex.getLocalizedMessage());
-            Dialogs.showErrorNotification("OMERO raw server", "Could not connect to OMERO raw server.\nCheck the following:\n- Valid credentials.\n- Access permission.\n- Correct URL.");
+        } catch (Exception e) {
+           Utils.errorLog(logger, "OMERO login",
+                   "Could not connect to OMERO raw server.\nCheck the following:\n- Valid credentials.\n- Access permission.\n- Correct URL.",e,true);
         }
         return false;
     }
@@ -331,43 +341,44 @@ public class OmeroRawClient {
     }
 
     private static class OmeroAuthenticatorFX extends Authenticator {
-
-        private String lastUsername = "";
         private static String port = "4064";
 
         @Override
         protected PasswordAuthentication getPasswordAuthentication() {
-            PasswordAuthentication authentication = getPasswordAuthentication(getRequestingPrompt(),
-                    getRequestingHost(), lastUsername);
-            if (authentication == null)
-                return null;
-
-            lastUsername = authentication.getUserName();
-            return authentication;
+            return getPasswordAuthentication(getRequestingPrompt(), getRequestingHost());
         }
 
         static int getPort(){
             try {
                 return Integer.parseInt(port);
             }catch(Exception e) {
-                Dialogs.showWarningNotification("Wrong port"," Port "+port+" is not recognized as a correct port. Default port 4064 is used instead");
+                Utils.warnLog(logger,"OMERO login", " Port " + port + " is not recognized as a correct port. Default port 4064 is used instead", true);
                 port = "4064";
                 return Integer.parseInt(port);
             }
         }
 
-        static PasswordAuthentication getPasswordAuthentication(String prompt, String host, String lastUsername) {
+        static PasswordAuthentication getPasswordAuthentication(String prompt, String host) {
+            String lastUsername = defaultUsername.get();
+
+            // create username & password field
             GridPane pane = new GridPane();
             Label labHost = new Label(host);
             Label labUsername = new Label("Username");
             TextField tfUsername = new TextField(lastUsername);
-            Platform.runLater(tfUsername::requestFocus);
             labUsername.setLabelFor(tfUsername);
 
             Label labPassword = new Label("Password");
             PasswordField tfPassword = new PasswordField();
             labPassword.setLabelFor(tfPassword);
 
+            // select the right textField
+            if(lastUsername.isEmpty())
+                Platform.runLater(tfUsername::requestFocus);
+            else
+                Platform.runLater(tfPassword::requestFocus);
+
+            // create port field
             Label labPort = new Label("Port");
             TextField tfPort = new TextField(port);
             labPort.setLabelFor(tfPort);
@@ -396,8 +407,9 @@ public class OmeroRawClient {
                 password[i] = tfPassword.getCharacters().charAt(i);
             }
 
-            // set omero port
+            // set omero port & default username
             port = tfPort.getText();
+            defaultUsername.set(userName);
 
             return new PasswordAuthentication(userName, password);
         }
