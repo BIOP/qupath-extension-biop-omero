@@ -283,7 +283,12 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
 
         // get default user / group object
         ExperimenterWrapper loggedInUser = client.getLoggedInUser();
-        GroupWrapper userGroup = loggedInUser.getDefaultGroup();
+        GroupWrapper userGroup;
+        try{
+            userGroup = client.getSimpleClient().getGroup(client.getSimpleClient().getCurrentGroupId());
+        }catch(Exception e) {
+            userGroup = loggedInUser.getDefaultGroup();
+        }
         OmeroRawObjects.Group defaultGroup = new OmeroRawObjects.Group(userGroup, userGroup.getId(), userGroup.getName());
         OmeroRawObjects.Owner defaultOwner = new OmeroRawObjects.Owner(loggedInUser);
 
