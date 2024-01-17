@@ -361,6 +361,7 @@ public class OmeroRawClient {
             Label labHost = new Label(host);
             Label labUsername = new Label("Username");
             TextField tfUsername = new TextField(lastUsername);
+            Platform.runLater(tfUsername::requestFocus);
             labUsername.setLabelFor(tfUsername);
 
             Label labPassword = new Label("Password");
