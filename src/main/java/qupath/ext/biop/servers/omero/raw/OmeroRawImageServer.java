@@ -181,7 +181,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 * @param args
 	 * @throws IOException
 	 */
-	OmeroRawImageServer(URI uri, OmeroRawClient client, String...args) throws IOException, ServerError, DSOutOfServiceException, ExecutionException, DSAccessException, URISyntaxException {
+	OmeroRawImageServer(URI uri, OmeroRawClient client, String...args)
+			throws IOException, ServerError, DSOutOfServiceException, ExecutionException, DSAccessException {
 		super();
 
 
@@ -210,12 +211,10 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 * read image metadata and build a QuPath ImageServerMetadata object.
 	 *
 	 * @return
-	 * @throws IOException
 	 * @throws ServerError
 	 * @throws DSOutOfServiceException
 	 * @throws ExecutionException
 	 * @throws DSAccessException
-	 * @throws URISyntaxException
 	 */
 	protected ImageServerMetadata buildMetadata()
 			throws ServerError, DSOutOfServiceException, ExecutionException, DSAccessException {
@@ -262,14 +261,14 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 			// If we have more than one image, ensure that we have the image name correctly encoded in the path
 			// Need the context here for now TODO: Make it cleaner to get data
+
 			// Try getting the magnification
 			try {
 				MetadataFacility metaFacility = this.client.getSimpleClient().getMetadata();
+				double magnificationObject = metaFacility.getImageAcquisitionData(client.getSimpleClient().getCtx(), imageID).getObjective().getNominalMagnification();
 
-				Double magnificationObject = metaFacility.getImageAcquisitionData(client.getSimpleClient().getCtx(), imageID).getObjective().getNominalMagnification();
-
-				if (magnificationObject == null) {
-					logger.warn("Nominal objective magnification missing for {}", imageID);
+				if (magnificationObject < 0) {
+					logger.warn("Nominal objective magnification missing for image {}", imageID);
 				} else
 					magnification = magnificationObject;
 
@@ -742,12 +741,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 */
 	@Override
 	public BufferedImage getDefaultThumbnail(int z, int t) throws IOException {
-		int ind = nResolutions() - 1;
-		double targetDownsample = Math.sqrt(getWidth() / 1024.0 * getHeight() / 1024.0);
 		double[] downsamples = getPreferredDownsamples();
-		while (ind > 0 && downsamples[ind-1] >= targetDownsample)
-			ind--;
-		double downsample = downsamples[ind];
+		double downsample = downsamples[downsamples.length - 1];
 		RegionRequest request = RegionRequest.createInstance(getPath(), downsample, 0, 0, getWidth(), getHeight(), z, t);
 
 		BufferedImage bf = readRegion(request);
@@ -760,7 +755,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			}
 		}
 		return bf;
-
 	}
 
 	/**
