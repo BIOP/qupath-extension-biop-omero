@@ -140,6 +140,7 @@ public class OmeroRawImportMetadataCommand implements Runnable{
 
         // add new keyValues from omero
         Map<String, String> keyValueMap = new HashMap<>();
+        Map<String, String> parentHierarchy = new HashMap<>();
         List<String> tagList = new ArrayList<>();
 
         if(cbKeyValues.isSelected())
@@ -147,22 +148,25 @@ public class OmeroRawImportMetadataCommand implements Runnable{
         if(cbTags.isSelected())
             tagList = OmeroRawScripting.addTagsToQuPath((OmeroRawImageServer) imageServer, secondPolicy, true);
 
+        parentHierarchy = OmeroRawScripting.addParentHierarchyToQuPath((OmeroRawImageServer) imageServer, secondPolicy, true);
+
         String message = "";
         switch(policy){
-            case UPDATE_KEYS :
+            case KEEP_KEYS :
                 message = "Keep %d metadata";
                 break;
-            case DELETE_KEYS:
+            case UPDATE_KEYS:
                 message = "Update %d metadata";
                 break;
-            case KEEP_KEYS:
+            case DELETE_KEYS:
                 message = "Delete %d previous metadata";
         }
 
-        Utils.infoLog(logger, title, String.format(message + ", add %d new %s and add %d new %s", nExistingKV,
+        Utils.infoLog(logger, title, String.format(message + ", add %d new %s, %d new %s%s", nExistingKV,
                 keyValueMap == null ? 0 : keyValueMap.size(),
                 ((keyValueMap != null && keyValueMap.size() <= 1) ? "KVP" : "KVPs"),
                 tagList == null ? 0 : tagList.size(),
-                ((tagList != null && tagList.size()<= 1) ? "tag" : "tags")), true);
+                ((tagList != null && tagList.size()<= 1) ? "tag" : "tags"),
+                parentHierarchy == null ? ".":" and the image parent containers."), true);
     }
 }

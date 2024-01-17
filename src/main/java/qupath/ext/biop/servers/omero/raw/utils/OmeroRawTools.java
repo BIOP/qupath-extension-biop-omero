@@ -32,6 +32,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -119,7 +120,7 @@ import javax.imageio.ImageIO;
  * @author Rémy Dornier
  *
  */
-public final class OmeroRawTools {
+public class OmeroRawTools {
 
     private final static Logger logger = LoggerFactory.getLogger(OmeroRawTools.class);
     private final static String noImageThumbnail = "NoImage256.png";
@@ -243,6 +244,50 @@ public final class OmeroRawTools {
         return Collections.emptyList();
     }
 
+    /**
+     * get the parents of an OMERO object (from dataset/well to screen/project)
+     *
+     * @param imageServer current QuPath entry
+     * @param obj OMERO object to read the hierarchy from
+     * @param qpNotif true to display a QuPath notification
+     * @return a map of the parent containers name & id
+     */
+    protected static Map<String,String> getParentHierarchy(OmeroRawImageServer imageServer, GenericRepositoryObjectWrapper<?> obj, boolean qpNotif)
+            throws AccessException, ServiceException, OMEROServerError, ExecutionException {
+        Map<String,String> containers = new HashMap<>();
+
+        if (obj instanceof ScreenWrapper) {
+            containers.put("screen-name", obj.getName());
+            containers.put("screen-id", String.valueOf(obj.getId()));
+        } else if (obj instanceof ProjectWrapper) {
+            containers.put("project-name", obj.getName());
+            containers.put("project-id", String.valueOf(obj.getId()));
+        } else if (obj instanceof DatasetWrapper) {
+            containers.put("dataset-name", obj.getName());
+            containers.put("dataset-id", String.valueOf(obj.getId()));
+            List<? extends GenericRepositoryObjectWrapper<?>> parentList = OmeroRawTools.getParentContainer(imageServer.getClient(), obj, qpNotif);
+            if(!parentList.isEmpty())
+                containers.putAll(getParentHierarchy(imageServer,parentList.get(0), qpNotif));
+        } else if (obj instanceof PlateWrapper) {
+            containers.put("plate-name", obj.getName());
+            containers.put("plate-id", String.valueOf(obj.getId()));
+            List<? extends GenericRepositoryObjectWrapper<?>> parentList = OmeroRawTools.getParentContainer(imageServer.getClient(), obj, qpNotif);
+            if(!parentList.isEmpty())
+                containers.putAll(getParentHierarchy(imageServer,parentList.get(0), qpNotif));
+        } else if (obj instanceof WellWrapper) {
+            containers.put("well-name", obj.getName());
+            containers.put("well-id", String.valueOf(obj.getId()));
+            List<? extends GenericRepositoryObjectWrapper<?>> parentList = OmeroRawTools.getParentContainer(imageServer.getClient(), obj, qpNotif);
+            if(!parentList.isEmpty())
+                containers.putAll(getParentHierarchy(imageServer,parentList.get(0), qpNotif));
+        } else if (obj instanceof ImageWrapper) {
+            List<? extends GenericRepositoryObjectWrapper<?>> parentList = OmeroRawTools.getParentContainer(imageServer.getClient(), obj, qpNotif);
+            if(!parentList.isEmpty())
+                containers.putAll(getParentHierarchy(imageServer, parentList.get(0), qpNotif));
+        }
+
+        return containers;
+    }
 
     /**
      * read the rendering settings object linked to the specified pixels

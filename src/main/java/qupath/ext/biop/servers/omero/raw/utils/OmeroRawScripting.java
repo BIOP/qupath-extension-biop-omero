@@ -474,7 +474,7 @@ public class OmeroRawScripting {
 
         // check if OMERO keys are unique and store them in a map
         MapAnnotationWrapper flattenMapWrapper = Utils.flattenMapAnnotationWrapperList(omeroKVPsWrapperList);
-        Map<String, String> omeroKVPs = new HashMap<>();
+        Map<String, String> omeroKVPs;
         try {
             omeroKVPs = Utils.convertMapAnnotationWrapperToMap(flattenMapWrapper);
         }catch(IllegalStateException e){
@@ -493,10 +493,11 @@ public class OmeroRawScripting {
      *
      * add Key-Value pairs as QuPath metadata to the current image in the QuPath project.
      * <p>
-     * WARNING : If you run {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
-     * before {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * WARNING : If you run {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * and / or {@link OmeroRawScripting#addParentHierarchyToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} before
+     * {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
      * and if you would like to use the policy {@link Utils.UpdatePolicy#DELETE_KEYS}, then you should apply this policy
-     * to the first method but NOT to the second one (use {@link Utils.UpdatePolicy#KEEP_KEYS} instead)
+     * to the first method but NOT to the second ones (use {@link Utils.UpdatePolicy#KEEP_KEYS} instead)
      *
      * @param kvps map containing the key-value to add
      * @param policy replacement policy you choose to replace annotations on OMERO
@@ -554,11 +555,14 @@ public class OmeroRawScripting {
      * Read, from OMERO, tags attached to the current image and add them as QuPath metadata fields
      * <p>
      * WARNING : If you run {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
-     * before {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * and / or {@link OmeroRawScripting#addParentHierarchyToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} before
+     * {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
      * and if you would like to use the policy {@link Utils.UpdatePolicy#DELETE_KEYS}, then you should apply this policy
-     * to the first method but NOT to the second one (use {@link Utils.UpdatePolicy#KEEP_KEYS} instead)
+     * to the first method but NOT to the second ones (use {@link Utils.UpdatePolicy#KEEP_KEYS} instead)
      *
      * @param imageServer ImageServer of an image loaded from OMERO
+     * @param policy replacement policy you choose to replace annotations on OMERO
+     * @param qpNotif true to display a QuPath notification
      * @return list of OMERO tags.
      */
     public static List<String> addTagsToQuPath(OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif) {
@@ -583,6 +587,39 @@ public class OmeroRawScripting {
         return tagValues;
     }
 
+    /**
+     * add the parent containers of the current image as QuPath metadata fields
+     *
+     * <p>
+     * WARNING : If you run {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * and / or {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} before
+     * {@link OmeroRawScripting#addParentHierarchyToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * and if you would like to use the policy {@link Utils.UpdatePolicy#DELETE_KEYS}, then you should apply this policy
+     * to the first method but NOT to the second ones (use {@link Utils.UpdatePolicy#KEEP_KEYS} instead)
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @param policy replacement policy you choose to replace annotations on OMERO
+     * @param qpNotif true to display a QuPath notification
+     * @return a map of the parent containers name % id
+     */
+    public static Map<String,String> addParentHierarchyToQuPath(OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif){
+        Map<String,String> containers;
+        try{
+            containers = OmeroRawTools.getParentHierarchy(imageServer, imageServer.getImageWrapper(), qpNotif);
+        }catch(Exception e){
+            Utils.errorLog(logger, "OMERO - parent",
+                    "Cannot get the parent containers of image : "+imageServer.getImageWrapper().getName() +" : "+imageServer.getId(), e, qpNotif);
+            return null;
+        }
+
+        if(containers.isEmpty())
+            return Collections.emptyMap();
+
+        // create a map and add metadata
+        addKeyValuesToQuPath(containers, policy, qpNotif);
+
+        return containers;
+    }
 
     /**
      *
