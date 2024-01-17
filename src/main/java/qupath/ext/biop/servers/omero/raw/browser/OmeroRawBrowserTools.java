@@ -523,21 +523,26 @@ public class OmeroRawBrowserTools {
     public static void addContainersAsMetadataFields(ProjectImageEntry<BufferedImage> entry, OmeroRawObjects.OmeroRawObject obj){
         switch(obj.getType()){
             case SCREEN:
-                entry.putMetadataValue("Screen",obj.getName());
+                entry.putMetadataValue("screen-name",obj.getName());
+                entry.putMetadataValue("screen-id",String.valueOf(obj.getId()));
                 break;
             case PROJECT:
-                entry.putMetadataValue("Project",obj.getName());
+                entry.putMetadataValue("project-name",obj.getName());
+                entry.putMetadataValue("project-id",String.valueOf(obj.getId()));
                 break;
             case DATASET:
-                entry.putMetadataValue("Dataset",obj.getName());
+                entry.putMetadataValue("dataset-name",obj.getName());
+                entry.putMetadataValue("dataset-id",String.valueOf(obj.getId()));
                 addContainersAsMetadataFields(entry, obj.getParent());
                 break;
             case PLATE:
-                entry.putMetadataValue("Plate",obj.getName());
+                entry.putMetadataValue("plate-name",obj.getName());
+                entry.putMetadataValue("plate-id",String.valueOf(obj.getId()));
                 addContainersAsMetadataFields(entry, obj.getParent());
                 break;
             case WELL:
-                entry.putMetadataValue("Well",obj.getName());
+                entry.putMetadataValue("well-name",obj.getName());
+                entry.putMetadataValue("well-id",String.valueOf(obj.getId()));
                 addContainersAsMetadataFields(entry, obj.getParent());
                 break;
             case IMAGE:
