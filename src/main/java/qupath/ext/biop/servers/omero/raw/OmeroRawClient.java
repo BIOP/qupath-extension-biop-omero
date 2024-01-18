@@ -43,6 +43,7 @@ import omero.model.ExperimenterGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.fx.dialogs.Dialogs;
+import qupath.lib.gui.prefs.PathPrefs;
 
 import javax.naming.OperationNotSupportedException;
 import java.io.IOException;
@@ -68,7 +69,6 @@ import java.util.stream.Collectors;
  * @author Melvin Gelbard
  */
 public class OmeroRawClient {
-
     final private static Logger logger = LoggerFactory.getLogger(OmeroRawClient.class);
 
     private SecurityContext securityContext;
@@ -76,6 +76,12 @@ public class OmeroRawClient {
     private int port = 4064;
     private boolean isAdminUser = false;
     private Experimenter loggedInUser;
+
+    /**
+     * default username appearing when log-in on OMERO
+     */
+    private static StringProperty defaultUsername;
+
 
     /**
      * List of all URIs supported by this client.
@@ -114,6 +120,9 @@ public class OmeroRawClient {
         this.serverURI = serverUri;
         this.username = new SimpleStringProperty("");
         this.loggedIn = new SimpleBooleanProperty(false);
+
+        // Add the default OMERO server address to the QuPath Preferences
+        defaultUsername = PathPrefs.createPersistentPreference("defaultUsername", "");
 
     }
 
@@ -320,7 +329,7 @@ public class OmeroRawClient {
                 logger.debug("Username & password parsed from args");
                 authentication = new PasswordAuthentication(usernameOld, password);
             } else
-                authentication = OmeroAuthenticatorFX.getPasswordAuthentication("Please enter your login details for OMERO server", serverURI.toString(), usernameOld);
+                authentication = OmeroAuthenticatorFX.getPasswordAuthentication("Please enter your login details for OMERO server", serverURI.toString());
             if (authentication == null)
                 return false;
 
@@ -411,18 +420,11 @@ public class OmeroRawClient {
 
     private static class OmeroAuthenticatorFX extends Authenticator {
 
-        private String lastUsername = "";
         private static String port = "4064";
 
         @Override
         protected PasswordAuthentication getPasswordAuthentication() {
-            PasswordAuthentication authentication = getPasswordAuthentication(getRequestingPrompt(),
-                    getRequestingHost(), lastUsername);
-            if (authentication == null)
-                return null;
-
-            lastUsername = authentication.getUserName();
-            return authentication;
+            return getPasswordAuthentication(getRequestingPrompt(), getRequestingHost());
         }
 
         static int getPort(){
@@ -435,7 +437,9 @@ public class OmeroRawClient {
             }
         }
 
-        static PasswordAuthentication getPasswordAuthentication(String prompt, String host, String lastUsername) {
+        static PasswordAuthentication getPasswordAuthentication(String prompt, String host) {
+            String lastUsername = defaultUsername.get();
+
             GridPane pane = new GridPane();
             Label labHost = new Label(host);
             Label labUsername = new Label("Username");
@@ -445,6 +449,12 @@ public class OmeroRawClient {
             Label labPassword = new Label("Password");
             PasswordField tfPassword = new PasswordField();
             labPassword.setLabelFor(tfPassword);
+
+            // select the right textField
+            if(lastUsername.isEmpty())
+                Platform.runLater(tfUsername::requestFocus);
+            else
+                Platform.runLater(tfPassword::requestFocus);
 
             Label labPort = new Label("Port");
             TextField tfPort = new TextField(port);
@@ -474,8 +484,9 @@ public class OmeroRawClient {
                 password[i] = tfPassword.getCharacters().charAt(i);
             }
 
-            // set omero port
+            // set omero port & default username
             port = tfPort.getText();
+            defaultUsername.set(userName);
 
             return new PasswordAuthentication(userName, password);
         }
