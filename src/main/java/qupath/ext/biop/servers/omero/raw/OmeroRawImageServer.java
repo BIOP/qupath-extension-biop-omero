@@ -340,6 +340,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			List<ChannelData> channelMetadata = client.getGateway().getFacility(MetadataFacility.class).getChannelData(client.getContext(), imageID);
 			RenderingDef renderingSettings = client.getGateway().getRenderingSettingsService(client.getContext()).getRenderingSettings(reader.getPixelsId());
 			short nNullChannelName = 0;
+			List<String> channelsNames = new ArrayList<>();
 			for (int c = 0; c < nChannels; c++) {
 				ome.xml.model.primitives.Color color = null;
 				String channelName = null;
@@ -369,6 +370,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					nNullChannelName++;
 				}
 				channels.add(ImageChannel.getInstance(channelName, channelColor));
+				channelsNames.add(channelName);
 			}
 
 			// Update RGB status if needed - sometimes we might really have an RGB image, but the Bio-Formats flag doesn't show this -
@@ -382,8 +384,10 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			} else {
 				colorModel = ColorModelFactory.createColorModel(pixelType, channels);
 			}*/
-
-			if (nChannels == 3 && pixelType == PixelType.UINT8 && (nNullChannelName == 3 || channels.equals(ImageChannel.getDefaultRGBChannels()))) {
+			Set<String> uniqueNames = new HashSet<>(channelsNames);
+			String imageFormat = OmeroRawTools.readImageFileType(client, imageID);
+			if (nChannels == 3 && pixelType == PixelType.UINT8 &&
+					(nNullChannelName == 3 || channels.equals(ImageChannel.getDefaultRGBChannels()) || (imageFormat.equals("CellSens") && uniqueNames.size() == 1))) {
 				isRGB = true;
 			}
 			colorModel = ColorModelFactory.createColorModel(pixelType, channels);
@@ -447,7 +451,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			var resolutionBuilder = new ImageServerMetadata.ImageResolutionLevel.Builder(width, height)
 					.addFullResolutionLevel();
 
-			String imageFormat = OmeroRawTools.readImageFileType(client, imageID);
+
 			// I have seen czi files where the resolutions are not read correctly & this results in an IndexOutOfBoundsException
 			for (int i = 1; i < nResolutions; i++) {
 				try {
