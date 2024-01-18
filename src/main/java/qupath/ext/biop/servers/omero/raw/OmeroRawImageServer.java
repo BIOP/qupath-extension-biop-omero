@@ -345,6 +345,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			List<ChannelWrapper> channelMetadata = imageWrapper.getChannels(client.getSimpleClient());
 			RenderingDef renderingSettings = client.getSimpleClient().getGateway().getRenderingSettingsService(client.getSimpleClient().getCtx()).getRenderingSettings(reader.getPixelsId());
 			short nNullChannelName = 0;
+			List<String> channelsNames = new ArrayList<>();
 			for (int c = 0; c < nChannels; c++) {
 				ome.xml.model.primitives.Color color = null;
 				String channelName = null;
@@ -374,6 +375,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					nNullChannelName++;
 				}
 				channels.add(ImageChannel.getInstance(channelName, channelColor));
+				channelsNames.add(channelName);
 			}
 
 			// Update RGB status if needed - sometimes we might really have an RGB image, but the Bio-Formats flag doesn't show this -
@@ -388,7 +390,14 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				colorModel = ColorModelFactory.createColorModel(pixelType, channels);
 			}*/
 
-			if (nChannels == 3 && pixelType == PixelType.UINT8 && (nNullChannelName == 3 || channels.equals(ImageChannel.getDefaultRGBChannels()))) {
+			// get the image format
+			//TODO update with simple-omero-client imageWrapper.getFormat() when released (also update the deprecated methods)
+			String imageFormat = imageWrapper.asDataObject().asImage().getFormat().getValue().getValue();
+
+			Set<String> uniqueNames = new HashSet<>(channelsNames);
+
+			if (nChannels == 3 && pixelType == PixelType.UINT8 &&
+					(nNullChannelName == 3 || channels.equals(ImageChannel.getDefaultRGBChannels()) || (imageFormat.equals("CellSens") && uniqueNames.size() == 1))) {
 				isRGB = true;
 			}
 			colorModel = ColorModelFactory.createColorModel(pixelType, channels);
@@ -451,10 +460,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			ResolutionDescription[] resDescriptions = reader.getResolutionDescriptions();
 			var resolutionBuilder = new ImageServerMetadata.ImageResolutionLevel.Builder(width, height)
 					.addFullResolutionLevel();
-
-			// get the image format
-			//TODO update with simple-omero-client imageWrapper.getFormat() when released (also update the deprecated methods)
-			String imageFormat = imageWrapper.asDataObject().asImage().getFormat().getValue().getValue();
 
 			// I have seen czi files where the resolutions are not read correctly & this results in an IndexOutOfBoundsException
 			for (int i = 1; i < nResolutions; i++) {
