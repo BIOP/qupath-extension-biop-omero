@@ -21,15 +21,12 @@
 
 package qupath.ext.biop.servers.omero.raw;
 
-import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.meta.GroupWrapper;
 import fr.igred.omero.meta.PlaneInfoWrapper;
 import fr.igred.omero.repository.ChannelWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.PixelsWrapper;
 import loci.common.DataTools;
-import loci.common.services.DependencyException;
-import loci.common.services.ServiceException;
 import loci.formats.FormatException;
 import omero.ServerError;
 import omero.api.RawPixelsStorePrx;
@@ -82,11 +79,9 @@ import java.awt.image.DataBufferUShort;
 import java.awt.image.PixelInterleavedSampleModel;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
-import java.io.File;
 import java.io.IOException;
 import java.lang.ref.Cleaner;
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -98,16 +93,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -149,15 +144,11 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 */
 	private ImageWrapper imageWrapper;
 
-	/**
-	 * Main reader for metadata and all that jazz
-	 */
-	private OmeroReaderManager.LocalReaderWrapper readerWrapper;
 
 	/**
-	 * Manager to help keep multithreading under control.
+	 * Pool of readers for use with this server.
 	 */
-	private static final OmeroReaderManager manager = new OmeroRawImageServer.OmeroReaderManager();
+	private ReaderPool readerPool;
 
 	/**
 	 * ColorModel to use with all BufferedImage requests.
@@ -192,7 +183,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		this.host = uri.getHost();
 		this.port = uri.getPort();
 		this.client = client;
-		this.originalMetadata = buildMetadata();
+		buildMetadata();
 		// Args are stored in the JSON - passwords and usernames must not be included!
 		// Do an extra check to ensure someone hasn't accidentally passed one
 		var invalid = Arrays.asList("--password", "-p", "-u", "--username", "-password");
@@ -217,7 +208,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 * @throws ExecutionException
 	 * @throws DSAccessException
 	 */
-	protected ImageServerMetadata buildMetadata()
+	protected void buildMetadata()
 			throws ServerError, DSOutOfServiceException, ExecutionException, DSAccessException {
 
 		long startTime = System.currentTimeMillis();
@@ -239,23 +230,24 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 
 		// Create a reader & extract the metadata
-		readerWrapper = manager.getPrimaryReaderWrapper(imageID, client);
-		RawPixelsStorePrx reader = readerWrapper.getReader();
+		readerPool = new ReaderPool(this.client, this.imageID);
+		LocalReaderWrapper readerWrapper = readerPool.getMainReader();
 		PixelsWrapper meta = readerWrapper.getPixelsWrapper();
-		this.client = readerWrapper.getClient();
+		this.client = readerPool.getClient();
 		this.imageWrapper = this.client.getSimpleClient().getImage(imageID);
 
 		// There is just one series per image ID
-		synchronized (reader) {
+		synchronized (readerWrapper) {
+			RawPixelsStorePrx reader = readerWrapper.getReader();
 			String name = meta.asDataObject().getImage().getName();
 
 			long sizeX = meta.getSizeX();
 			long sizeY = meta.getSizeY();
 
-			int nResolutions = reader.getResolutionLevels();
+			int nResolutions = readerWrapper.nLevels;
 			for (int r = 1; r < nResolutions; r++) {
-				int sizeXR = reader.getResolutionDescriptions()[r].sizeX;
-				int sizeYR = reader.getResolutionDescriptions()[r].sizeY;
+				int sizeXR = readerWrapper.imageSizeX[r];
+				int sizeYR = readerWrapper.imageSizeY[r];
 				if (sizeXR <= 0 || sizeYR <= 0 || sizeXR > sizeX || sizeYR > sizeY)
 					throw new IllegalArgumentException("Resolution " + r + " size " + sizeXR + " x " + sizeYR + " invalid!");
 			}
@@ -455,15 +447,14 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			}
 
 			// Loop through the series & determine downsamples
-			ResolutionDescription[] resDescriptions = reader.getResolutionDescriptions();
 			var resolutionBuilder = new ImageServerMetadata.ImageResolutionLevel.Builder(width, height)
 					.addFullResolutionLevel();
 
 			// I have seen czi files where the resolutions are not read correctly & this results in an IndexOutOfBoundsException
 			for (int i = 1; i < nResolutions; i++) {
 				try {
-					int w = resDescriptions[i].sizeX;
-					int h = resDescriptions[i].sizeY;
+					int w = readerWrapper.imageSizeX[i];
+					int h = readerWrapper.imageSizeY[i];
 
 					if (w <= 0 || h <= 0) {
 						logger.warn("Invalid resolution size {} x {}! Will skip this level, but something seems wrong...", w, h);
@@ -519,12 +510,10 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			if (tileWidth >= MIN_TILE_SIZE && tileWidth <= MAX_TILE_SIZE && tileHeight >= MIN_TILE_SIZE && tileHeight <= MAX_TILE_SIZE)
 				builder.preferredTileSize(tileWidth, tileHeight);
 			originalMetadata = builder.build();
-
-			long endTime = System.currentTimeMillis();
-			logger.debug(String.format("Initialization time: %d ms", endTime - startTime));
-
-			return originalMetadata;
 		}
+
+		long endTime = System.currentTimeMillis();
+		logger.debug(String.format("Initialization time: %d ms", endTime - startTime));
 	}
 
 	private double convertTimeToSecond(Time time){
@@ -569,166 +558,10 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 	@Override
 	protected BufferedImage readTile(TileRequest request) throws IOException {
-		int level = request.getLevel();
-		int tileX = request.getTileX();
-		int tileY = request.getTileY();
-		int tileWidth = request.getTileWidth();
-		int tileHeight = request.getTileHeight();
-		int z = request.getZ();
-		int t = request.getT();
-
-		RawPixelsStorePrx rawPixelsStore = readerWrapper.getReader();
-
-		if (rawPixelsStore == null) {
-			throw new IOException("Reader is null - was the image already closed? " + imageID);
-		}
-
-		// Check if this is non-zero
-		if (tileWidth <= 0 || tileHeight <= 0) {
-			throw new IOException("Unable to request pixels for region with downsampled size " + tileWidth + " x " + tileHeight);
-		}
-
-		byte[][] bytes = null;
-		int effectiveC;
-		int sizeC = nChannels();
-		int length = 0;
-		ByteOrder order = ByteOrder.BIG_ENDIAN;
-		boolean interleaved;
-		String pixelType;
-		boolean normalizeFloats = false;
 		try {
-			synchronized(rawPixelsStore) {
-
-				int realLevel = readerWrapper.nLevels - 1 - level;
-				rawPixelsStore.setResolutionLevel(realLevel);
-
-				// Recalculate TileWidth and Height in case they exceed the limits of the dataset
-
-				int minX = tileX;
-
-				int maxX = Math.min(tileX + tileWidth, readerWrapper.imageSizeX[level]);
-
-				int minY = tileY;
-				int maxY = Math.min(tileY + tileHeight, readerWrapper.imageSizeY[level]);
-				tileWidth = maxX - minX;
-				tileHeight = maxY - minY;
-
-				order = ByteOrder.BIG_ENDIAN; // ByteOrder.LITTLE_ENDIAN
-				interleaved = false;
-				pixelType = readerWrapper.getPixelsWrapper().getPixelType();
-
-				normalizeFloats = false;
-
-				// Single-channel
-				/*if (nChannels() == 1) {
-					// Read the image - or at least the first channel
-
-					byte[] bytesSimple = rawPixelsStore.getTile(z, 0, t, tileX, tileY, tileWidth, tileHeight);
-					return AWTImageTools.makeImage(bytesSimple, tileWidth, tileHeight, 1, interleaved, 2, false, false, false );
-
-
-				}*/
-
-				// Read bytes for all the required channels
-				effectiveC = readerWrapper.getPixelsWrapper().getSizeC();
-				bytes = new byte[effectiveC][];
-
-				for (int c = 0; c < effectiveC; c++) {
-					bytes[c] = rawPixelsStore.getTile(z, c, t, tileX, tileY, tileWidth, tileHeight);
-					length = bytes[c].length;
-				}
-
-			}
-
-			DataBuffer dataBuffer;
-			switch (pixelType) {
-				case (PixelsData.UINT8_TYPE):
-					dataBuffer = new DataBufferByte(bytes, length);
-					break;
-				case (PixelsData.UINT16_TYPE):
-					length /= 2;
-					short[][] array = new short[bytes.length][length];
-					for (int i = 0; i < bytes.length; i++) {
-						ShortBuffer buffer = ByteBuffer.wrap(bytes[i]).order(order).asShortBuffer();
-						array[i] = new short[buffer.limit()];
-						buffer.get(array[i]);
-					}
-					dataBuffer = new DataBufferUShort(array, length);
-					break;
-				case (PixelsData.INT16_TYPE):
-					length /= 2;
-					short[][] shortArray = new short[bytes.length][length];
-					for (int i = 0; i < bytes.length; i++) {
-						ShortBuffer buffer = ByteBuffer.wrap(bytes[i]).order(order).asShortBuffer();
-						shortArray[i] = new short[buffer.limit()];
-						buffer.get(shortArray[i]);
-					}
-					dataBuffer = new DataBufferShort(shortArray, length);
-					break;
-				case (PixelsData.INT32_TYPE):
-					length /= 4;
-					int[][] intArray = new int[bytes.length][length];
-					for (int i = 0; i < bytes.length; i++) {
-						IntBuffer buffer = ByteBuffer.wrap(bytes[i]).order(order).asIntBuffer();
-						intArray[i] = new int[buffer.limit()];
-						buffer.get(intArray[i]);
-					}
-					dataBuffer = new DataBufferInt(intArray, length);
-					break;
-				case (PixelsData.FLOAT_TYPE):
-					length /= 4;
-					float[][] floatArray = new float[bytes.length][length];
-					for (int i = 0; i < bytes.length; i++) {
-						FloatBuffer buffer = ByteBuffer.wrap(bytes[i]).order(order).asFloatBuffer();
-						floatArray[i] = new float[buffer.limit()];
-						buffer.get(floatArray[i]);
-						if (normalizeFloats)
-							floatArray[i] = DataTools.normalizeFloats(floatArray[i]);
-					}
-					dataBuffer = new DataBufferFloat(floatArray, length);
-					break;
-				case (PixelsData.DOUBLE_TYPE):
-					length /= 8;
-					double[][] doubleArray = new double[bytes.length][length];
-					for (int i = 0; i < bytes.length; i++) {
-						DoubleBuffer buffer = ByteBuffer.wrap(bytes[i]).order(order).asDoubleBuffer();
-						doubleArray[i] = new double[buffer.limit()];
-						buffer.get(doubleArray[i]);
-						if (normalizeFloats)
-							doubleArray[i] = DataTools.normalizeDoubles(doubleArray[i]);
-					}
-					dataBuffer = new DataBufferDouble(doubleArray, length);
-					break;
-				default:
-					throw new UnsupportedOperationException("Unsupported pixel type " + pixelType);
-			}
-
-			SampleModel sampleModel;
-
-			if (effectiveC == 1 && sizeC > 1) {
-				// Handle channels stored in the same plane
-				int[] offsets = new int[sizeC];
-				if (interleaved) {
-					for (int b = 0; b < sizeC; b++)
-						offsets[b] = b;
-					sampleModel = new PixelInterleavedSampleModel(dataBuffer.getDataType(), tileWidth, tileHeight, sizeC, sizeC*tileWidth, offsets);
-				} else {
-					for (int b = 0; b < sizeC; b++)
-						offsets[b] = b * tileWidth * tileHeight;
-					sampleModel = new ComponentSampleModel(dataBuffer.getDataType(), tileWidth, tileHeight, 1, tileWidth, offsets);
-				}
-			} else {
-				// Merge channels on different planes
-				sampleModel = new BandedSampleModel(dataBuffer.getDataType(), tileWidth, tileHeight, sizeC);
-				//sampleModel = new Sample
-			}
-
-			WritableRaster raster = WritableRaster.createWritableRaster(sampleModel, dataBuffer, null);
-			return new BufferedImage(colorModel, raster, false, null);
-
-		} catch (Exception | Error e) {
-			e.printStackTrace();
-			return null;
+			return readerPool.openImage(request, nChannels(),colorModel);
+		} catch (InterruptedException e) {
+			throw new IOException(e);
 		}
 	}
 	
@@ -849,7 +682,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	@Override
 	public void close() throws Exception {
 		super.close();
-		readerWrapper.getReader().close();
+		readerPool.close();
 		logger.info("Close OMERO reader for image ID : "+this.getId());
 	}
 
@@ -882,303 +715,478 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		return OmeroRawScripting.getROIs(this, owner, true);
 	}
 
+	static class LocalReaderWrapper {
+
+		private final RawPixelsStorePrx reader;
+		private final PixelsWrapper pixelsWrapper;
+		int nLevels;
+		int[] imageSizeX;
+		int[] imageSizeY;
 
 
-	/**
-		 * Helper class to manage multiple Bio-Formats image readers.
-		 * <p>
-		 * This has two purposes:
-		 * <ol>
-		 *   <li>To construct IFormatReaders in a standardized way (e.g. with/without memoization).</li>
-		 *   <li>To track the size of any memoization files for particular readers.</li>
-		 *   <li>To allow BioFormatsImageServers to request separate Bio-Formats image readers for different threads.</li>
-		 * </ol>
-		 * The memoization file size can be relevant because some readers are very memory-hungry, and may need to be created rarely.
-		 * On the other side, some readers are very lightweight - and having multiple such readers active at a time can help rapidly
-		 * respond to tile requests.
-		 * <p>
-		 * It's up to any consumers to ensure that heavyweight readers aren't called for each thread. Additionally, each thread
-		 * will have only one reader active at any time. This should be explicitly closed by the calling thread if it knows
-		 * the reader will not be used again, but in practice this is often not the case and therefore a Cleaner is registered to
-		 * provide some additional support for when a thread is no longer reachable.
-		 * <p>
-		 * Note that this does mean one should be sparing when creating threads, and not keep them around too long.
-		 */
-		static class OmeroReaderManager {
+		LocalReaderWrapper(RawPixelsStorePrx reader, PixelsWrapper pixelsWrapper) {
+			this.reader = reader;
+			this.pixelsWrapper = pixelsWrapper;
 
-			private static final Cleaner cleaner = Cleaner.create();
+			try {
 
-			/**
-			 * Map of reads for each calling thread.  Care should be taking by the calling code to ensure requests are only made for 'lightweight' readers to avoid memory problems.
-			 */
-			private static final ThreadLocal<LocalReaderWrapper> localReader = new ThreadLocal<>();
+				this.nLevels = reader.getResolutionLevels();
+				ResolutionDescription[] levelDescriptions = reader.getResolutionDescriptions();
+				imageSizeX = new int[nLevels];
+				imageSizeY = new int[nLevels];
 
-			/**
-			 * Map of memoization file sizes.
-			 */
-			private static final Map<String, Long> memoizationSizeMap = new HashMap<>();
-
-			/**
-			 * Temporary directory for storing memoization files
-			 */
-			private static final File dirMemoTemp = null;
-
-			/**
-			 * A set of primary readers, to avoid needing to regenerate these for all servers.
-			 */
-			private static final Set<LocalReaderWrapper> primaryReaders = Collections.newSetFromMap(new WeakHashMap<>());
-
-			/**
-			 * Set of created temp memo files
-			 */
-			private static final Set<File> tempMemoFiles = new HashSet<>();
-
-			/**
-			 * Request a IFormatReader for a specified path that is unique for the calling thread.
-			 * <p>
-			 * Note that the state of the reader is not specified; setSeries should be called before use.
-			 *
-			 * @return
-			 * @throws DependencyException
-			 * @throws ServiceException
-			 * @throws FormatException
-			 * @throws IOException
-			 */
-			public synchronized RawPixelsStorePrx getReaderForThread( final Long pixelsId,  OmeroRawClient client) throws ServerError, DSOutOfServiceException, ExecutionException, DSAccessException, URISyntaxException {
-
-				LocalReaderWrapper wrapper = localReader.get();
-
-				// Check if we already have the correct reader
-				RawPixelsStorePrx reader = wrapper == null ? null : wrapper.getReader();
-				if (reader != null) {
-					if (pixelsId.equals(wrapper.reader.getPixelsId()))
-						return reader;
-					else {
-						logger.warn("Closing reader {}", reader);
-						reader.close();
-					}
+				for (int i = 0; i < nLevels; i++) {
+					imageSizeX[i] = levelDescriptions[i].sizeX;
+					imageSizeY[i] = levelDescriptions[i].sizeY;
 				}
-
-				// Create a new reader
-				wrapper = createReader( pixelsId,  client);
-
-				// Store wrapped reference with associated cleaner
-				localReader.set(wrapper);
-
-				return reader;
-			}
-
-
-			private LocalReaderWrapper wrapReader(RawPixelsStorePrx reader, PixelsWrapper pixelsData, OmeroRawClient client) {
-				LocalReaderWrapper wrapper = new LocalReaderWrapper(reader, pixelsData, client);
-				logger.debug("Constructing reader for {}", Thread.currentThread());
-				cleaner.register(
-						wrapper,
-						new ReaderCleaner(Thread.currentThread().toString(), reader));
-				return wrapper;
-			}
-
-
-			/**
-			 * Request a IFormatReader for the specified path.
-			 * <p>
-			 * This reader will have OME metadata populated in an accessible form, but will *not* be unique for the calling thread.
-			 * Therefore care needs to be taken with regard to synchronization.
-			 * <p>
-			 * Note that the state of the reader is not specified; setSeries should be called before use.
-			 *
-			 * @param pixelsID
-			 * @return
-			 * @throws DependencyException
-			 * @throws ServiceException
-			 * @throws FormatException
-			 * @throws IOException
-			 */
-			synchronized LocalReaderWrapper createPrimaryReader(final Long pixelsID,  OmeroRawClient client)
-					throws ServerError, DSOutOfServiceException, AccessException, ExecutionException {
-				return createReader(pixelsID,  client);
-			}
-
-
-			/**
-			 * Get a wrapper for the primary reader for a particular path. This can be reused across ImageServers, but
-			 * one must be careful to synchronize the actual use of the reader.
-			 * @param pixelsID
-			 * @return
-			 * @throws DependencyException
-			 * @throws ServiceException
-			 * @throws FormatException
-			 * @throws IOException
-			 */
-			synchronized LocalReaderWrapper getPrimaryReaderWrapper(final Long pixelsID, OmeroRawClient client)
-					throws ServerError, DSOutOfServiceException, AccessException, ExecutionException {
-				/*for (LocalReaderWrapper wrapper : primaryReaders) {
-					if (pixelsID.equals(wrapper.getReader().getPixelsId())) {
-						System.out.println("Get reader "+pixelsID);
-						return wrapper;
-					}
-				}*/
-
-				LocalReaderWrapper reader = createPrimaryReader(pixelsID, client);
-				//primaryReaders.add(reader);
-				return reader;
-			}
-
-
-			/**
-			 * Create a new {@code}, with memoization if necessary.
-			 *
-			 * @param imageID 		file path for the image.
-			 * @return the {@code IFormatReader}
-			 * @throws IOException
-			 */
-			private synchronized LocalReaderWrapper createReader(final Long imageID, OmeroRawClient client)
-					throws DSOutOfServiceException, ServerError {
-				logger.info("Create new OMERO reader for image ID : "+imageID);
-				OmeroRawClient currentClient = client;
-				ImageWrapper image = null;
-				try {
-					// read the image with the current client, connected to the current group
-					image = currentClient.getSimpleClient().getImage(imageID);
-				}catch(Exception e){
-					logger.info("The image '"+imageID+"' is not coming from the default group '"+
-							client.getSimpleClient().getGroup(client.getSimpleClient().getCurrentGroupId()).getName()+"'");
-				}
-
-				// if image unreadable, check all groups the current user is part of
-				if(image == null){
-					List<GroupWrapper> availableGroups = currentClient.getLoggedInUser().getGroups();
-					for(GroupWrapper group:availableGroups) {
-						// switch the user to another group
-						currentClient.switchGroup(group.getId());
-						try {
-							// read the image
-							image = currentClient.getSimpleClient().getImage(imageID);
-							break;
-						} catch (Exception e) {
-							logger.info("The image '"+imageID+"' is not coming from the user's available groups");
-						}
-					}
-				}
-
-				// if image unreadable, check all other open clients
-				if(image == null){
-					// get opened clients
-					List<OmeroRawClient> otherClients = OmeroRawClients.getAllClients().stream().filter(c -> !c.equals(client)).collect(Collectors.toList());
-					for (OmeroRawClient cli : otherClients) {
-						try{
-							// read the image
-							image = cli.getSimpleClient().getImage(imageID);
-							currentClient = cli;
-							break;
-						} catch (Exception e) {
-							logger.info("The image '"+imageID+"' is not coming from the user's available clients");
-						}
-					}
-				}
-
-				// if image still unreadable and current user is admin, check all OMERO groups
-				if(image == null && currentClient.isAdmin()){
-					long groupId = OmeroRawTools.getGroupIdFromImageId(client, imageID);
-					if(groupId > 0) {
-						currentClient.switchGroup(groupId);
-						try{
-							image = currentClient.getSimpleClient().getImage(imageID);
-						} catch (Exception e) {
-							logger.warn("The image '"+imageID+"' is not coming from the omero server '"+currentClient.getServerURI()+
-									"'. Admins cannot access to it");
-						}
-					}
-				}
-
-				// read the imported image
-				if(!(image == null)) {
-					PixelsWrapper pixelsWrapper = image.getPixels();
-					RawPixelsStorePrx rawPixStore = currentClient.getSimpleClient().getGateway().getPixelsStore(currentClient.getSimpleClient().getCtx());
-					rawPixStore.setPixelsId(pixelsWrapper.getId(), false);
-					return new LocalReaderWrapper(rawPixStore, pixelsWrapper, currentClient);
-				}
-				else {
-					// user does not have admin rights
-					Dialogs.showErrorMessage("Load image","You do not have access to this image because it is part of a group / user you do not have access to");
-					return null;
-				}
-			}
-
-			/**
-			 * Simple wrapper for a reader to help with cleanup.
-			 */
-			static class LocalReaderWrapper {
-
-				private final RawPixelsStorePrx reader;
-				private final PixelsWrapper pixelsWrapper;
-				int nLevels;
-				int[] imageSizeX;
-				int[] imageSizeY;
-				private Map<String, String> readerOptions;
-
-				private final OmeroRawClient client;
-
-				LocalReaderWrapper(RawPixelsStorePrx reader, PixelsWrapper pixelsWrapper, OmeroRawClient client) {
-					this.reader = reader;
-					this.pixelsWrapper = pixelsWrapper;
-					this.client = client;
-
-					try {
-
-						this.nLevels = reader.getResolutionLevels();
-						ResolutionDescription[] levelDescriptions = reader.getResolutionDescriptions();
-						imageSizeX = new int[nLevels];
-						imageSizeY = new int[nLevels];
-
-						for (int i = 0; i < nLevels; i++) {
-							imageSizeX[i] = levelDescriptions[i].sizeX;
-							imageSizeY[i] = levelDescriptions[i].sizeY;
-						}
-					} catch (ServerError e) {
-						e.printStackTrace();
-					}
-
-					this.readerOptions = readerOptions == null || readerOptions.isEmpty() ? Collections.emptyMap() :
-							new LinkedHashMap<>(readerOptions);
-				}
-
-				public RawPixelsStorePrx getReader() {
-					return reader;
-				}
-
-				public PixelsWrapper getPixelsWrapper() { return pixelsWrapper; }
-
-				public OmeroRawClient getClient() { return this.client; }
-
-				public boolean argsMatch(Map<String, String> readerOptions) {
-					return this.readerOptions.equals(readerOptions);
-				}
-
-			}
-
-			/**
-			 * Helper class that helps ensure readers are closed when a thread is no longer reachable.
-			 */
-			static class ReaderCleaner implements Runnable {
-
-				private final String name;
-				private final RawPixelsStorePrx reader;
-
-				ReaderCleaner(String name, RawPixelsStorePrx reader) {
-					this.name = name;
-					this.reader = reader;
-				}
-
-				@Override
-				public void run() {
-					logger.debug("Cleaner " + name + " called for " + reader + " (" + reader.toString() + ")");
-					try {
-						this.reader.close();
-					} catch (ServerError e) {
-						logger.warn("Error when calling cleaner for " + name, e);
-					}
-				}
+			} catch (ServerError e) {
+				e.printStackTrace();
 			}
 		}
+
+		public RawPixelsStorePrx getReader() {
+			return reader;
+		}
+
+		public PixelsWrapper getPixelsWrapper() { return pixelsWrapper; }
+	}
+
+	static class ReaderPool implements AutoCloseable {
+
+		private static final Logger logger = LoggerFactory.getLogger(ReaderPool.class);
+
+		private static final int DEFAULT_TIMEOUT_SECONDS = 60;
+
+		/**
+		 * Absolute maximum number of permitted readers (queue capacity)
+		 */
+		private static final int MAX_QUEUE_CAPACITY = 32;
+		private long id;
+		private volatile boolean isClosed = false;
+		private AtomicInteger totalReaders = new AtomicInteger(0);
+		private List<LocalReaderWrapper> additionalReaders = Collections.synchronizedList(new ArrayList<>());
+		private ArrayBlockingQueue<LocalReaderWrapper> queue;
+		private OmeroRawClient client;
+		private LocalReaderWrapper mainReader;
+		private ForkJoinTask<?> task;
+		private int timeoutSeconds;
+
+		ReaderPool(OmeroRawClient client, long id) throws ServerError, DSOutOfServiceException {
+			this.id = id;
+			this.client = client;
+
+			queue = new ArrayBlockingQueue<>(MAX_QUEUE_CAPACITY); // Set a reasonably large capacity (don't want to block when trying to add)
+			timeoutSeconds = getTimeoutSeconds();
+
+			// Create the main reader
+			long startTime = System.currentTimeMillis();
+			mainReader = createReader(id, client);
+
+			long endTime = System.currentTimeMillis();
+			logger.info("Reader {} created in {} ms", mainReader, endTime - startTime);
+
+			// Make the main reader available
+			queue.add(mainReader);
+		}
+
+		/**
+		 * Make the timeout adjustable.
+		 * See https://github.com/qupath/qupath/issues/1265
+		 * @return
+		 */
+		private int getTimeoutSeconds() {
+			return DEFAULT_TIMEOUT_SECONDS;
+		}
+
+		LocalReaderWrapper getMainReader() {
+			return mainReader;
+		}
+
+		OmeroRawClient getClient(){return this.client;}
+
+		private void createAdditionalReader(final Long imageID, OmeroRawClient client) {
+			try {
+				if (isClosed)
+					return;
+				logger.debug("Requesting new reader for thread {}", Thread.currentThread());
+				var newReader = createReader(imageID, client);
+				if (newReader != null) {
+					additionalReaders.add(newReader);
+					queue.add(newReader);
+					logger.info("Created new reader (total={})", additionalReaders.size());
+				} else
+					logger.warn("New Bio-Formats reader could not be created (returned null)");
+			} catch (Exception e) {
+				logger.error("Error creating additional readers: " + e.getLocalizedMessage(), e);
+			}
+		}
+
+
+		private int getMaxReaders() {
+			int max = Runtime.getRuntime().availableProcessors();
+			return Math.min(MAX_QUEUE_CAPACITY, Math.max(1, max));
+		}
+
+
+		/**
+		 * Create a new {@code IFormatReader}, with memoization if necessary.
+		 *
+		 * @return the {@code RawPixelsStorePrx}
+		 * @throws FormatException
+		 * @throws IOException
+		 */
+		private LocalReaderWrapper createReader(final Long imageID, OmeroRawClient client) throws DSOutOfServiceException, ServerError {
+
+			int maxReaders = getMaxReaders();
+			int nReaders = totalReaders.getAndIncrement();
+			if (mainReader != null && nReaders > maxReaders) {
+				logger.warn("No new reader will be created (already created {}, max readers {})", nReaders, maxReaders);
+				totalReaders.decrementAndGet();
+				return null;
+			}
+
+			ImageWrapper image = null;
+			/*long groupId = OmeroRawTools.getGroupIdFromImageId(client, imageID);
+			if(groupId > 0) {
+				if(client.getSimpleClient().getCurrentGroupId() != groupId)
+					client.switchGroup(groupId);
+				try{
+					image = client.getSimpleClient().getImage(imageID);
+				} catch (Exception e) {
+					logger.warn("The image '"+imageID+"' is not coming from the omero server '"+client.getServerURI()+
+							"'. Admins cannot access to it");
+				}
+			}*/
+
+			OmeroRawClient currentClient = client;
+
+			try {
+				// read the image with the current client, connected to the current group
+				image = currentClient.getSimpleClient().getImage(imageID);
+			}catch(Exception e){
+				logger.info("The image '"+imageID+"' is not coming from the default group '"+
+						client.getSimpleClient().getGroup(client.getSimpleClient().getCurrentGroupId()).getName()+"'");
+			}
+
+			// if image unreadable, check all groups the current user is part of
+			if(image == null){
+				List<GroupWrapper> availableGroups = currentClient.getLoggedInUser().getGroups();
+				for(GroupWrapper group:availableGroups) {
+					// switch the user to another group
+					currentClient.switchGroup(group.getId());
+					try {
+						// read the image
+						image = currentClient.getSimpleClient().getImage(imageID);
+						break;
+					} catch (Exception e) {
+						logger.info("The image '"+imageID+"' is not coming from the user's available groups");
+					}
+				}
+			}
+
+			// if image unreadable, check all other open clients
+			if(image == null){
+				// get opened clients
+				List<OmeroRawClient> otherClients = OmeroRawClients.getAllClients().stream().filter(c -> !c.equals(client)).collect(Collectors.toList());
+				for (OmeroRawClient cli : otherClients) {
+					try{
+						// read the image
+						image = cli.getSimpleClient().getImage(imageID);
+						currentClient = cli;
+						break;
+					} catch (Exception e) {
+						logger.info("The image '"+imageID+"' is not coming from the user's available clients");
+					}
+				}
+			}
+
+			// if image still unreadable and current user is admin, check all OMERO groups
+			if(image == null && currentClient.isAdmin()){
+				long groupId = OmeroRawTools.getGroupIdFromImageId(client, imageID);
+				if(groupId > 0) {
+					currentClient.switchGroup(groupId);
+					try{
+						image = currentClient.getSimpleClient().getImage(imageID);
+					} catch (Exception e) {
+						logger.warn("The image '"+imageID+"' is not coming from the omero server '"+currentClient.getServerURI()+
+								"'. Admins cannot access to it");
+					}
+				}
+			}
+
+			// read the imported image
+			if(!(image == null)) {
+				// get the reader
+				PixelsWrapper pixelsWrapper = image.getPixels();
+				RawPixelsStorePrx rawPixStore = currentClient.getSimpleClient().getGateway().getPixelsStore(currentClient.getSimpleClient().getCtx());
+				rawPixStore.setPixelsId(pixelsWrapper.getId(), false);
+
+				// create a local reader grouping the rawPixelStore and the pixelWrapper
+				LocalReaderWrapper localWrapper = new LocalReaderWrapper(rawPixStore, pixelsWrapper);
+
+				// add the reader to the objects to clean
+				cleanables.add(cleaner.register(this, new ReaderCleaner(Integer.toString(cleanables.size()+1), localWrapper)));
+				return localWrapper;
+			}
+			else {
+				// user does not have admin rights
+				Dialogs.showErrorMessage("Load image","You do not have access to this image because it is part of a group / user you do not have access to");
+				return null;
+			}
+		}
+
+		private LocalReaderWrapper nextQueuedReader() {
+			var nextReader = queue.poll();
+			if (nextReader != null)
+				return nextReader;
+			synchronized (this) {
+				if (!isClosed && (task == null || task.isDone()) && totalReaders.get() < getMaxReaders()) {
+					logger.info("Requesting reader for {}", id);
+					task = ForkJoinPool.commonPool().submit(() -> createAdditionalReader(this.id, this.client));
+				}
+			}
+			if (isClosed)
+				return null;
+			try {
+				var reader = queue.poll(timeoutSeconds, TimeUnit.SECONDS);
+				// See https://github.com/qupath/qupath/issues/1265
+				if (reader == null) {
+					logger.warn("Bio-Formats reader request timed out after {} seconds - returning main reader", timeoutSeconds);
+					return mainReader;
+				} else
+					return reader;
+			} catch (InterruptedException e) {
+				logger.warn("Interrupted exception when awaiting next queued reader: {}", e.getLocalizedMessage());
+				return isClosed ? null : mainReader;
+			}
+		}
+
+
+		BufferedImage openImage(TileRequest tileRequest, int sizeC, ColorModel colorModel) throws IOException, InterruptedException {
+			int level = tileRequest.getLevel();
+			int tileX = tileRequest.getTileX();
+			int tileY = tileRequest.getTileY();
+			int tileWidth = tileRequest.getTileWidth();
+			int tileHeight = tileRequest.getTileHeight();
+			int z = tileRequest.getZ();
+			int t = tileRequest.getT();
+
+			byte[][] bytes = null;
+			int effectiveC;
+			int length = 0;
+			ByteOrder order = ByteOrder.BIG_ENDIAN;
+			boolean interleaved = false;
+			String pixelType;
+			boolean normalizeFloats = false;
+
+			LocalReaderWrapper ipReader = null;
+			try {
+				ipReader = nextQueuedReader();
+				if (ipReader == null) {
+					throw new IOException("Reader is null - was the image already closed? " + id);
+				}
+
+				// Check if this is non-zero
+				if (tileWidth <= 0 || tileHeight <= 0) {
+					throw new IOException("Unable to request pixels for region with downsampled size " + tileWidth + " x " + tileHeight);
+				}
+
+				synchronized(ipReader) {
+					int realLevel = ipReader.nLevels - 1 - level;
+					try{
+						ipReader.getReader().setResolutionLevel(realLevel);
+					}catch(ServerError e){
+						throw convertToIOException(e);
+					}
+
+					// Recalculate TileWidth and Height in case they exceed the limits of the dataset
+					int minX = tileX;
+					int maxX = Math.min(tileX + tileWidth, ipReader.imageSizeX[level]);
+					int minY = tileY;
+					int maxY = Math.min(tileY + tileHeight, ipReader.imageSizeY[level]);
+					tileWidth = maxX - minX;
+					tileHeight = maxY - minY;
+
+					pixelType = ipReader.getPixelsWrapper().getPixelType();
+
+					// Read bytes for all the required channels
+					effectiveC = ipReader.getPixelsWrapper().getSizeC();
+					bytes = new byte[effectiveC][];
+
+					for (int c = 0; c < effectiveC; c++) {
+						try{
+							bytes[c] = ipReader.getReader().getTile(z, c, t, tileX, tileY, tileWidth, tileHeight);
+							length = bytes[c].length;
+						}catch(ServerError e){
+							throw convertToIOException(e);
+						}
+					}
+				}
+			} finally {
+				queue.put(ipReader);
+			}
+
+			// convert byte array to data buffer
+			DataBuffer dataBuffer = byteToDataBuffer(bytes, pixelType, length, order, normalizeFloats);
+			// create model
+			SampleModel sampleModel = createSampleModel(dataBuffer, tileWidth, tileHeight, sizeC, effectiveC, interleaved);
+			// create the image
+			WritableRaster raster = WritableRaster.createWritableRaster(sampleModel, dataBuffer, null);
+
+			return new BufferedImage(colorModel, raster, false, null);
+		}
+
+		private DataBuffer byteToDataBuffer(byte[][] bytes, String pixelType, int length, ByteOrder order, boolean normalizeFloats){
+			switch (pixelType) {
+				case (PixelsData.UINT8_TYPE):
+					return new DataBufferByte(bytes, length);
+				case (PixelsData.UINT16_TYPE):
+					length /= 2;
+					short[][] array = new short[bytes.length][length];
+					for (int i = 0; i < bytes.length; i++) {
+						ShortBuffer buffer = ByteBuffer.wrap(bytes[i]).order(order).asShortBuffer();
+						array[i] = new short[buffer.limit()];
+						buffer.get(array[i]);
+					}
+					return new DataBufferUShort(array, length);
+				case (PixelsData.INT16_TYPE):
+					length /= 2;
+					short[][] shortArray = new short[bytes.length][length];
+					for (int i = 0; i < bytes.length; i++) {
+						ShortBuffer buffer = ByteBuffer.wrap(bytes[i]).order(order).asShortBuffer();
+						shortArray[i] = new short[buffer.limit()];
+						buffer.get(shortArray[i]);
+					}
+					return new DataBufferShort(shortArray, length);
+				case (PixelsData.INT32_TYPE):
+					length /= 4;
+					int[][] intArray = new int[bytes.length][length];
+					for (int i = 0; i < bytes.length; i++) {
+						IntBuffer buffer = ByteBuffer.wrap(bytes[i]).order(order).asIntBuffer();
+						intArray[i] = new int[buffer.limit()];
+						buffer.get(intArray[i]);
+					}
+					return new DataBufferInt(intArray, length);
+				case (PixelsData.FLOAT_TYPE):
+					length /= 4;
+					float[][] floatArray = new float[bytes.length][length];
+					for (int i = 0; i < bytes.length; i++) {
+						FloatBuffer buffer = ByteBuffer.wrap(bytes[i]).order(order).asFloatBuffer();
+						floatArray[i] = new float[buffer.limit()];
+						buffer.get(floatArray[i]);
+						if (normalizeFloats)
+							floatArray[i] = DataTools.normalizeFloats(floatArray[i]);
+					}
+					return new DataBufferFloat(floatArray, length);
+				case (PixelsData.DOUBLE_TYPE):
+					length /= 8;
+					double[][] doubleArray = new double[bytes.length][length];
+					for (int i = 0; i < bytes.length; i++) {
+						DoubleBuffer buffer = ByteBuffer.wrap(bytes[i]).order(order).asDoubleBuffer();
+						doubleArray[i] = new double[buffer.limit()];
+						buffer.get(doubleArray[i]);
+						if (normalizeFloats)
+							doubleArray[i] = DataTools.normalizeDoubles(doubleArray[i]);
+					}
+					return new DataBufferDouble(doubleArray, length);
+				default:
+					throw new UnsupportedOperationException("Unsupported pixel type " + pixelType);
+			}
+		}
+
+		private SampleModel createSampleModel(DataBuffer dataBuffer, int tileWidth, int tileHeight, int sizeC, int effectiveC, boolean interleaved){
+			if (effectiveC == 1 && sizeC > 1) {
+				// Handle channels stored in the same plane
+				int[] offsets = new int[sizeC];
+				if (interleaved) {
+					for (int b = 0; b < sizeC; b++)
+						offsets[b] = b;
+					return new PixelInterleavedSampleModel(dataBuffer.getDataType(), tileWidth, tileHeight, sizeC, sizeC*tileWidth, offsets);
+				} else {
+					for (int b = 0; b < sizeC; b++)
+						offsets[b] = b * tileWidth * tileHeight;
+					return new ComponentSampleModel(dataBuffer.getDataType(), tileWidth, tileHeight, 1, tileWidth, offsets);
+				}
+			} else {
+				// Merge channels on different planes
+				return new BandedSampleModel(dataBuffer.getDataType(), tileWidth, tileHeight, sizeC);
+			}
+		}
+
+		/**
+		 * Ensure a throwable is an IOException.
+		 * This gives the opportunity to include more human-readable messages for common errors.
+		 * @param t
+		 * @return
+		 */
+		private static IOException convertToIOException(Throwable t) {
+			if (GeneralTools.isMac()) {
+				String message = t.getMessage();
+				if (message != null) {
+					if (message.contains("ome.jxrlib.JXRJNI")) {
+						return new IOException("OMERO does not support JPEG-XR on Apple Silicon: " + t.getMessage(), t);
+					}
+					if (message.contains("org.libjpegturbo.turbojpeg.TJDecompressor")) {
+						return new IOException("OMERO does not currently support libjpeg-turbo on Apple Silicon", t);
+					}
+				}
+			}
+			if (t instanceof IOException e)
+				return e;
+			return new IOException(t);
+		}
+
+
+		@Override
+		public void close() throws Exception {
+			isClosed = true;
+			logger.info("calling close");
+			if (task != null && !task.isDone())
+				task.cancel(true);
+			for (var c : cleanables) {
+				try {
+					c.clean();
+				} catch (Exception e) {
+					logger.error("Exception during cleanup: " + e.getLocalizedMessage());
+					logger.debug(e.getLocalizedMessage(), e);
+				}
+			}
+			// Allow the queue to be garbage collected - clearing could result in a queue.poll()
+			// lingering far too long
+//			queue.clear();
+		}
+
+
+
+		private static Cleaner cleaner = Cleaner.create();
+		private List<Cleaner.Cleanable> cleanables = new ArrayList<>();
+
+
+		/**
+		 * Helper class that helps ensure readers are closed when a reader pool is no longer reachable.
+		 */
+		static class ReaderCleaner implements Runnable {
+
+			private String name;
+			private LocalReaderWrapper reader;
+
+			ReaderCleaner(String name, LocalReaderWrapper reader) {
+				this.name = name;
+				this.reader = reader;
+			}
+
+			@Override
+			public void run() {
+				try {
+					logger.info("Cleaner " + name + " called for " + reader + " (" + reader.getReader().getPixelsId() + ")");
+					this.reader.getReader().close();
+				} catch (ServerError e) {
+					logger.warn("Error when calling cleaner for " + name, e);
+				}
+			}
+
+		}
+
+
+	}
 }
