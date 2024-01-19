@@ -23,6 +23,7 @@ package qupath.ext.biop.servers.omero.raw;
 
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.meta.GroupWrapper;
+import fr.igred.omero.meta.PlaneInfoWrapper;
 import fr.igred.omero.repository.ChannelWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.PixelsWrapper;
@@ -42,6 +43,7 @@ import omero.gateway.model.PixelsData;
 import omero.model.ChannelBinding;
 import omero.model.Length;
 import omero.model.RenderingDef;
+import omero.model.Time;
 import omero.model.enums.UnitsLength;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,6 +105,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -184,8 +187,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	OmeroRawImageServer(URI uri, OmeroRawClient client, String...args)
 			throws IOException, ServerError, DSOutOfServiceException, ExecutionException, DSAccessException {
 		super();
-
-
 		this.uri = uri;
 		this.scheme = uri.getScheme();
 		this.host = uri.getHost();
@@ -423,18 +424,19 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 						zSpacing = Double.NaN;
 				}
 
-/*
-                // TODO: Check the Bioformats TimeStamps
                 if (nTimepoints > 1) {
                     int lastTimepoint = -1;
                     int count = 0;
                     timepoints = new double[nTimepoints];
-                    logger.debug("Number of Timepoints: " + reader.getTimepointSize());
-                    for (int plane = 0; plane < reader.getTimepointSize(); plane++) {
-                        int timePoint = meta.getPlaneTheT(series, plane).getValue();
+					meta.loadPlanesInfo(client.getSimpleClient());
+					List<PlaneInfoWrapper> planesInfo = meta.getPlanesInfo();
+                    logger.debug("Number of Timepoints: " + nTimepoints);
+                    for (int plane = 0; plane < nTimepoints; plane++) {
+						PlaneInfoWrapper currentPlane = planesInfo.get(plane);
+                        int timePoint = planesInfo.get(plane).getTheT();
                         logger.debug("Checking " + timePoint);
                         if (timePoint != lastTimepoint) {
-                            timepoints[count] = meta.getPlaneDeltaT(series, plane).value(UNITS.SECOND).doubleValue();
+                            timepoints[count] = convertTimeToSecond(currentPlane.getDeltaT());
                             logger.debug(String.format("Timepoint %d: %.3f seconds", count, timepoints[count]));
                             lastTimepoint = timePoint;
                             count++;
@@ -444,16 +446,12 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
                 } else {
                     timepoints = new double[0];
                 }
-
- */             // TODO get timepoints
-				timepoints = new double[0];
 			} catch (Exception e) {
 				logger.error("Error parsing metadata", e);
 				pixelWidth = Double.NaN;
 				pixelHeight = Double.NaN;
 				zSpacing = Double.NaN;
 				timepoints = null;
-				timeUnit = null;
 			}
 
 			// Loop through the series & determine downsamples
@@ -525,8 +523,27 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			long endTime = System.currentTimeMillis();
 			logger.debug(String.format("Initialization time: %d ms", endTime - startTime));
 
-			return builder.build();
+			return originalMetadata;
 		}
+	}
+
+	private double convertTimeToSecond(Time time){
+		int unit = time.getUnit().value();
+		double timeValue = time.getValue();
+
+		if(unit < 7) {
+			return timeValue * 1000 * Math.pow(10, 3 * (7 - unit));
+		}else if (unit < 14){
+			return timeValue * Math.pow(10, 10 - unit);
+		}else if (unit < 21){
+			return timeValue * 0.001 * Math.pow(10, 3 * (13 - unit));
+		}else if (unit == 21) {
+			return 60 * timeValue;
+		}else if (unit == 22){
+			return 3600* timeValue;
+		}else if (unit == 23){
+			return 86400 * timeValue;
+		} else return timeValue;
 	}
 
 	@Override
@@ -581,15 +598,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		boolean normalizeFloats = false;
 		try {
 			synchronized(rawPixelsStore) {
-				//   synchronized(OmeroRawServer.class) {
-
-				//BrowseFacility browse = gateway.getFacility(BrowseFacility.class);
-				// ImageData image = browse.getImage(context, imageID);
-				// PixelsData pixelData = image.getDefaultPixels();
-
-				// rawPixelsStore = OmeroRawServer.gateway.getPixelsStore(context);
-				// rawPixelsStore.setPixelsId(pixelData.getId(), false);
-
 
 				int realLevel = readerWrapper.nLevels - 1 - level;
 				rawPixelsStore.setResolutionLevel(realLevel);
@@ -623,7 +631,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 				// Read bytes for all the required channels
 				effectiveC = readerWrapper.getPixelsWrapper().getSizeC();
-				//effectiveC = 1; // TODO find a way to get the channel size
 				bytes = new byte[effectiveC][];
 
 				for (int c = 0; c < effectiveC; c++) {
@@ -746,6 +753,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 */
 	@Override
 	public BufferedImage getDefaultThumbnail(int z, int t) throws IOException {
+		//TODO try to get back to the previous version of the 1Mio pixels histogram
 		double[] downsamples = getPreferredDownsamples();
 		double downsample = downsamples[downsamples.length - 1];
 		RegionRequest request = RegionRequest.createInstance(getPath(), downsample, 0, 0, getWidth(), getHeight(), z, t);
@@ -918,7 +926,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			/**
 			 * A set of primary readers, to avoid needing to regenerate these for all servers.
 			 */
-			//private static final Set<LocalReaderWrapper> primaryReaders = Collections.newSetFromMap(new WeakHashMap<>());
+			private static final Set<LocalReaderWrapper> primaryReaders = Collections.newSetFromMap(new WeakHashMap<>());
 
 			/**
 			 * Set of created temp memo files
