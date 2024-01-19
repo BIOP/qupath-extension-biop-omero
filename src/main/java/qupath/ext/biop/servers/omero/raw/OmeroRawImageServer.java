@@ -21,11 +21,13 @@
 
 package qupath.ext.biop.servers.omero.raw;
 
+import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.meta.GroupWrapper;
 import fr.igred.omero.meta.PlaneInfoWrapper;
 import fr.igred.omero.repository.ChannelWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.PixelsWrapper;
+import jdk.jshell.execution.Util;
 import loci.common.DataTools;
 import loci.formats.FormatException;
 import omero.ServerError;
@@ -35,6 +37,7 @@ import omero.gateway.exception.DSAccessException;
 import omero.gateway.exception.DSOutOfServiceException;
 import omero.gateway.facility.MetadataFacility;
 
+import omero.gateway.model.ImageData;
 import omero.gateway.model.PixelsData;
 
 import omero.model.ChannelBinding;
@@ -95,6 +98,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -771,7 +775,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		private ForkJoinTask<?> task;
 		private int timeoutSeconds;
 
-		ReaderPool(OmeroRawClient client, long id) throws ServerError, DSOutOfServiceException {
+		ReaderPool(OmeroRawClient client, long id) {
 			this.id = id;
 			this.client = client;
 
@@ -815,7 +819,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					queue.add(newReader);
 					logger.info("Created new reader (total={})", additionalReaders.size());
 				} else
-					logger.warn("New Bio-Formats reader could not be created (returned null)");
+					logger.warn("New OMERO reader could not be created (returned null)");
 			} catch (Exception e) {
 				logger.error("Error creating additional readers: " + e.getLocalizedMessage(), e);
 			}
@@ -835,7 +839,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		 * @throws FormatException
 		 * @throws IOException
 		 */
-		private LocalReaderWrapper createReader(final Long imageID, OmeroRawClient client) throws DSOutOfServiceException, ServerError {
+		private LocalReaderWrapper createReader(final Long imageId, OmeroRawClient client) {
 
 			int maxReaders = getMaxReaders();
 			int nReaders = totalReaders.getAndIncrement();
@@ -845,94 +849,49 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				return null;
 			}
 
-			ImageWrapper image = null;
-			/*long groupId = OmeroRawTools.getGroupIdFromImageId(client, imageID);
-			if(groupId > 0) {
-				if(client.getSimpleClient().getCurrentGroupId() != groupId)
-					client.switchGroup(groupId);
+			List<OmeroRawClient> clients = OmeroRawClients.getAllClients().stream().filter(c -> !c.equals(client)).collect(Collectors.toList());
+			clients.add(0, client);
+
+			long groupId = -1;
+			OmeroRawClient currentClient = null;
+
+			for (OmeroRawClient cli : clients) {
 				try{
-					image = client.getSimpleClient().getImage(imageID);
-				} catch (Exception e) {
-					logger.warn("The image '"+imageID+"' is not coming from the omero server '"+client.getServerURI()+
-							"'. Admins cannot access to it");
-				}
-			}*/
-
-			OmeroRawClient currentClient = client;
-
-			try {
-				// read the image with the current client, connected to the current group
-				image = currentClient.getSimpleClient().getImage(imageID);
-			}catch(Exception e){
-				logger.info("The image '"+imageID+"' is not coming from the default group '"+
-						client.getSimpleClient().getGroup(client.getSimpleClient().getCurrentGroupId()).getName()+"'");
-			}
-
-			// if image unreadable, check all groups the current user is part of
-			if(image == null){
-				List<GroupWrapper> availableGroups = currentClient.getLoggedInUser().getGroups();
-				for(GroupWrapper group:availableGroups) {
-					// switch the user to another group
-					currentClient.switchGroup(group.getId());
-					try {
-						// read the image
-						image = currentClient.getSimpleClient().getImage(imageID);
-						break;
-					} catch (Exception e) {
-						logger.info("The image '"+imageID+"' is not coming from the user's available groups");
-					}
+					ImageData img = (ImageData) cli.getSimpleClient().getBrowseFacility().findObject(cli.getSimpleClient().getCtx(), "ImageData", imageId, true);
+					groupId = img.getGroupId();
+					currentClient = cli;
+					break;
+				} catch (DSOutOfServiceException | NoSuchElementException | ExecutionException | DSAccessException e) {
+					Utils.warnLog(logger, "OMERO - Reader", "Cannot retrieve image '"+imageId+"' from the server '"+cli.getServerURI(), false);
 				}
 			}
 
-			// if image unreadable, check all other open clients
-			if(image == null){
-				// get opened clients
-				List<OmeroRawClient> otherClients = OmeroRawClients.getAllClients().stream().filter(c -> !c.equals(client)).collect(Collectors.toList());
-				for (OmeroRawClient cli : otherClients) {
-					try{
-						// read the image
-						image = cli.getSimpleClient().getImage(imageID);
-						currentClient = cli;
-						break;
-					} catch (Exception e) {
-						logger.info("The image '"+imageID+"' is not coming from the user's available clients");
-					}
-				}
-			}
-
-			// if image still unreadable and current user is admin, check all OMERO groups
-			if(image == null && currentClient.isAdmin()){
-				long groupId = OmeroRawTools.getGroupIdFromImageId(client, imageID);
-				if(groupId > 0) {
+			if(groupId > 0) {
+				if(currentClient.getSimpleClient().getCurrentGroupId() != groupId)
 					currentClient.switchGroup(groupId);
-					try{
-						image = currentClient.getSimpleClient().getImage(imageID);
-					} catch (Exception e) {
-						logger.warn("The image '"+imageID+"' is not coming from the omero server '"+currentClient.getServerURI()+
-								"'. Admins cannot access to it");
-					}
+				this.client = currentClient;
+
+				try{
+					ImageWrapper image = currentClient.getSimpleClient().getImage(imageId);
+					PixelsWrapper pixelsWrapper = image.getPixels();
+					RawPixelsStorePrx rawPixStore = currentClient.getSimpleClient().getGateway().getPixelsStore(currentClient.getSimpleClient().getCtx());
+					rawPixStore.setPixelsId(pixelsWrapper.getId(), false);
+
+					// create a local reader grouping the rawPixelStore and the pixelWrapper
+					LocalReaderWrapper localWrapper = new LocalReaderWrapper(rawPixStore, pixelsWrapper);
+
+					// add the reader to the objects to clean
+					cleanables.add(cleaner.register(this, new ReaderCleaner(Integer.toString(cleanables.size()+1), localWrapper)));
+					return localWrapper;
+				} catch (Exception e) {
+					Utils.errorLog(logger, "OMERO - Reader", "Cannot access the pixel reader for image '"+imageId+"', from the server '"+currentClient.getServerURI(), false);
 				}
-			}
-
-			// read the imported image
-			if(!(image == null)) {
-				// get the reader
-				PixelsWrapper pixelsWrapper = image.getPixels();
-				RawPixelsStorePrx rawPixStore = currentClient.getSimpleClient().getGateway().getPixelsStore(currentClient.getSimpleClient().getCtx());
-				rawPixStore.setPixelsId(pixelsWrapper.getId(), false);
-
-				// create a local reader grouping the rawPixelStore and the pixelWrapper
-				LocalReaderWrapper localWrapper = new LocalReaderWrapper(rawPixStore, pixelsWrapper);
-
-				// add the reader to the objects to clean
-				cleanables.add(cleaner.register(this, new ReaderCleaner(Integer.toString(cleanables.size()+1), localWrapper)));
-				return localWrapper;
-			}
-			else {
+			} else {
 				// user does not have admin rights
-				Dialogs.showErrorMessage("Load image","You do not have access to this image because it is part of a group / user you do not have access to");
-				return null;
+				Utils.errorLog(logger, "OMERO - Reader", "The image '"+imageId+"' is not available for you on any connected OMERO servers. \n" +
+						"This may be because you do not have the right to access this image.", false);
 			}
+			return null;
 		}
 
 		private LocalReaderWrapper nextQueuedReader() {
