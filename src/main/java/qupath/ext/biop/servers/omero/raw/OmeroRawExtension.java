@@ -25,10 +25,13 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +75,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 	 */
 	private static final Map<OmeroRawClient, OmeroRawImageServerBrowserCommand> rawBrowsers = new HashMap<>();
 
-	private static StringProperty omeroDefaultServerAddress;
+
 
 	private static boolean alreadyInstalled = false;
 	
@@ -93,7 +96,6 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 		var actionRawImportAnnotationObjects = ActionTools.createAction(new OmeroRawImportAnnotationObjectsCommand(qupath), "Annotations");
 		var actionRawImportMetadataObjects = ActionTools.createAction(new OmeroRawImportMetadataCommand(qupath), "Metadata");
 		var actionRawImportDisplaySettingsObjects = ActionTools.createAction(new OmeroRawImportChannelSettingsCommand(qupath), "Channels settings");
-		Menu browseRawServerMenu = new Menu("Browse server...");
 
 		actionRawSendAnnotationObjects.disabledProperty().bind(qupath.imageDataProperty().isNull());
 		actionRawImportAnnotationObjects.disabledProperty().bind(qupath.imageDataProperty().isNull());
@@ -101,6 +103,8 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 		actionRawImportMetadataObjects.disabledProperty().bind(qupath.imageDataProperty().isNull());
 		actionRawSendDisplaySettingsObjects.disabledProperty().bind(qupath.imageDataProperty().isNull());
 		actionRawImportDisplaySettingsObjects.disabledProperty().bind(qupath.imageDataProperty().isNull());
+		Menu browseRawServerMenu = MenuTools.createMenu("Browse server...");
+
 		MenuTools.addMenuItems(qupath.getMenu("Extensions", false),
 				MenuTools.createMenu("OMERO-RAW",
 						browseRawServerMenu,
@@ -112,9 +116,6 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 		);
 
 		createRawServerListMenu(qupath, browseRawServerMenu);
-
-		// Add the default OMERO server address to the QuPath Preferences
-		omeroDefaultServerAddress = PathPrefs.createPersistentPreference("omeroDefaultServer", "https://omero-server.epfl.ch");
 	}
 	
 
@@ -129,7 +130,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 	}
 
 
-	private static Menu createRawServerListMenu(QuPathGUI qupath, Menu browseServerMenu) {
+	private static void createRawServerListMenu(QuPathGUI qupath, Menu browseServerMenu) {
 		EventHandler<Event> validationHandler = e -> {
 			browseServerMenu.getItems().clear();
 
@@ -153,69 +154,15 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 				browseServerMenu.getItems().add(item);
 			}
 
-			// Create 'New server...' MenuItem
-			MenuItem customServerItem = new MenuItem("New server...");
-			customServerItem.setOnAction(e2 -> {
-				// get default server
-				String defaultOmeroServer = omeroDefaultServerAddress.get();
-
-				GridPane gp = new GridPane();
-				gp.setVgap(5.0);
-				TextField tf = new TextField(defaultOmeroServer);
-				tf.setPrefWidth(400);
-				GridPaneUtils.addGridRow(gp, 0, 0, "Enter OMERO URL", new Label("Enter an OMERO server URL to browse (e.g. http://idr.openmicroscopy.org/):"));
-				GridPaneUtils.addGridRow(gp, 1, 0, "Enter OMERO URL", tf, tf);
-				boolean confirm = Dialogs.showConfirmDialog("Enter OMERO URL", gp);
-				if (!confirm)
-					return;
-
-				String path = tf.getText();
-				if (path == null || path.isEmpty())
-					return;
-				try {
-					// Update preferences
-					omeroDefaultServerAddress.set(path);
-
-					if (!path.startsWith("http:") && !path.startsWith("https:"))
-						throw new IOException("The input URL must contain a scheme (e.g. \"https://\")!");
-
-					// Make the path a URI
-					URI uri = new URI(path);
-
-					// Clean the URI (in case it's a full path)
-					URI uriServer = OmeroRawTools.getServerURI(uri);
-
-					if (uriServer == null)
-						throw new MalformedURLException("Could not parse server from " + uri);
-
-					// Check if client exist and if browser is already opened
-					OmeroRawClient client = OmeroRawClients.getClientFromServerURI(uriServer);
-					if (client == null)
-						client = OmeroRawClients.createClientAndLogin(uriServer);
-
-					if (client == null)
-						throw new IOException("Could not parse server from " + uri);
-
-					var browser = rawBrowsers.get(client);
-					if (browser == null || browser.getStage() == null) {
-						// Create new browser
-						browser = new OmeroRawImageServerBrowserCommand(qupath, client);
-						rawBrowsers.put(client, browser);
-						browser.run();
-					} else    // Request focus for already-existing browser
-						browser.getStage().requestFocus();
-
-				} catch (IOException | URISyntaxException ex) {
-					Dialogs.showErrorMessage("OMERO-RAW server", ex.getLocalizedMessage());
-					return;
-				}
+			Menu newServerMenu = new Menu("New server...");
+			newServerMenu.setOnAction(e3->{
+				new OmeroRawServerCommand(qupath);
 			});
-			MenuTools.addMenuItems(browseServerMenu, null, customServerItem);
+			browseServerMenu.getItems().add(newServerMenu);
 		};
 
 		// Ensure the menu is populated (every time the parent menu is opened)
 		browseServerMenu.getParentMenu().setOnShowing(validationHandler);
-		return browseServerMenu;
 	}
 
 	/**
@@ -236,5 +183,74 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 	@Override
 	public Version getQuPathVersion() {
 		return QuPathExtension.super.getQuPathVersion();
+	}
+
+	private static class OmeroRawServerCommand {
+		private static StringProperty omeroDefaultServerAddress;
+		private final QuPathGUI qupath;
+
+		public OmeroRawServerCommand(QuPathGUI qupath) {
+			this.qupath = qupath;
+
+			// Add the default OMERO server address to the QuPath Preferences
+			omeroDefaultServerAddress = PathPrefs.createPersistentPreference("omeroDefaultServer", "https://omero-server.epfl.ch");
+			run();
+		}
+
+
+		public void run() {
+			// get default server
+			String defaultOmeroServer = omeroDefaultServerAddress.get();
+
+			GridPane gp = new GridPane();
+			gp.setVgap(5.0);
+			TextField tf = new TextField(defaultOmeroServer);
+			tf.setPrefWidth(400);
+			GridPaneUtils.addGridRow(gp, 0, 0, "Enter OMERO URL", new Label("Enter an OMERO server URL to browse (e.g. http://idr.openmicroscopy.org/):"));
+			GridPaneUtils.addGridRow(gp, 1, 0, "Enter OMERO URL", tf, tf);
+			boolean confirm = Dialogs.showConfirmDialog("Enter OMERO URL", gp);
+			if (!confirm)
+				return;
+
+			String path = tf.getText();
+			if (path == null || path.isEmpty())
+				return;
+			try {
+				// Update preferences
+				omeroDefaultServerAddress.set(path);
+
+				if (!path.startsWith("http:") && !path.startsWith("https:"))
+					throw new IOException("The input URL must contain a scheme (e.g. \"https://\")!");
+
+				// Make the path a URI
+				URI uri = new URI(path);
+
+				// Clean the URI (in case it's a full path)
+				URI uriServer = OmeroRawTools.getServerURI(uri);
+
+				if (uriServer == null)
+					throw new MalformedURLException("Could not parse server from " + uri);
+
+				// Check if client exist and if browser is already opened
+				OmeroRawClient client = OmeroRawClients.getClientFromServerURI(uriServer);
+				if (client == null)
+					client = OmeroRawClients.createClientAndLogin(uriServer);
+
+				if (client == null)
+					throw new IOException("Could not parse server from " + uri);
+
+				var browser = rawBrowsers.get(client);
+				if (browser == null || browser.getStage() == null) {
+					// Create new browser
+					browser = new OmeroRawImageServerBrowserCommand(qupath, client);
+					rawBrowsers.put(client, browser);
+					browser.run();
+				} else    // Request focus for already-existing browser
+					browser.getStage().requestFocus();
+
+			} catch (IOException | URISyntaxException ex) {
+				Dialogs.showErrorMessage("OMERO-RAW server", ex.getLocalizedMessage());
+			}
+		}
 	}
 }
