@@ -387,9 +387,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				colorModel = ColorModelFactory.createColorModel(pixelType, channels);
 			}*/
 
-			// get the image format
-			//TODO update with simple-omero-client imageWrapper.getFormat() when released (also update the deprecated methods)
-			String imageFormat = imageWrapper.asDataObject().asImage().getFormat().getValue().getValue();
+			String imageFormat = imageWrapper.getFormat();
 
 			Set<String> uniqueNames = new HashSet<>(channelsNames);
 

@@ -262,7 +262,7 @@ public class OmeroRawBrowserTools {
                                                                        ExperimenterWrapper user, GroupWrapper userGroup)
             throws AccessException, ServiceException, OMEROServerError, ExecutionException {
         List<OmeroRawObjects.OmeroRawObject> ophDatasetsList = new ArrayList<>();
-        OmeroRawTools.readOrphanedDatasets(client, user).forEach(datasetWrapper -> {
+        client.getSimpleClient().getOrphanedDatasets(user).forEach(datasetWrapper -> {
             ophDatasetsList.add(new OmeroRawObjects.Dataset(datasetWrapper, datasetWrapper.getId(),
                     OmeroRawObjects.OmeroRawObjectType.DATASET, parent, user, userGroup));
         });
@@ -281,13 +281,13 @@ public class OmeroRawBrowserTools {
      */
     private static OmeroRawObjects.OmeroRawObject getOrphanedFolderItem(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
                                                                         ExperimenterWrapper user, GroupWrapper userGroup)
-            throws ExecutionException {
+            throws ExecutionException, AccessException, ServiceException {
         // create an orphaned folder item
         OmeroRawObjects.OrphanedFolder orphanedFolder = new OmeroRawObjects.OrphanedFolder(parent, user, userGroup);
         List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
 
         // read orphaned images for the current user
-        OmeroRawTools.readOrphanedImages(client, user).forEach(e ->
+        client.getSimpleClient().getOrphanedImages(user).forEach(e ->
                 list.add(new OmeroRawObjects.Image(e, e.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE, orphanedFolder, user, userGroup))
         );
 
@@ -481,8 +481,14 @@ public class OmeroRawBrowserTools {
             return Collections.emptyMap();
         }
 
-        if(client.isAdmin())
-            groups = OmeroRawTools.getAllGroups(client);
+        if(client.isAdmin()) {
+            try {
+                groups = client.getSimpleClient().getGroups();
+            } catch (AccessException | ServiceException e){
+                Utils.errorLog(logger, "OMERO - Admin", "Cannot retrieve all the groups from the database. Only get your groups",e,true);
+                groups = loggedInUser.getGroups();
+            }
+        }
         else
             groups = loggedInUser.getGroups();
 
@@ -882,7 +888,7 @@ public class OmeroRawBrowserTools {
         List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
         try{
             // get orphaned datasets
-            Collection<ImageWrapper> orphanedImages = OmeroRawTools.readOrphanedImages(client, owner.getWrapper());
+            Collection<ImageWrapper> orphanedImages = client.getSimpleClient().getOrphanedImages(owner.getWrapper());
 
             // get OMERO user and group
             ExperimenterWrapper user = client.getSimpleClient().getUser(owner.getId());
@@ -892,7 +898,7 @@ public class OmeroRawBrowserTools {
             orphanedImages.forEach( e ->
                     list.add(new OmeroRawObjects.Image(e, e.getId(), OmeroRawObjects.OmeroRawObjectType.IMAGE, new OmeroRawObjects.Server(client.getServerURI()), user, userGroup))
             );
-        } catch (ExecutionException | ServiceException | OMEROServerError e) {
+        } catch (AccessException | ExecutionException | ServiceException | OMEROServerError e) {
             Dialogs.showErrorMessage("Orphaned images","Cannot retrieved orphaned images for user "+owner.getId());
             logger.error(String.valueOf(e));
             logger.error(Utils.getErrorStackTraceAsString(e));

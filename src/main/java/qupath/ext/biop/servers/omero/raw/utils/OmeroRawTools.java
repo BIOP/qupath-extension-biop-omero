@@ -469,108 +469,6 @@ public class OmeroRawTools {
         return null;
     }
 
-
-
-    //TODO remove this method when the PR is accepted
-    /**
-     * Unlink tags from an image on OMERO
-     *
-     * @param imageServer
-     */
-    protected static void unlinkTags(OmeroRawImageServer imageServer){
-        try{
-            List<TagAnnotationWrapper> tags = imageServer.getImageWrapper().getTags(imageServer.getClient().getSimpleClient());
-            List<IObject> oss = new ArrayList<>();
-            for(TagAnnotationWrapper tag : tags) {
-                oss.addAll(imageServer.getClient().getSimpleClient().findByQuery("select link from ImageAnnotationLink" +
-                        " link where link.parent = " + imageServer.getId() +
-                        " and link.child = " + tag.getId()));
-            }
-            imageServer.getClient().getSimpleClient().getDm().delete(imageServer.getClient().getSimpleClient().getCtx(), oss).block(500);
-
-        }catch(ExecutionException | DSOutOfServiceException | ServerError | InterruptedException e) {
-            Dialogs.showErrorNotification("Unlink tags", "Cannot unlink tags for the image "+imageServer.getId());
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-        }catch(DSAccessException e) {
-            Dialogs.showErrorNotification("Unlink tags", "You don't have the right to unlink tags for image "+imageServer.getId());
-            logger.error(String.valueOf(e));
-            logger.error(Utils.getErrorStackTraceAsString(e));
-        }
-    }
-
-
-    /**
-     * Get user's orphaned datasets from the OMERO server
-     *
-     * @param client the client that handles the OMERO connection
-     * @param user
-     * @return List orphaned of datasets
-     */
-    // TODO wait for PR pierre pouchin orphans => deprecate it after
-    public static Collection<DatasetWrapper> readOrphanedDatasets(OmeroRawClient client, ExperimenterWrapper user)
-            throws ServiceException, OMEROServerError, AccessException, ExecutionException {
-        // query orphaned dataset
-        List<IObject> datasetObjects = client.getSimpleClient().findByQuery("select dataset from Dataset as dataset " +
-                "join fetch dataset.details.owner as o " +
-                "where o.id = " + user.getId() +
-                "and not exists (select obl from " +
-                "ProjectDatasetLink as obl where obl.child = dataset.id) ");
-
-        // get orphaned dataset ids
-        Long[] datasetIds = datasetObjects.stream()
-                .map(IObject::getId)
-                .map(RLong::getValue)
-                .toArray(Long[]::new);
-
-        // get orphaned datasets
-        return client.getSimpleClient().getDatasets(datasetIds);
-    }
-
-
-    /**
-     * Get user's orphaned images from the OMERO server
-     *
-     * @param client the client that handles the OMERO connection
-     * @param user
-     * @return List of orphaned images
-     */
-    // TODO wait for PR pierre pouchin orphans => deprecate it after
-    public static Collection<ImageWrapper> readOrphanedImages(OmeroRawClient client, ExperimenterWrapper user)
-            throws ExecutionException {
-        return client.getSimpleClient()
-                .getGateway()
-                .getFacility(BrowseFacility.class)
-                .getOrphanedImages(client.getSimpleClient().getCtx(), user.getId())
-                .stream()
-                .map(ImageWrapper::new)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * get all the groups on OMERO server. This functionality is reserved to Admin people. In case you are not
-     * Admin, {@link ExperimenterWrapper#getGroups()} method is called instead.
-     *
-     * @param client the client that handles the OMERO connection
-     * @return The list of all groups on OMERO server
-     */
-    //TODO remove it when the PR is accepted and released (PR all-groups)
-    public static List<GroupWrapper> getAllGroups(OmeroRawClient client) {
-        try {
-            if(client.isAdmin()) {
-                List<ExperimenterGroup> allGroups = client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).lookupGroups();
-                return allGroups.stream().map(GroupData::new).map(GroupWrapper::new).collect(Collectors.toList());
-            }
-            else {
-                Dialogs.showWarningNotification("OMERO admin", "You are not allowed to see all OMERO groups. Only available groups for you are loaded");
-                return client.getLoggedInUser().getGroups();
-            }
-        }catch(DSOutOfServiceException | ServerError e){
-            Utils.errorLog(logger,"OMERO admin", "Cannot retrieve all OMERO groups",e ,true);
-            throw new RuntimeException(e);
-        }
-    }
-
     /*
      *
      *
@@ -637,7 +535,7 @@ public class OmeroRawTools {
      * @param client
      * @param userId
      * @return List of orphaned images
-     * @deprecated use {@link OmeroRawTools#readOrphanedImages(OmeroRawClient, ExperimenterWrapper) instead}
+     * @deprecated use {@link Client#getOrphanedImages(ExperimenterWrapper)} instead
      */
     @Deprecated
     public static Collection<ImageData> readOrphanedImages(OmeroRawClient client, long userId) {
@@ -656,7 +554,7 @@ public class OmeroRawTools {
      *
      * @param client
      * @return List of orphaned datasets
-     * @deprecated user {@link OmeroRawTools#readOrphanedDatasets(OmeroRawClient, ExperimenterWrapper)}
+     * @deprecated user {@link Client#getOrphanedDatasets(ExperimenterWrapper)}} instead
      */
     @Deprecated
     public static Collection<DatasetData> readOmeroOrphanedDatasets(OmeroRawClient client)  {
@@ -699,7 +597,7 @@ public class OmeroRawTools {
      * @param client the client {@link OmeroRawClient} object
      * @param userId
      * @return List orphaned of datasets
-     * @deprecated user {@link OmeroRawTools#readOrphanedDatasets(OmeroRawClient, ExperimenterWrapper)}
+     * @deprecated user {@link Client#getOrphanedDatasets(ExperimenterWrapper)} instead
      */
     @Deprecated
     public static Collection<DatasetData> readOrphanedDatasets(OmeroRawClient client, long userId) {
@@ -1455,15 +1353,13 @@ public class OmeroRawTools {
         }
     }
 
-
-    //TODO change the deprecated message when the PR is accepted and the simpe-omero-client 5.17.0 is released
     /**
      * Get the image file format (ex. .lif, .vsi,...)
      *
      * @param client
      * @param imageId
      * @return Image file format
-     * @deprecated use {@link ImageWrapper#asDataObject()#asImage()#getFormat()#getValue()#getValue()} instead
+     * @deprecated use {@link ImageWrapper#getFormat()} instead
      */
     @Deprecated
     public static String readImageFileType(OmeroRawClient client, long imageId){
@@ -2219,7 +2115,19 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<ExperimenterGroup> getAllOmeroGroups(OmeroRawClient client) {
-        return getAllGroups(client).stream()
+        List<GroupWrapper >groups;
+        if(client.isAdmin()) {
+            try {
+                groups = client.getSimpleClient().getGroups();
+            } catch (AccessException | ServiceException e){
+                Utils.errorLog(logger, "OMERO - Admin", "Cannot retrieve all the groups from the database. Only get your groups",e,true);
+                groups = client.getLoggedInUser().getGroups();
+            }
+        }
+        else
+            groups = client.getLoggedInUser().getGroups();
+
+        return groups.stream()
                 .map(GroupWrapper::asDataObject)
                 .map(GroupData::asGroup)
                 .collect(Collectors.toList());

@@ -262,7 +262,7 @@ public class OmeroRawScripting {
      * @return a map containing the key-values / tags sent. Use {@link Utils#KVP_KEY} and {@link Utils#TAG_KEY} to access
      * the corresponding map. For tag, the returned map has identical key:value
      */
-    //TODO wait for PR simple-omero-client for the return value of link method
+    // TODO wait for PR simple-omero-client for the return value of link method
     public static Map<String, Map<String, String>> sendQPMetadataToOmero(Map<String, String> qpMetadata, OmeroRawImageServer imageServer,
                                                 Utils.UpdatePolicy kvpPolicy, Utils.UpdatePolicy tagPolicy, boolean qpNotif) {
         // Extract tags
@@ -298,7 +298,7 @@ public class OmeroRawScripting {
      * @param qpNotif true to display a QuPath notification
      * @return Sending status (true if key-value pairs have been sent ; false if there were troubles during the sending process)
      */
-    //TODO wait for PR simple-omero-client for the return value of link method
+    // TODO wait for PR simple-omero-client for the return value of link method
     public static boolean sendKeyValuesToOmero(Map<String, String> qpMetadataKVP, OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif){
         if(policy.equals(Utils.UpdatePolicy.NO_UPDATE)) {
             Utils.infoLog(logger,"OMERO - KVPs", "No metadata sent as KVPs and nothing updated on OMERO", qpNotif);
@@ -390,7 +390,7 @@ public class OmeroRawScripting {
      * @param qpNotif true to display a QuPath notification
      * @return Sending status (true if tags have been sent ; false if there were troubles during the sending process)
      */
-    //TODO wait for PR simple-omero-client for the return value of link method
+    // TODO wait for PR simple-omero-client for the return value of link method
     public static boolean sendTagsToOmero(List<String> tags, OmeroRawImageServer imageServer, Utils.UpdatePolicy policy, boolean qpNotif){
         if(policy.equals(Utils.UpdatePolicy.NO_UPDATE)) {
             Utils.infoLog(logger,"OMERO - tags", "No metadata sent as tags and nothing updated on OMERO", qpNotif);
@@ -398,8 +398,14 @@ public class OmeroRawScripting {
         }
 
         // unlink tags on OMERO
-        if(policy.equals(Utils.UpdatePolicy.DELETE_KEYS))
-            OmeroRawTools.unlinkTags(imageServer);
+        if(policy.equals(Utils.UpdatePolicy.DELETE_KEYS)) {
+            try {
+                List<TagAnnotationWrapper> oldTags = imageServer.getImageWrapper().getTags(imageServer.getClient().getSimpleClient());
+                imageServer.getImageWrapper().unlink(imageServer.getClient().getSimpleClient(), oldTags);
+            }catch(ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e){
+                Utils.errorLog(logger,"OMERO - tags", "Cannot unlink tags from the image '"+imageServer.getId()+"'", e, qpNotif);
+            }
+        }
 
         // get current OMERO tags
         List<TagAnnotationWrapper> omeroTagAnnotations;
@@ -409,6 +415,7 @@ public class OmeroRawScripting {
             Utils.errorLog(logger,"OMERO - tags", "Cannot get tags to the image '"+imageServer.getId()+"'", e, qpNotif);
             return false;
         }
+
         List<String> currentTags = omeroTagAnnotations.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList());
 
         // remove all existing tags
