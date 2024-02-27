@@ -474,7 +474,7 @@ public class OmeroRawScripting {
         List<MapAnnotationWrapper> omeroKVPsWrapperList;
         try {
             omeroKVPsWrapperList = imageServer.getImageWrapper().getMapAnnotations(imageServer.getClient().getSimpleClient());
-        }catch(ServiceException | AccessException | ExecutionException e){
+        }catch(NullPointerException | ServiceException | AccessException | ExecutionException e){
             Utils.errorLog(logger,"OMERO - KVPs", "Cannot get KVPs from the image '"+imageServer.getId()+"'", e, qpNotif);
             return null;
         }
