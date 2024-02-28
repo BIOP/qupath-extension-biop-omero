@@ -256,9 +256,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					throw new IllegalArgumentException("Resolution " + r + " size " + sizeXR + " x " + sizeYR + " invalid!");
 			}
 
-			// If we have more than one image, ensure that we have the image name correctly encoded in the path
-			// Need the context here for now TODO: Make it cleaner to get data
-
 			// Try getting the magnification
 			try {
 				MetadataFacility metaFacility = this.client.getSimpleClient().getMetadata();
@@ -588,16 +585,24 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 */
 	@Override
 	public BufferedImage getDefaultThumbnail(int z, int t) throws IOException {
-		//TODO try to get back to the previous version of the 1Mio pixels histogram
+		int ind = nResolutions() - 1;
+		double targetDownsample = Math.sqrt(getWidth() / 1024.0 * getHeight() / 1024.0);
 		double[] downsamples = getPreferredDownsamples();
-		double downsample = downsamples[downsamples.length - 1];
+		while (ind > 0 && downsamples[ind-1] >= targetDownsample)
+			ind--;
+		double downsample = downsamples[ind];
+
+		// TODO have a look here https://github.com/BIOP/qupath-extension-biop-omero/issues/17
+		/*double[] downsamples = getPreferredDownsamples();
+		double downsample = downsamples[downsamples.length - 1];*/
+
 		RegionRequest request = RegionRequest.createInstance(getPath(), downsample, 0, 0, getWidth(), getHeight(), z, t);
 
 		BufferedImage bf = readRegion(request);
 		if(isRGB() && bf.getType() == BufferedImage.TYPE_CUSTOM){
 			logger.info("Cannot create default thumbnail ; try to get it from OMERO");
 			try {
-				return imageWrapper.getThumbnail(client.getSimpleClient(), 256);
+				return imageWrapper.getThumbnail(client.getSimpleClient(), 1024); //256
 			} catch (Exception e) {
 				OmeroRawTools.readLocalImage(Utils.NO_IMAGE_THUMBNAIL);
 			}
