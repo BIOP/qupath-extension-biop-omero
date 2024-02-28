@@ -36,12 +36,16 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import fr.igred.omero.annotations.TagAnnotationWrapper;
+import fr.igred.omero.exception.AccessException;
+import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.meta.ExperimenterWrapper;
 
 import fr.igred.omero.meta.GroupWrapper;
@@ -83,7 +87,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import omero.gateway.exception.DSAccessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawExtension;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.ext.biop.servers.omero.raw.utils.Utils;
@@ -102,6 +110,7 @@ import qupath.lib.projects.ProjectImageEntry;
  * @author Rémy Dornier
  */
 public class OmeroRawImageServerBrowserCommand implements Runnable {
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawImageServerBrowserCommand.class);
     private static final String BOLD = "-fx-font-weight: bold";
     private final QuPathGUI qupath;
     private Stage dialog;
@@ -345,10 +354,13 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                         }
                     }
                     else {
+                        // import images to QuPath
                         List<ProjectImageEntry<BufferedImage>> importedImageEntries =
                                 OmeroRawBrowserTools.promptToImportOmeroImages(qupath, createObjectURI(selectedItem));
+
+                        // add OMERO metadata fields
                         for(ProjectImageEntry<BufferedImage> entry : importedImageEntries)
-                           OmeroRawBrowserTools.addContainersAsMetadataFields(entry, selectedItem);
+                            addMetadataFieldsFromOmero(entry, selectedItem);
                     }
                 }
             }
@@ -622,8 +634,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             .filter(obj -> obj.getId() == id)
                             .findFirst();
 
-                // add image hierarchy as metadata fields
-                optObj.ifPresent(omeroRawObject -> OmeroRawBrowserTools.addContainersAsMetadataFields(entry, omeroRawObject));
+                // add OMERO metadata fields
+                optObj.ifPresent(omeroRawObject -> {
+                    addMetadataFieldsFromOmero(entry, omeroRawObject);
+                });
             }
         });
 
@@ -745,6 +759,35 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 return ((OmeroRawObjects.OrphanedFolder)parent).getImageList();
             default:
                 return Collections.singletonList(parent);
+        }
+    }
+
+    /**
+     * Copy tags, key-values and image hierarchy from OMERO to QuPath as metadata fields
+     *
+     * @param entry the project entry to add the metadata to
+     * @param omeroRawObject the OMERO image object
+     */
+    private void addMetadataFieldsFromOmero(ProjectImageEntry<BufferedImage> entry, OmeroRawObjects.OmeroRawObject omeroRawObject){
+        // add image hierarchy
+        OmeroRawBrowserTools.addContainersAsMetadataFields(entry, omeroRawObject);
+
+        // add tags
+        try {
+            List<String> tags = omeroRawObject.getWrapper().getTags(client.getSimpleClient())
+                    .stream()
+                    .map(TagAnnotationWrapper::getName)
+                    .collect(Collectors.toList());
+            OmeroRawScripting.addTagsToQuPath(entry, tags, Utils.UpdatePolicy.UPDATE_KEYS, true);
+        }catch (AccessException | ServiceException | ExecutionException e){
+            Utils.errorLog(logger,"OMERO - TAGs", "Cannot get TAGs from the image '"+omeroRawObject.getId()+"'", e, true);
+        }
+
+        // add key-values
+        try {
+            OmeroRawScripting.addKeyValuesToQuPath(entry, omeroRawObject.getWrapper().getKeyValuePairs(client.getSimpleClient()), Utils.UpdatePolicy.UPDATE_KEYS, true);
+        }catch (AccessException | ServiceException | ExecutionException e){
+            Utils.errorLog(logger,"OMERO - KVPs", "Cannot get KVPs from the image '"+omeroRawObject.getId()+"'", e, true);
         }
     }
 

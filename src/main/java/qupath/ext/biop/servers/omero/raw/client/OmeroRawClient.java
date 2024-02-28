@@ -99,8 +99,6 @@ public class OmeroRawClient {
      */
     private final BooleanProperty loggedIn;
 
-    // TODO check if we need to keep the connection alive
-
    public static OmeroRawClient create(URI serverURI) throws MalformedURLException, URISyntaxException {
         // Clean server URI (filter out wrong URIs and get rid of unnecessary characters)
         var cleanServerURI = new URL(serverURI.getScheme(), serverURI.getHost(), serverURI.getPort(), "").toURI();

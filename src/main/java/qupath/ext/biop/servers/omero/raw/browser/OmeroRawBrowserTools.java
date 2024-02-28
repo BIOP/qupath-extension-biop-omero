@@ -744,7 +744,6 @@ public class OmeroRawBrowserTools {
                         "?show=image-"));
 
         List<String> tempIds = new ArrayList<>();
-        // TODO: Support screen and plates
         switch (type) {
             case SCREEN:
             case PLATE:

@@ -492,13 +492,13 @@ public class OmeroRawScripting {
         if(omeroKVPs.isEmpty())
             return Collections.emptyMap();
 
-        addKeyValuesToQuPath(omeroKVPs, policy, qpNotif);
+        addKeyValuesToQuPath(QP.getProjectEntry(), omeroKVPs, policy, qpNotif);
         return omeroKVPs;
     }
 
     /**
      *
-     * add Key-Value pairs as QuPath metadata to the current image in the QuPath project.
+     * add Key-Value pairs as QuPath metadata to the image in the QuPath project.
      * <p>
      * WARNING : If you run {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
      * and / or {@link OmeroRawScripting#addParentHierarchyToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} before
@@ -506,13 +506,15 @@ public class OmeroRawScripting {
      * and if you would like to use the policy {@link Utils.UpdatePolicy#DELETE_KEYS}, then you should apply this policy
      * to the first method but NOT to the second ones (use {@link Utils.UpdatePolicy#KEEP_KEYS} instead)
      *
+     * @param entry the project entry to link the key-values to
      * @param kvps map containing the key-value to add
      * @param policy replacement policy you choose to replace annotations on OMERO
      * @param qpNotif true to display a QuPath notification
      */
-    public static void addKeyValuesToQuPath(Map<String, String> kvps, Utils.UpdatePolicy policy, boolean qpNotif) {
+    public static void addKeyValuesToQuPath(ProjectImageEntry<BufferedImage> entry, Map<String, String> kvps, Utils.UpdatePolicy policy, boolean qpNotif) {
         // get project entry
-        ProjectImageEntry<BufferedImage> entry = QP.getProjectEntry();
+        if(entry == null)
+            entry = QP.getProjectEntry();
 
         // get qupath metadata
         Map<String, String> qpMetadata = entry.getMetadataMap();
@@ -578,7 +580,7 @@ public class OmeroRawScripting {
         try {
             tagWrapperList =  imageServer.getImageWrapper().getTags(imageServer.getClient().getSimpleClient());
         }catch(ServiceException | AccessException | ExecutionException e){
-            Utils.errorLog(logger,"OMERO - KVPs", "Cannot get KVPs from the image '"+imageServer.getId()+"'", e, qpNotif);
+            Utils.errorLog(logger,"OMERO - TAGs", "Cannot get TAGs from the image '"+imageServer.getId()+"'", e, qpNotif);
             return null;
         }
         if(tagWrapperList.isEmpty())
@@ -587,11 +589,30 @@ public class OmeroRawScripting {
         // collect and convert to list
         List<String> tagValues = tagWrapperList.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList());
 
-        // create a map and add metadata
-        Map<String,String> omeroTagMap =  tagValues.stream().collect(Collectors.toMap(e->e, e->e));
-        addKeyValuesToQuPath(omeroTagMap, policy, qpNotif);
+        return addTagsToQuPath(QP.getProjectEntry(), tagValues, policy, qpNotif);
+    }
 
-        return tagValues;
+    /**
+     * Add a list of tags (string) as QuPath metadata fields
+     * <p>
+     * WARNING : If you run {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * and / or {@link OmeroRawScripting#addParentHierarchyToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} before
+     * {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)}
+     * and if you would like to use the policy {@link Utils.UpdatePolicy#DELETE_KEYS}, then you should apply this policy
+     * to the first method but NOT to the second ones (use {@link Utils.UpdatePolicy#KEEP_KEYS} instead)
+     *
+     * @param entry the project entry to link the tags to
+     * @param tags List of strings
+     * @param policy replacement policy you choose to replace annotations on OMERO
+     * @param qpNotif true to display a QuPath notification
+     * @return list of OMERO tags.
+     */
+    public static List<String> addTagsToQuPath(ProjectImageEntry<BufferedImage> entry, List<String> tags, Utils.UpdatePolicy policy, boolean qpNotif) {
+        // create a map and add metadata
+        Map<String,String> omeroTagMap =  tags.stream().collect(Collectors.toMap(e->e, e->e));
+        addKeyValuesToQuPath(entry, omeroTagMap, policy, qpNotif);
+
+        return tags;
     }
 
     /**
@@ -623,7 +644,7 @@ public class OmeroRawScripting {
             return Collections.emptyMap();
 
         // create a map and add metadata
-        addKeyValuesToQuPath(containers, policy, qpNotif);
+        addKeyValuesToQuPath(QP.getProjectEntry(), containers, policy, qpNotif);
 
         return containers;
     }
@@ -1967,11 +1988,11 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param keyValues map of key-values
-     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#addTagsToQuPath(ProjectImageEntry, List, Utils.UpdatePolicy, boolean)} instead
      */
     @Deprecated
     public static void addMetadata(Map<String,String> keyValues) {
-        addKeyValuesToQuPath(keyValues, Utils.UpdatePolicy.KEEP_KEYS, true);
+        addKeyValuesToQuPath(QP.getProjectEntry(), keyValues, Utils.UpdatePolicy.KEEP_KEYS, true);
     }
 
 
@@ -2007,11 +2028,11 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param keyValues map of key-values
-     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(ProjectImageEntry, Map, Utils.UpdatePolicy, boolean)} instead
      */
     @Deprecated
     public static void addAndUpdateMetadata(Map<String,String> keyValues) {
-        addKeyValuesToQuPath(keyValues, Utils.UpdatePolicy.UPDATE_KEYS, true);
+        addKeyValuesToQuPath(QP.getProjectEntry(), keyValues, Utils.UpdatePolicy.UPDATE_KEYS, true);
     }
 
 
@@ -2067,11 +2088,11 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param keyValues map of key-values
-     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(Map, Utils.UpdatePolicy, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(ProjectImageEntry, Map, Utils.UpdatePolicy, boolean)} instead
      */
     @Deprecated
     public static void addAndDeleteMetadata(Map<String,String> keyValues) {
-        addKeyValuesToQuPath(keyValues, Utils.UpdatePolicy.DELETE_KEYS, true);
+        addKeyValuesToQuPath(QP.getProjectEntry(), keyValues, Utils.UpdatePolicy.DELETE_KEYS, true);
     }
 
 

@@ -127,7 +127,7 @@ public class OmeroRawClientsCommand implements Runnable {
     }
 
 
-    // TODO have to look to the issue when multiple servers are connected
+    // TODO wait for PR accepted and update the omero-java dependencies https://github.com/ome/omero-gateway-java/pull/86
     private void refreshServerGrid() {
         mainPane.getChildren().clear();
         var allClients = OmeroRawClients.getAllClients();
