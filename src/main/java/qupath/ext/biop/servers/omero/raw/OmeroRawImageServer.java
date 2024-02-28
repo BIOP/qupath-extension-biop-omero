@@ -117,7 +117,7 @@ import java.util.stream.Collectors;
  * Note that this ImageServer provides access to the raw data (not JPEG rendered).
  * Fluorescence and bright-field images from OMERO can be open with it.
  * 
- * @author Olivier Burri & Rémy Dornier
+ * @author Olivier Burri and Rémy Dornier
  *
  */
 public class OmeroRawImageServer extends AbstractTileableImageServer implements PathObjectReader {
@@ -206,7 +206,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	/**
 	 * read image metadata and build a QuPath ImageServerMetadata object.
 	 *
-	 * @return
 	 * @throws ServerError
 	 * @throws DSOutOfServiceException
 	 * @throws ExecutionException

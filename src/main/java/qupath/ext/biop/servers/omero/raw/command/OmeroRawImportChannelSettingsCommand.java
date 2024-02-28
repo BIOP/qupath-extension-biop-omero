@@ -13,7 +13,7 @@ import java.awt.image.BufferedImage;
 
 /**
  * Import channel rendering settings from OMERO.
- * The channel's name, color and brightness & contrast can be separately retrieved
+ * The channel's name, color and brightness and contrast can be separately retrieved
  *
  * @author Rémy Dornier
  *

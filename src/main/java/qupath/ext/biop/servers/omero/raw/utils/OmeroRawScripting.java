@@ -249,8 +249,8 @@ public class OmeroRawScripting {
      * Send QuPath metadata to OMERO.
      * <p>
      * <ul>
-     * <li> If the QuPath metadata key & value are identical, then a tag is created on OMERO </li>
-     * <li> If the QuPath metadata key & value are different, then a key-value pair is created on OMERO </li>
+     * <li> If the QuPath metadata key and value are identical, then a tag is created on OMERO </li>
+     * <li> If the QuPath metadata key and value are different, then a key-value pair is created on OMERO </li>
      * </ul>
      * <p>
      * @param qpMetadata Map of key-value

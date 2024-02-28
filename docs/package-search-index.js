@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"qupath.ext.biop.servers.omero.raw"}]
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"qupath.ext.biop.servers.omero.raw"},{"l":"qupath.ext.biop.servers.omero.raw.browser"},{"l":"qupath.ext.biop.servers.omero.raw.client"},{"l":"qupath.ext.biop.servers.omero.raw.command"},{"l":"qupath.ext.biop.servers.omero.raw.utils"}];updateSearchResults();

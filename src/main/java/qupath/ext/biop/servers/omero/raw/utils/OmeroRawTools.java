@@ -250,7 +250,7 @@ public class OmeroRawTools {
      * @param imageServer current QuPath entry
      * @param obj OMERO object to read the hierarchy from
      * @param qpNotif true to display a QuPath notification
-     * @return a map of the parent containers name & id
+     * @return a map of the parent containers name and id
      */
     protected static Map<String,String> getParentHierarchy(OmeroRawImageServer imageServer, GenericRepositoryObjectWrapper<?> obj, boolean qpNotif)
             throws AccessException, ServiceException, OMEROServerError, ExecutionException {

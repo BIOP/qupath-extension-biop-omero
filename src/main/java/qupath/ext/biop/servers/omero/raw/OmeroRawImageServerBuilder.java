@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 /**
  * Builder for ImageServers that make use of the OMERO-java library.
  *
- * @author Olivier Burri & Rémy Dornier
+ * @author Olivier Burri and Rémy Dornier
  *
  */
 public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedImage> {

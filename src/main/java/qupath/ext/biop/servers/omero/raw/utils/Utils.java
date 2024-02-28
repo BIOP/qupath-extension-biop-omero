@@ -245,7 +245,7 @@ public class Utils {
     }
 
     /**
-     * Convert a map < header, list_of_values > into a CSV file
+     * Convert a map into a CSV file
      *
      * @param parentTable the map containing headers and values
      * @param name file name without the extension.
@@ -282,7 +282,7 @@ public class Utils {
     }
 
     /**
-     * Convert a map < header, list_of_values > into an OMERO.table
+     * Convert a map into an OMERO.table
      *
      * @param parentTable the map containing headers and values
      * @param client the client that handles the OMERO connection
@@ -451,9 +451,9 @@ public class Utils {
     }
 
     /**
-     * Populate a map < header, list_of_values > with new measurements coming from a measurement table of new pathObjects.
+     * Populate a map with new measurements coming from a measurement table of new pathObjects.
      *
-     * @param parentTable LinkedHashMap < header, List_of_measurements > to populate. Other type of maps will not work
+     * @param parentTable LinkedHashMap to populate. Other type of maps will not work
      * @param ob QuPath Measurements table for the current image
      * @param pathObjects QuPath annotations or detections objects
      * @param imageId OMERO ID of the current image
