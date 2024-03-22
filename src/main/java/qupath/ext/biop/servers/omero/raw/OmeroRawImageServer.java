@@ -55,7 +55,6 @@ import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.lib.color.ColorModelFactory;
 import qupath.lib.common.ColorTools;
 import qupath.lib.common.GeneralTools;
-import qupath.fx.dialogs.Dialogs;
 
 import qupath.lib.images.servers.AbstractTileableImageServer;
 import qupath.lib.images.servers.ImageChannel;
@@ -599,7 +598,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 
 		BufferedImage bf = readRegion(request);
 		if(isRGB() && bf.getType() == BufferedImage.TYPE_CUSTOM){
-			logger.info("Cannot create default thumbnail ; try to get it from OMERO");
+			logger.debug("Cannot create default thumbnail ; try to get it from OMERO");
 			try {
 				return imageWrapper.getThumbnail(client.getSimpleClient(), 1024); //256
 			} catch (Exception e) {
@@ -689,7 +688,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	public void close() throws Exception {
 		super.close();
 		readerPool.close();
-		logger.info("Close OMERO reader for image ID : "+this.getId());
+		logger.debug("Close OMERO reader for image ID : "+this.getId());
 	}
 
 	/**
@@ -789,7 +788,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			mainReader = createReader(id, client);
 
 			long endTime = System.currentTimeMillis();
-			logger.info("Reader {} created in {} ms", mainReader, endTime - startTime);
+			logger.debug("Reader {} created in {} ms", mainReader, endTime - startTime);
 
 			// Make the main reader available
 			queue.add(mainReader);
@@ -819,7 +818,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				if (newReader != null) {
 					additionalReaders.add(newReader);
 					queue.add(newReader);
-					logger.info("Created new reader (total={})", additionalReaders.size());
+					logger.debug("Created new reader (total={})", additionalReaders.size());
 				} else
 					logger.warn("New OMERO reader could not be created (returned null)");
 			} catch (Exception e) {
@@ -902,7 +901,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 				return nextReader;
 			synchronized (this) {
 				if (!isClosed && (task == null || task.isDone()) && totalReaders.get() < getMaxReaders()) {
-					logger.info("Requesting reader for {}", id);
+					logger.debug("Requesting reader for {}", id);
 					task = ForkJoinPool.commonPool().submit(() -> createAdditionalReader(this.id, this.client));
 				}
 			}
@@ -1101,7 +1100,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 		@Override
 		public void close() throws Exception {
 			isClosed = true;
-			logger.info("calling close");
 			if (task != null && !task.isDone())
 				task.cancel(true);
 			for (var c : cleanables) {
@@ -1109,7 +1107,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					c.clean();
 				} catch (Exception e) {
 					logger.error("Exception during cleanup: " + e.getLocalizedMessage());
-					logger.debug(e.getLocalizedMessage(), e);
 				}
 			}
 			// Allow the queue to be garbage collected - clearing could result in a queue.poll()
@@ -1139,7 +1136,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			@Override
 			public void run() {
 				try {
-					logger.info("Cleaner " + name + " called for " + reader + " (" + reader.getReader().getPixelsId() + ")");
+					logger.debug("Cleaner " + name + " called for " + reader + " (" + reader.getReader().getPixelsId() + ")");
 					this.reader.getReader().close();
 				} catch (ServerError e) {
 					logger.warn("Error when calling cleaner for " + name, e);
