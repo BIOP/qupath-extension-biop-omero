@@ -743,10 +743,10 @@ public class OmeroRawScripting {
      * @param qpNotif true to display a QuPath notification
      * @return the ID of the new table ; -1 if sending failed
      */
-    public static long sendDetectionMeasurementToOmero(OmeroRawImageServer imageServer,
-                                                            Collection<PathObject> detectionObjects,
-                                                            ImageData<BufferedImage> imageData, boolean deletePrevious,
-                                                            String owner, boolean qpNotif){
+    public static long sendDetectionMeasurementsToOmero(OmeroRawImageServer imageServer,
+                                                        Collection<PathObject> detectionObjects,
+                                                        ImageData<BufferedImage> imageData, boolean deletePrevious,
+                                                        String owner, boolean qpNotif){
         // set the table name
         String name = detectionFileBaseName + "_" +
                 QPEx.getQuPath().getProject().getName().split("/")[0] + "_"+
@@ -2116,11 +2116,11 @@ public class OmeroRawScripting {
      * @param imageServer ImageServer of an image loaded from OMERO
      * @param imageData QuPath image
      * @return Sending status (true if the OMERO.table has been sent ; false if there were troubles during the sending process)
-     * @deprecated use {@link OmeroRawScripting#sendDetectionMeasurementToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#sendDetectionMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)} instead
      */
     @Deprecated
     public static boolean sendDetectionMeasurementTable(OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData){
-        return sendDetectionMeasurementToOmero(imageServer, QP.getDetectionObjects(), imageData, false, Utils.ALL_USERS, true) > 0;
+        return sendDetectionMeasurementsToOmero(imageServer, QP.getDetectionObjects(), imageData, false, Utils.ALL_USERS, true) > 0;
     }
 
 
@@ -2131,11 +2131,11 @@ public class OmeroRawScripting {
      * @param imageServer ImageServer of an image loaded from OMERO
      * @param imageData QuPath image
      * @return Sending status (true if the OMERO.table has been sent ; false if there were troubles during the sending process)
-     * @deprecated use {@link OmeroRawScripting#sendDetectionMeasurementToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#sendDetectionMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)} instead
      */
     @Deprecated
     public static boolean sendDetectionMeasurementTable(Collection<PathObject> detectionObjects, OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData){
-        return sendDetectionMeasurementToOmero(imageServer, detectionObjects, imageData, false, Utils.ALL_USERS, true) > 0;
+        return sendDetectionMeasurementsToOmero(imageServer, detectionObjects, imageData, false, Utils.ALL_USERS, true) > 0;
     }
 
     /**

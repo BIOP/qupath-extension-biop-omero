@@ -170,7 +170,7 @@ public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {
             // send detection measurement map
             if(detections.size() > 0) {
                 // send table to OMERO
-                if(OmeroRawScripting.sendDetectionMeasurementToOmero(omeroServer, detections, qupath.getImageData(), delPrevExp, ownerToDelete, true) > 0) nWrittenTables++;
+                if(OmeroRawScripting.sendDetectionMeasurementsToOmero(omeroServer, detections, qupath.getImageData(), delPrevExp, ownerToDelete, true) > 0) nWrittenTables++;
 
                 // send the corresponding csv file
                 if(OmeroRawScripting.sendDetectionMeasurementsAsCSVToOmero(omeroServer, detections, qupath.getImageData(), delPrevExp, ownerToDelete, true) > 0) nWrittenTables++;
