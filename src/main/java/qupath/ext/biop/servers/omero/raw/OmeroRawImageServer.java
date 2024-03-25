@@ -115,6 +115,10 @@ import java.util.stream.Collectors;
  * <p>
  * Note that this ImageServer provides access to the raw data (not JPEG rendered).
  * Fluorescence and bright-field images from OMERO can be open with it.
+ *
+ * Thanks to the code written by Peter Bankhead and the QuPath team for the BioFormatsImageServer,
+ * we were able to adapt the reader pooling and the parallelization to our OmeroRawImageServer, to make
+ * it faster and more efficient.
  * 
  * @author Olivier Burri and Rémy Dornier
  *
