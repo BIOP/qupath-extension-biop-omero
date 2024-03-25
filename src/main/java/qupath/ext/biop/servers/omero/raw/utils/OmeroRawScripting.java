@@ -1615,6 +1615,7 @@ public class OmeroRawScripting {
      *
      * @param imageServer ImageServer of an image loaded from OMERO
      * @return list of OMERO tags.
+     * @deprecated  use {@link OmeroRawScripting#addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
      */
     @Deprecated
     public static List<String> importOmeroTags(OmeroRawImageServer imageServer) {
