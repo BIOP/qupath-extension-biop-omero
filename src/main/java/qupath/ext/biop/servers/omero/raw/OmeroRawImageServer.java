@@ -424,7 +424,6 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 						break;
 					}
 				}
-
 			}
 			colorModel = ColorModelFactory.createColorModel(pixelType, channels);
 

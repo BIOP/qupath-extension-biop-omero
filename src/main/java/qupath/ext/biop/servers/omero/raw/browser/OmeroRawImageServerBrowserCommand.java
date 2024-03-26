@@ -27,6 +27,7 @@ import java.net.URI;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1299,6 +1300,10 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                             // remove "all members" owner and get data from others
                             for(OmeroRawObjects.Owner owner : allUsers)
                                 children.addAll(OmeroRawImageServerBrowserCommand.this.getChildren(parentOmeroObj, currentGroup, owner));
+
+                            // sort the project/dataset by categories and in alphabetic order
+                            children.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getType)
+                                    .thenComparing(OmeroRawObjects.OmeroRawObject::getName));
 
                             List<OmeroRawObjects.OrphanedFolder> orphanedFolders = children.stream()
                                     .filter(e -> e.getType().equals(OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER))
