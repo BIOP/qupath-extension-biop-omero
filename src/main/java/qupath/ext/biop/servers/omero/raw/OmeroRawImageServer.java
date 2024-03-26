@@ -27,6 +27,8 @@ import fr.igred.omero.meta.PlaneInfoWrapper;
 import fr.igred.omero.repository.ChannelWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.PixelsWrapper;
+import ij.ImagePlus;
+import ij.process.ImageProcessor;
 import jdk.jshell.execution.Util;
 import loci.common.DataTools;
 import loci.formats.FormatException;
@@ -45,6 +47,8 @@ import omero.model.Length;
 import omero.model.RenderingDef;
 import omero.model.Time;
 import omero.model.enums.UnitsLength;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.solr.util.ArraysUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
@@ -215,7 +219,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 * @throws DSAccessException
 	 */
 	protected void buildMetadata()
-			throws ServerError, DSOutOfServiceException, ExecutionException, DSAccessException {
+			throws ServerError, DSOutOfServiceException, ExecutionException, DSAccessException, IOException {
 
 		long startTime = System.currentTimeMillis();
 
@@ -391,8 +395,36 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			Set<String> uniqueNames = new HashSet<>(channelsNames);
 
 			if (nChannels == 3 && pixelType == PixelType.UINT8 &&
-					(nNullChannelName == 3 || channels.equals(ImageChannel.getDefaultRGBChannels()) || (imageFormat.equals("CellSens") && uniqueNames.size() == 1))) {
-				isRGB = true;
+					(nNullChannelName == 3 || channels.equals(ImageChannel.getDefaultRGBChannels()) || (imageFormat.equals("CellSens") &&
+							uniqueNames.size() == 1))) {
+
+				// generate histogram of image
+				BufferedImage smallThumbnail = imageWrapper.getThumbnail(client.getSimpleClient(), 256);
+				int[][] histogram = new int[3][256];
+				WritableRaster raster = smallThumbnail.getRaster();
+				int[] pixel = new int[4];
+				for (int y = 0; y < raster.getHeight(); y++) {
+					for (int x = 0; x < raster.getWidth(); x++) {
+						raster.getPixel(x, y, pixel);
+						for (int i = 0; i < 3; i++) {
+							histogram[i][pixel[i]]++;
+						}
+					}
+				}
+
+				// check if the image is on black or white background
+				for (int i = 0; i < 3; i++) {
+					List<Integer> histoList = Arrays.asList(ArrayUtils.toObject(histogram[i]));
+					Integer maxHistoValue = Collections.max(histoList);
+					int index = histoList.indexOf(maxHistoValue);
+					if(index > 128){
+						isRGB = true;
+					}else{
+						isRGB = false;
+						break;
+					}
+				}
+
 			}
 			colorModel = ColorModelFactory.createColorModel(pixelType, channels);
 
