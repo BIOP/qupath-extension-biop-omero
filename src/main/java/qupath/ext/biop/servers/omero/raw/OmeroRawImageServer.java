@@ -21,15 +21,10 @@
 
 package qupath.ext.biop.servers.omero.raw;
 
-import fr.igred.omero.exception.AccessException;
-import fr.igred.omero.meta.GroupWrapper;
 import fr.igred.omero.meta.PlaneInfoWrapper;
 import fr.igred.omero.repository.ChannelWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.PixelsWrapper;
-import ij.ImagePlus;
-import ij.process.ImageProcessor;
-import jdk.jshell.execution.Util;
 import loci.common.DataTools;
 import loci.formats.FormatException;
 import omero.ServerError;
@@ -48,7 +43,6 @@ import omero.model.RenderingDef;
 import omero.model.Time;
 import omero.model.enums.UnitsLength;
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.solr.util.ArraysUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
@@ -60,6 +54,7 @@ import qupath.lib.color.ColorModelFactory;
 import qupath.lib.common.ColorTools;
 import qupath.lib.common.GeneralTools;
 
+import qupath.lib.common.LogTools;
 import qupath.lib.images.servers.AbstractTileableImageServer;
 import qupath.lib.images.servers.ImageChannel;
 import qupath.lib.images.servers.ImageServerBuilder;
@@ -119,7 +114,8 @@ import java.util.stream.Collectors;
  * <p>
  * Note that this ImageServer provides access to the raw data (not JPEG rendered).
  * Fluorescence and bright-field images from OMERO can be open with it.
- *
+ * <br>
+ * <br>
  * Thanks to the code written by Peter Bankhead and the QuPath team for the BioFormatsImageServer,
  * we were able to adapt the reader pooling and the parallelization to our OmeroRawImageServer, to make
  * it faster and more efficient.
@@ -752,6 +748,8 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 	 */
 	@Deprecated
 	public Collection<PathObject> readPathObjects(String owner) {
+		LogTools.warnOnce(logger, "readPathObjects(String) is deprecated - " +
+				"use OmeroRawScripting.getROIs(OmeroRawImageServer, String, boolean) instead");
 		return OmeroRawScripting.getROIs(this, owner, true);
 	}
 

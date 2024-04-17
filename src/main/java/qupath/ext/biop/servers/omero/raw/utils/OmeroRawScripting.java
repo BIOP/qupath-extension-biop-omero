@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
+import qupath.lib.common.LogTools;
 import qupath.lib.display.ChannelDisplayInfo;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
@@ -1607,6 +1608,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static Collection<PathObject> importOmeroROIsToQuPath(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "importOmeroROIsToQuPath(OmeroRawImageServer) is deprecated - " +
+                "use addROIsToQuPath(OmeroRawImageServer, boolean, String, boolean) instead");
         return addROIsToQuPath(imageServer,  true, Utils.ALL_USERS, true);
     }
 
@@ -1619,6 +1622,9 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static List<String> importOmeroTags(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "importOmeroTags(OmeroRawImageServer) is deprecated - " +
+                "use addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean) instead");
+
         // read tags
         List<TagAnnotationWrapper> omeroTagAnnotations;
         try {
@@ -1646,6 +1652,9 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendPathObjectsToOmero(OmeroRawImageServer imageServer, Collection<PathObject> pathObjects, boolean deleteROIsOnOMERO) {
+        LogTools.warnOnce(logger, "sendPathObjectsToOmero(OmeroRawImageServer, Collection, boolean) is deprecated - " +
+                "use sendPathObjectsToOmero(OmeroRawImageServer, Collection, boolean, String, boolean) instead");
+
         List<ROIWrapper> rois = sendPathObjectsToOmero(imageServer, pathObjects, deleteROIsOnOMERO, Utils.ALL_USERS, true);
         return rois != null && !rois.isEmpty();
     }
@@ -1662,6 +1671,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendDetectionsToOmero(OmeroRawImageServer imageServer, boolean deleteROIsOnOMERO) {
+        LogTools.warnOnce(logger, "sendDetectionsToOmero(OmeroRawImageServer, boolean) is deprecated - " +
+                "will not be replaced");
         return sendDetectionsToOmero(imageServer, deleteROIsOnOMERO, Utils.ALL_USERS);
     }
 
@@ -1675,6 +1686,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendPathObjectsToOmero(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "sendPathObjectsToOmero(OmeroRawImageServer) is deprecated - " +
+                "use sendAnnotationsToOmero(OmeroRawImageServer, boolean, String, boolean) instead");
         return sendPathObjectsToOmero(imageServer, true, null);
     }
 
@@ -1691,6 +1704,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendPathObjectsToOmero(OmeroRawImageServer imageServer, boolean deleteROIsOnOMERO, String owner) {
+        LogTools.warnOnce(logger, "sendPathObjectsToOmero(OmeroRawImageServer, boolean, String) is deprecated - " +
+                "use sendAnnotationsToOmero(OmeroRawImageServer, boolean, String, boolean) instead");
         Collection<PathObject> pathObjects = QP.getAnnotationObjects();
         pathObjects.addAll(QP.getDetectionObjects());
         return sendPathObjectsToOmero(imageServer, pathObjects, deleteROIsOnOMERO, owner);
@@ -1705,6 +1720,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendAnnotationsToOmero(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "sendAnnotationsToOmero(OmeroRawImageServer) is deprecated - " +
+                "use sendAnnotationsToOmero(OmeroRawImageServer, boolean, String, boolean) instead");
         return sendAnnotationsToOmero(imageServer, false, null);
     }
 
@@ -1721,6 +1738,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendAnnotationsToOmero(OmeroRawImageServer imageServer, boolean deleteROIsOnOMERO, String owner) {
+        LogTools.warnOnce(logger, "sendAnnotationsToOmero(OmeroRawImageServer, boolean, String) is deprecated - " +
+                "use sendAnnotationsToOmero(OmeroRawImageServer, boolean, String, boolean) instead");
         Collection<PathObject> annotations = QP.getAnnotationObjects();
         return sendPathObjectsToOmero(imageServer, annotations, deleteROIsOnOMERO, owner);
     }
@@ -1736,6 +1755,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendDetectionsToOmero(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "sendDetectionsToOmero(OmeroRawImageServer) is deprecated - " +
+                "will not be replaced");
         return sendDetectionsToOmero(imageServer, false, null);
     }
 
@@ -1752,6 +1773,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendDetectionsToOmero(OmeroRawImageServer imageServer, boolean deleteROIsOnOMERO, String owner) {
+        LogTools.warnOnce(logger, "sendDetectionsToOmero(OmeroRawImageServer, boolean, String) is deprecated - " +
+                "will not be replaced");
         Collection<PathObject> detections = QP.getDetectionObjects();
         return sendPathObjectsToOmero(imageServer, detections, deleteROIsOnOMERO, owner);
     }
@@ -1770,6 +1793,8 @@ public class OmeroRawScripting {
     @Deprecated
     public static boolean sendPathObjectsToOmero(OmeroRawImageServer imageServer, Collection<PathObject> pathObjects,
                                                  boolean deleteROIsOnOMERO, String owner) {
+        LogTools.warnOnce(logger, "sendPathObjectsToOmero(OmeroRawImageServer, Collection, boolean, String) is deprecated - " +
+                "use sendPathObjectsToOmero(OmeroRawImageServer, Collection, boolean, String, boolean) instead");
         List<ROIWrapper> rois = sendPathObjectsToOmero(imageServer, pathObjects, deleteROIsOnOMERO, owner, true);
         return rois != null && !rois.isEmpty();
     }
@@ -1785,6 +1810,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendPathObjectsToOmero(OmeroRawImageServer imageServer, Collection<PathObject> pathObjects) {
+        LogTools.warnOnce(logger, "sendPathObjectsToOmero(OmeroRawImageServer, Collection) is deprecated - " +
+                "use sendPathObjectsToOmero(OmeroRawImageServer, Collection, boolean, String, boolean) instead");
         List<ROIWrapper> rois = sendPathObjectsToOmero(imageServer, pathObjects, false, Utils.ALL_USERS, true);
         return rois != null && !rois.isEmpty();
     }
@@ -1801,6 +1828,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendAnnotationsToOmero(OmeroRawImageServer imageServer, boolean deleteROIsOnOMERO) {
+        LogTools.warnOnce(logger, "sendAnnotationsToOmero(OmeroRawImageServer, boolean) is deprecated - " +
+                "use sendAnnotationsToOmero(OmeroRawImageServer, boolean, String, boolean) instead");
         List<ROIWrapper> rois = sendAnnotationsToOmero(imageServer, deleteROIsOnOMERO, Utils.ALL_USERS, true);
         return rois != null && !rois.isEmpty();
     }
@@ -1817,6 +1846,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendPathObjectsToOmero(OmeroRawImageServer imageServer, boolean deleteROIsOnOMERO) {
+        LogTools.warnOnce(logger, "sendPathObjectsToOmero(OmeroRawImageServer, boolean) is deprecated - " +
+                "use sendAnnotationsToOmero(OmeroRawImageServer, boolean, String, boolean) instead");
         List<ROIWrapper> rois = sendAnnotationsToOmero(imageServer, deleteROIsOnOMERO, Utils.ALL_USERS, true);
         return rois != null && !rois.isEmpty();
     }
@@ -1832,6 +1863,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static Client getSimpleOmeroClientInstance(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "getSimpleOmeroClientInstance(OmeroRawImageServer) is deprecated - " +
+                "use OmeroRawClient.getSimpleClient() instead");
         return imageServer.getClient().getSimpleClient();
     }
 
@@ -1846,6 +1879,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static Collection<PathObject> importOmeroROIsToQuPath(OmeroRawImageServer imageServer, boolean removePathObjects) {
+        LogTools.warnOnce(logger, "importOmeroROIsToQuPath(OmeroRawImageServer, boolean) is deprecated - " +
+                "use addROIsToQuPath(OmeroRawImageServer, boolean, String, boolean) instead");
         return addROIsToQuPath(imageServer, removePathObjects, Utils.ALL_USERS, true);
     }
 
@@ -1862,6 +1897,8 @@ public class OmeroRawScripting {
     @Deprecated
     public static Collection<PathObject> importOmeroROIsToQuPath(OmeroRawImageServer imageServer,
                                                                  boolean removePathObjects, String owner) {
+        LogTools.warnOnce(logger, "importOmeroROIsToQuPath(OmeroRawImageServer, boolean, String) is deprecated - " +
+                "use addROIsToQuPath(OmeroRawImageServer, boolean, String, boolean) instead");
         return addROIsToQuPath(imageServer, removePathObjects, owner, true);
     }
 
@@ -1884,6 +1921,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendMetadataOnOmero(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "sendMetadataOnOmero(Map, OmeroRawImageServer) is deprecated - " +
+                "use sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, Utils.UpdatePolicy, boolean) instead");
         Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.KEEP_KEYS, Utils.UpdatePolicy.KEEP_KEYS,true);
         return !(results.get(Utils.KVP_KEY).isEmpty() || results.get(Utils.TAG_KEY).isEmpty());
     }
@@ -1907,6 +1946,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendMetadataOnOmeroAndDeleteKeyValues(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "sendMetadataOnOmeroAndDeleteKeyValues(Map, OmeroRawImageServer) is deprecated - " +
+                "use sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, Utils.UpdatePolicy, boolean) instead");
         Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.DELETE_KEYS, Utils.UpdatePolicy.KEEP_KEYS, true);
         return !(results.get(Utils.KVP_KEY).isEmpty() || results.get(Utils.TAG_KEY).isEmpty());
     }
@@ -1930,6 +1971,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendMetadataOnOmeroAndUpdateKeyValues(Map<String, String> qpMetadata, OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "sendMetadataOnOmeroAndUpdateKeyValues(Map, OmeroRawImageServer) is deprecated - " +
+                "use sendQPMetadataToOmero(Map, OmeroRawImageServer, Utils.UpdatePolicy, Utils.UpdatePolicy, boolean) instead");
         Map<String, Map<String, String>> results = sendQPMetadataToOmero(qpMetadata, imageServer, Utils.UpdatePolicy.UPDATE_KEYS, Utils.UpdatePolicy.KEEP_KEYS, true);
         return !(results.get(Utils.KVP_KEY).isEmpty() || results.get(Utils.TAG_KEY).isEmpty());
     }
@@ -1940,9 +1983,12 @@ public class OmeroRawScripting {
      *
      * @param imageServer ImageServer of an image loaded from OMERO
      * @return map of OMERO Key-Value pairs
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)} instead
      */
     @Deprecated
     public static Map<String,String> importOmeroKeyValues(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "importOmeroKeyValues(OmeroRawImageServer) is deprecated - " +
+                "use addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean) instead");
         // read current key-value on OMERO
         List<NamedValue> currentOmeroKeyValues = OmeroRawTools.readKeyValuesAsNamedValue(imageServer.getClient(), imageServer.getId());
 
@@ -1973,6 +2019,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendTagsToOmero(List<String> tags, OmeroRawImageServer imageServer){
+        LogTools.warnOnce(logger, "sendTagsToOmero(List, OmeroRawImageServer) is deprecated - " +
+                "use sendTagsToOmero(List, OmeroRawImageServer, Utils.UpdatePolicy, boolean) instead");
         return sendTagsToOmero(tags, imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
     }
 
@@ -1989,10 +2037,12 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param keyValues map of key-values
-     * @deprecated use {@link OmeroRawScripting#addTagsToQuPath(ProjectImageEntry, List, Utils.UpdatePolicy, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#addKeyValuesToQuPath(ProjectImageEntry, Map, Utils.UpdatePolicy, boolean)} instead
      */
     @Deprecated
     public static void addMetadata(Map<String,String> keyValues) {
+        LogTools.warnOnce(logger, "addMetadata(Map) is deprecated - " +
+                "use addKeyValuesToQuPath(ProjectImageEntry, Map, Utils.UpdatePolicy, boolean) instead");
         addKeyValuesToQuPath(QP.getProjectEntry(), keyValues, Utils.UpdatePolicy.KEEP_KEYS, true);
     }
 
@@ -2013,6 +2063,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void addOmeroKeyValues(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "addOmeroKeyValues(OmeroRawImageServer) is deprecated - " +
+                "use addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean) instead");
         addKeyValuesToQuPath(imageServer, Utils.UpdatePolicy.KEEP_KEYS, true);
     }
 
@@ -2033,6 +2085,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void addAndUpdateMetadata(Map<String,String> keyValues) {
+        LogTools.warnOnce(logger, "addAndUpdateMetadata(Map) is deprecated - " +
+                "use addKeyValuesToQuPath(ProjectImageEntry, Map, Utils.UpdatePolicy, boolean) instead");
         addKeyValuesToQuPath(QP.getProjectEntry(), keyValues, Utils.UpdatePolicy.UPDATE_KEYS, true);
     }
 
@@ -2053,6 +2107,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void addOmeroKeyValuesAndUpdateMetadata(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "addOmeroKeyValuesAndUpdateMetadata(OmeroRawImageServer) is deprecated - " +
+                "use addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean) instead");
         addKeyValuesToQuPath(imageServer, Utils.UpdatePolicy.UPDATE_KEYS, true);
     }
 
@@ -2073,6 +2129,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void addOmeroKeyValuesAndDeleteMetadata(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "addOmeroKeyValuesAndDeleteMetadata(OmeroRawImageServer) is deprecated - " +
+                "use addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean) instead");
         addKeyValuesToQuPath(imageServer, Utils.UpdatePolicy.DELETE_KEYS, true);
     }
 
@@ -2093,6 +2151,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void addAndDeleteMetadata(Map<String,String> keyValues) {
+        LogTools.warnOnce(logger, "addAndDeleteMetadata(Map) is deprecated - " +
+                "use addKeyValuesToQuPath(ProjectImageEntry, Map, Utils.UpdatePolicy, boolean) instead");
         addKeyValuesToQuPath(QP.getProjectEntry(), keyValues, Utils.UpdatePolicy.DELETE_KEYS, true);
     }
 
@@ -2106,6 +2166,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static List<String> addTagsToQuPath(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "addTagsToQuPath(OmeroRawImageServer) is deprecated - " +
+                "use addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean) instead");
         return addTagsToQuPath(imageServer, Utils.UpdatePolicy.KEEP_KEYS,true);
     }
 
@@ -2120,6 +2182,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendDetectionMeasurementTable(OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData){
+        LogTools.warnOnce(logger, "sendDetectionMeasurementTable(OmeroRawImageServer, ImageData) is deprecated - " +
+                "use sendDetectionMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean) instead");
         return sendDetectionMeasurementsToOmero(imageServer, QP.getDetectionObjects(), imageData, false, Utils.ALL_USERS, true) > 0;
     }
 
@@ -2134,7 +2198,10 @@ public class OmeroRawScripting {
      * @deprecated use {@link OmeroRawScripting#sendDetectionMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)} instead
      */
     @Deprecated
-    public static boolean sendDetectionMeasurementTable(Collection<PathObject> detectionObjects, OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData){
+    public static boolean sendDetectionMeasurementTable(Collection<PathObject> detectionObjects, OmeroRawImageServer imageServer,
+                                                        ImageData<BufferedImage> imageData){
+        LogTools.warnOnce(logger, "sendDetectionMeasurementTable(Collection, OmeroRawImageServer, ImageData) is deprecated - " +
+                "use sendDetectionMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean) instead");
         return sendDetectionMeasurementsToOmero(imageServer, detectionObjects, imageData, false, Utils.ALL_USERS, true) > 0;
     }
 
@@ -2149,7 +2216,10 @@ public class OmeroRawScripting {
      * @deprecated use {@link OmeroRawScripting#sendMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, String, boolean, String, boolean)} instead
      */
     @Deprecated
-    public static boolean sendMeasurementTableToOmero(Collection<PathObject> annotationObjects, OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData, String tableName){
+    public static boolean sendMeasurementTableToOmero(Collection<PathObject> annotationObjects, OmeroRawImageServer imageServer,
+                                                      ImageData<BufferedImage> imageData, String tableName){
+        LogTools.warnOnce(logger, "sendMeasurementTableToOmero(Collection, OmeroRawImageServer, ImageData, String) is deprecated - " +
+                "use sendMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, String, boolean, String, boolean) instead");
         return sendMeasurementsToOmero(imageServer,annotationObjects,  imageData, tableName, false, null, true) > 0;
     }
 
@@ -2163,6 +2233,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendAnnotationMeasurementTable(OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData){
+        LogTools.warnOnce(logger, "sendAnnotationMeasurementTable(OmeroRawImageServer, ImageData) is deprecated - " +
+                "use sendAnnotationMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean) instead");
         return sendAnnotationMeasurementsToOmero(imageServer, QP.getAnnotationObjects(), imageData, false, Utils.ALL_USERS, true) > 0;
     }
 
@@ -2176,7 +2248,10 @@ public class OmeroRawScripting {
      * @deprecated use {@link OmeroRawScripting#sendAnnotationMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)} instead
      */
     @Deprecated
-    public static boolean sendAnnotationMeasurementTable(Collection<PathObject> annotationObjects, OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData){
+    public static boolean sendAnnotationMeasurementTable(Collection<PathObject> annotationObjects, OmeroRawImageServer imageServer,
+                                                         ImageData<BufferedImage> imageData){
+        LogTools.warnOnce(logger, "sendAnnotationMeasurementTable(Collection, OmeroRawImageServer, ImageData) is deprecated - " +
+                "use sendAnnotationMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean) instead");
         return sendAnnotationMeasurementsToOmero(imageServer, annotationObjects, imageData,  false, Utils.ALL_USERS, true) > 0;
     }
 
@@ -2190,6 +2265,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendDetectionMeasurementTableAsCSV(OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData){
+        LogTools.warnOnce(logger, "sendDetectionMeasurementTableAsCSV(OmeroRawImageServer, ImageData) is deprecated - " +
+                "use sendDetectionMeasurementsAsCSVToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean) instead");
         return sendDetectionMeasurementsAsCSVToOmero(imageServer, QP.getDetectionObjects(), imageData, false, Utils.ALL_USERS, true) > 0;
     }
 
@@ -2204,7 +2281,10 @@ public class OmeroRawScripting {
      * @deprecated use {@link OmeroRawScripting#sendDetectionMeasurementsAsCSVToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)} instead
      */
     @Deprecated
-    public static boolean sendDetectionMeasurementTableAsCSV(Collection<PathObject> detectionObjects, OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData){
+    public static boolean sendDetectionMeasurementTableAsCSV(Collection<PathObject> detectionObjects, OmeroRawImageServer imageServer,
+                                                             ImageData<BufferedImage> imageData){
+        LogTools.warnOnce(logger, "sendDetectionMeasurementTableAsCSV(Collection, OmeroRawImageServer, ImageData) is deprecated - " +
+                "use sendDetectionMeasurementsAsCSVToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean) instead");
         return sendDetectionMeasurementsAsCSVToOmero(imageServer, detectionObjects, imageData, false, Utils.ALL_USERS, true) > 0;
     }
 
@@ -2218,6 +2298,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendAnnotationMeasurementTableAsCSV(OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData){
+        LogTools.warnOnce(logger, "sendAnnotationMeasurementTableAsCSV(OmeroRawImageServer, ImageData) is deprecated - " +
+                "use sendAnnotationMeasurementsAsCSVToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean) instead");
         return sendAnnotationMeasurementsAsCSVToOmero(imageServer, QP.getAnnotationObjects(), imageData, false, Utils.ALL_USERS, true) > 0;
     }
 
@@ -2232,7 +2314,10 @@ public class OmeroRawScripting {
      * @deprecated use {@link OmeroRawScripting#sendAnnotationMeasurementsAsCSVToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)} instead
      */
     @Deprecated
-    public static boolean sendAnnotationMeasurementTableAsCSV(Collection<PathObject> annotationObjects, OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData){
+    public static boolean sendAnnotationMeasurementTableAsCSV(Collection<PathObject> annotationObjects, OmeroRawImageServer imageServer,
+                                                              ImageData<BufferedImage> imageData){
+        LogTools.warnOnce(logger, "sendAnnotationMeasurementTableAsCSV(Collection, OmeroRawImageServer, ImageData) is deprecated - " +
+                "use sendAnnotationMeasurementsAsCSVToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean) instead");
         return sendAnnotationMeasurementsAsCSVToOmero(imageServer, annotationObjects, imageData, false, Utils.ALL_USERS, true) > 0;
     }
 
@@ -2248,7 +2333,10 @@ public class OmeroRawScripting {
      * @deprecated use {@link OmeroRawScripting#sendMeasurementAsCSVToOmero(OmeroRawImageServer, Collection, ImageData, String, boolean, String, boolean)} instead
      */
     @Deprecated
-    public static boolean sendMeasurementTableAsCSVToOmero(Collection<PathObject> pathObjects, OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData, String filename){
+    public static boolean sendMeasurementTableAsCSVToOmero(Collection<PathObject> pathObjects, OmeroRawImageServer imageServer,
+                                                           ImageData<BufferedImage> imageData, String filename){
+        LogTools.warnOnce(logger, "sendMeasurementTableAsCSVToOmero(Collection, OmeroRawImageServer, ImageData, String) is deprecated - " +
+                "use sendMeasurementAsCSVToOmero(OmeroRawImageServer, Collection, ImageData, String, boolean, String, boolean) instead");
         return sendMeasurementAsCSVToOmero(imageServer, pathObjects, imageData, filename, false, null, true) > 0;
     }
 
@@ -2263,6 +2351,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void deleteDetectionFiles(OmeroRawImageServer imageServer){
+        LogTools.warnOnce(logger, "deleteDetectionFiles(OmeroRawImageServer) is deprecated - " +
+                "use deleteDetectionMeasurements(OmeroRawImageServer, String, boolean) instead");
         deleteDetectionMeasurements(imageServer, Utils.ALL_USERS, true);
     }
 
@@ -2276,6 +2366,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void deleteDetectionFiles(OmeroRawImageServer imageServer, Collection<FileAnnotationData> files){
+        LogTools.warnOnce(logger, "deleteDetectionFiles(OmeroRawImageServer, Collection) is deprecated - " +
+                "use deleteDetectionMeasurements(OmeroRawImageServer, String, boolean) instead");
         deleteDetectionFiles(imageServer, files, null);
     }
 
@@ -2291,6 +2383,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void deleteDetectionFiles(OmeroRawImageServer imageServer, Collection<FileAnnotationData> files, String owner){
+        LogTools.warnOnce(logger, "deleteDetectionFiles(OmeroRawImageServer, Collection, String) is deprecated - " +
+                "use deleteDetectionMeasurements(OmeroRawImageServer, String, boolean) instead");
         try{
             List<FileAnnotationWrapper> fileWrappers = files.stream().map(FileAnnotationWrapper::new).collect(Collectors.toList());
             String name = detectionFileBaseName + "_" + QPEx.getQuPath().getProject().getName().split("/")[0];
@@ -2312,6 +2406,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void deleteFiles(OmeroRawImageServer imageServer, String name){
+        LogTools.warnOnce(logger, "deleteFiles(OmeroRawImageServer, String) is deprecated - " +
+                "use Client.delete(Collection) instead");
         try{
             List<FileAnnotationWrapper> fileWrappers = imageServer.getImageWrapper().getFileAnnotations(imageServer.getClient().getSimpleClient());
             deletePreviousFileVersions(imageServer.getClient(), fileWrappers, name, null, null);
@@ -2330,6 +2426,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static List<FileAnnotationData> readFilesAttachedToCurrentImageOnOmero(OmeroRawImageServer imageServer){
+        LogTools.warnOnce(logger, "readFilesAttachedToCurrentImageOnOmero(OmeroRawImageServer) is deprecated - " +
+                "use ImageWrapper.getFileAnnotations(Client) instead");
         try {
             return imageServer.getImageWrapper().getFileAnnotations(imageServer.getClient().getSimpleClient())
                     .stream()
@@ -2352,6 +2450,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     protected static FileAnnotationData linkFile(OmeroRawClient client, FileAnnotationData fileAnnotationData, DataObject container){
+        LogTools.warnOnce(logger, "linkFile(OmeroRawImageServer, FileAnnotation) is deprecated - " +
+                "use fr.igred.omero.repository.GenericRepositoryObjectWrapper.link(Client, GenericAnnotationWrapper[]) instead");
         return (FileAnnotationData) OmeroRawTools.linkAnnotationToOmero(client, fileAnnotationData, container);
     }
 
@@ -2365,6 +2465,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void deleteAnnotationFiles(OmeroRawImageServer imageServer){
+        LogTools.warnOnce(logger, "deleteAnnotationFiles(OmeroRawImageServer) is deprecated - " +
+                "use deleteAnnotationMeasurements(OmeroRawImageServer, String, boolean) instead");
         deleteAnnotationMeasurements(imageServer, Utils.ALL_USERS, true);
     }
 
@@ -2379,6 +2481,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void deleteAnnotationFiles(OmeroRawImageServer imageServer, Collection<FileAnnotationData> files){
+        LogTools.warnOnce(logger, "deleteAnnotationFiles(OmeroRawImageServer, Collection) is deprecated - " +
+                "use deleteAnnotationMeasurements(OmeroRawImageServer, String, boolean) instead");
         deleteAnnotationFiles(imageServer, files, null);
     }
 
@@ -2393,6 +2497,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void deleteAnnotationFiles(OmeroRawImageServer imageServer, Collection<FileAnnotationData> files, String owner){
+        LogTools.warnOnce(logger, "deleteAnnotationFiles(OmeroRawImageServer, Collection, String) is deprecated - " +
+                "use deleteAnnotationMeasurements(OmeroRawImageServer, String, boolean) instead");
         try{
             List<FileAnnotationWrapper> fileWrappers = files.stream().map(FileAnnotationWrapper::new).collect(Collectors.toList());
             String name = annotationFileBaseName + "_" + QPEx.getQuPath().getProject().getName().split("/")[0];
@@ -2424,6 +2530,8 @@ public class OmeroRawScripting {
     public static boolean sendParentMeasurementTableAsOmeroTable(LinkedHashMap<String, List<String>> parentTable,
                                                                  OmeroRawClient client, Collection<DataObject> parents,
                                                                  boolean deletePreviousTable){
+        LogTools.warnOnce(logger, "sendParentMeasurementTableAsOmeroTable(LinkedHashMap, List, OmeroRawClient, Collection, boolean) is deprecated - " +
+                "use sendParentMeasurementsToOmero(LinkedHashMap, OmeroRawClient, Collection, boolean, String, boolean) instead");
         return sendParentMeasurementTableAsOmeroTable(parentTable, client, parents, deletePreviousTable, Utils.ALL_USERS);
     }
 
@@ -2450,6 +2558,8 @@ public class OmeroRawScripting {
     public static boolean sendParentMeasurementTableAsOmeroTable(LinkedHashMap<String, List<String>> parentTable,
                                                                  OmeroRawClient client, Collection<DataObject> parents,
                                                                  boolean deletePreviousTable, String owner){
+        LogTools.warnOnce(logger, "sendParentMeasurementTableAsOmeroTable(LinkedHashMap, List, OmeroRawClient, Collection, boolean, String) is deprecated - " +
+                "use sendParentMeasurementsToOmero(LinkedHashMap, OmeroRawClient, Collection, boolean, String, boolean) instead");
         Collection<GenericRepositoryObjectWrapper<?>> parentWrappers = new ArrayList<>();
         for(DataObject parent : parents){
             if(parent instanceof DatasetData)
@@ -2488,6 +2598,8 @@ public class OmeroRawScripting {
     public static boolean sendParentMeasurementTableAsCSV(LinkedHashMap<String, List<String>> parentTable,
                                                           OmeroRawClient client, Collection<DataObject> parents,
                                                           boolean deletePreviousTable){
+        LogTools.warnOnce(logger, "sendParentMeasurementTableAsCSV(LinkedHashMap, List, OmeroRawClient, Collection, boolean) is deprecated - " +
+                "use sendParentMeasurementsAsCSVToOmero(LinkedHashMap, OmeroRawClient, Collection, boolean, String, boolean) instead");
         return sendParentMeasurementTableAsCSV(parentTable, client, parents, deletePreviousTable, Utils.ALL_USERS);
     }
 
@@ -2513,7 +2625,8 @@ public class OmeroRawScripting {
     public static boolean sendParentMeasurementTableAsCSV(LinkedHashMap<String, List<String>> parentTable,
                                                           OmeroRawClient client, Collection<DataObject> parents,
                                                           boolean deletePreviousTable, String owner){
-
+        LogTools.warnOnce(logger, "sendParentMeasurementTableAsCSV(LinkedHashMap, List, OmeroRawClient, Collection, boolean, String) is deprecated - " +
+                "use sendParentMeasurementsAsCSVToOmero(LinkedHashMap, OmeroRawClient, Collection, boolean, String, boolean) instead");
         Collection<GenericRepositoryObjectWrapper<?>> parentWrappers = new ArrayList<>();
         for(DataObject parent : parents){
             if(parent instanceof DatasetData)
@@ -2547,6 +2660,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void setChannelsDisplayRangeFromOmeroChannel(OmeroRawImageServer imageServer) {
+        LogTools.warnOnce(logger, "setChannelsDisplayRangeFromOmeroChannel(OmeroRawImageServer) is deprecated - " +
+                "use copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer, boolean) instead");
         copyOmeroChannelsDisplayRangeToQuPath(imageServer, true);
     }
 
@@ -2566,6 +2681,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void setChannelsColorFromOmeroChannel(OmeroRawImageServer imageServer){
+        LogTools.warnOnce(logger, "setChannelsColorFromOmeroChannel(OmeroRawImageServer) is deprecated - " +
+                "use copyOmeroChannelsColorToQuPath(OmeroRawImageServer, boolean) instead");
         copyOmeroChannelsColorToQuPath(imageServer, true);
     }
 
@@ -2584,6 +2701,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static void setChannelsNameFromOmeroChannel(OmeroRawImageServer imageServer){
+        LogTools.warnOnce(logger, "setChannelsNameFromOmeroChannel(OmeroRawImageServer) is deprecated - " +
+                "use copyOmeroChannelsNameToQuPath(OmeroRawImageServer, boolean) instead");
         copyOmeroChannelsNameToQuPath(imageServer, true);
     }
 
@@ -2605,6 +2724,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendChannelsDisplayRangeToOmero(OmeroRawImageServer imageServer){
+        LogTools.warnOnce(logger, "sendChannelsDisplayRangeToOmero(OmeroRawImageServer) is deprecated - " +
+                "use sendQuPathChannelsDisplayRangeToOmero(OmeroRawImageServer, boolean) instead");
         return sendQuPathChannelsDisplayRangeToOmero(imageServer, true);
     }
 
@@ -2624,6 +2745,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendChannelsNameToOmero(OmeroRawImageServer imageServer){
+        LogTools.warnOnce(logger, "sendChannelsNameToOmero(OmeroRawImageServer) is deprecated - " +
+                "use sendQuPathChannelsNameToOmero(OmeroRawImageServer, boolean) instead");
         return sendQuPathChannelsNameToOmero(imageServer, true);
     }
 
@@ -2643,6 +2766,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendChannelsColorToOmero(OmeroRawImageServer imageServer){
+        LogTools.warnOnce(logger, "sendChannelsColorToOmero(OmeroRawImageServer) is deprecated - " +
+                "use sendQuPathChannelsColorToOmero(OmeroRawImageServer, boolean) instead");
         return sendQuPathChannelsColorToOmero(imageServer, true);
     }
 
@@ -2656,6 +2781,8 @@ public class OmeroRawScripting {
      */
     @Deprecated
     public static boolean sendImageNameToOmero(OmeroRawImageServer imageServer){
+        LogTools.warnOnce(logger, "sendImageNameToOmero(OmeroRawImageServer) is deprecated - " +
+                "use sendQuPathImageNameToOmero(OmeroRawImageServer, boolean) instead");
         return sendQuPathImageNameToOmero(imageServer, true);
     }
 

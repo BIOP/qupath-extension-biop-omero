@@ -37,7 +37,11 @@ import fr.igred.omero.annotations.RatingAnnotationWrapper;
 import fr.igred.omero.annotations.TagAnnotationWrapper;
 import fr.igred.omero.annotations.TextualAnnotationWrapper;
 import omero.model.NamedValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
+import qupath.lib.common.LogTools;
 
 /**
  * Class representing OMERO annotations.
@@ -52,6 +56,8 @@ import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
  * @author Rémy Dornier
  */
 final class OmeroRawAnnotations {
+
+    private final static Logger logger = LoggerFactory.getLogger(OmeroRawAnnotations.class);
 
     public enum OmeroRawAnnotationType {
         TAG("tag"),
@@ -381,6 +387,8 @@ final class OmeroRawAnnotations {
      */
     @Deprecated
     public static OmeroRawAnnotations getOmeroAnnotations(OmeroRawClient client, OmeroRawAnnotationType annotationType, List<?> annotations) {
+        LogTools.warnOnce(logger, "getOmeroAnnotations(OmeroRawClient, OmeroRawAnnotationType, List) is deprecated - " +
+                "use getOmeroAnnotations(OmeroRawAnnotationType, AnnotationList) instead");
         AnnotationList annotationList = new AnnotationList();
         annotationList.addAll((Collection<GenericAnnotationWrapper<?>>)annotations);
         return getOmeroAnnotations(annotationType, annotationList);

@@ -28,6 +28,7 @@ import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.ext.biop.servers.omero.raw.utils.Utils;
 import qupath.fx.dialogs.Dialogs;
+import qupath.lib.common.LogTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.commands.ProjectCommands;
 import qupath.lib.gui.tools.IconFactory;
@@ -711,6 +712,7 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static URI getStandardURI(URI uri, OmeroRawClient client) throws IOException, ExecutionException, DSOutOfServiceException, DSAccessException {
+        LogTools.warnOnce(logger, "getStandardURI(URI, OmeroRawClient) is deprecated - will not be replaced");
         List<String> ids = new ArrayList<>();
         String vertBarSign = "%7C";
 
@@ -798,6 +800,7 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static int parseOmeroRawObjectId(URI uri, OmeroRawObjects.OmeroRawObjectType type) {
+        LogTools.warnOnce(logger, "parseOmeroRawObjectId(URI, OmeroRawObjects.OmeroRawObjectType) is deprecated - will not be replaced");
         String cleanUri = uri.toString().replace("%3D", "=");
         Matcher m;
         switch (type) {
@@ -839,6 +842,7 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static OmeroRawObjects.OmeroRawObjectType parseOmeroRawObjectType(URI uri) {
+        LogTools.warnOnce(logger, "parseOmeroRawObjectType(URI) is deprecated - will not be replaced");
         var uriString = uri.toString().replace("%3D", "=");
         if (patternLinkProject.matcher(uriString).find())
             return OmeroRawObjects.OmeroRawObjectType.PROJECT;
@@ -865,6 +869,8 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static OmeroRawAnnotations readAnnotationsItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject obj, OmeroRawAnnotations.OmeroRawAnnotationType category) {
+        LogTools.warnOnce(logger, "readAnnotationsItems(Client, OmeroRawObjects.OmeroRawObject, OmeroRawAnnotations.OmeroRawAnnotationType) " +
+                "is deprecated - will not be replaced");
         try {
             return OmeroRawAnnotations.getOmeroAnnotations(category, obj.getWrapper().getAnnotations(client.getSimpleClient()));
         }catch(Exception e){
@@ -884,6 +890,7 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static List<OmeroRawObjects.OmeroRawObject> getOrphanedFolderItem(OmeroRawClient client, OmeroRawObjects.Group group, OmeroRawObjects.Owner owner){
+        LogTools.warnOnce(logger, "getOrphanedFolderItem(OmeroRawClient, OmeroRawObjects.Group, OmeroRawObjects.Owner) is deprecated - will not be replaced");
         List<OmeroRawObjects.OmeroRawObject> list = new ArrayList<>();
         try{
             // get orphaned datasets
@@ -917,6 +924,7 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static OmeroRawObjects.Owner getOwnerItem(Experimenter user){
+        LogTools.warnOnce(logger, "getOwnerItem(Experimenter) is deprecated - will not be replaced");
         ExperimenterWrapper experimenterWrapper = new ExperimenterWrapper(new ExperimenterData(user));
         return new OmeroRawObjects.Owner(experimenterWrapper);
     }
@@ -930,6 +938,7 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static OmeroRawObjects.Owner getDefaultOwnerItem(OmeroRawClient client)  {
+        LogTools.warnOnce(logger, "getDefaultOwnerItem(OmeroRawClient) is deprecated - will not be replaced");
         return new OmeroRawObjects.Owner(client.getLoggedInUser());
     }
 
@@ -942,6 +951,7 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static OmeroRawObjects.Group getDefaultGroupItem(OmeroRawClient client) {
+        LogTools.warnOnce(logger, "getDefaultGroupItem(OmeroRawClient) is deprecated - will not be replaced");
         GroupWrapper userGroup = client.getLoggedInUser().getDefaultGroup();
         return new OmeroRawObjects.Group(userGroup, userGroup.getId(), userGroup.getName());
     }
@@ -955,6 +965,8 @@ public class OmeroRawBrowserTools {
      */
     @Deprecated
     public static Map<OmeroRawObjects.Group,List<OmeroRawObjects.Owner>> getGroupUsersMapAvailableForCurrentUser(OmeroRawClient client) {
+        LogTools.warnOnce(logger, "getGroupUsersMapAvailableForCurrentUser(OmeroRawClient) is deprecated - " +
+                "use getAvailableGroupUsersMap(OmeroRawClient) instead");
         return getAvailableGroupUsersMap(client);
     }
 

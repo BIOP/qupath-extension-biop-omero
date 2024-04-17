@@ -96,6 +96,7 @@ import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.ext.biop.servers.omero.raw.utils.Utils;
+import qupath.lib.common.LogTools;
 import qupath.lib.common.ThreadTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
@@ -1384,6 +1385,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
      */
     @Deprecated
     public static Node createStateNode(boolean loggedIn) {
+        LogTools.warnOnce(logger, "createStateNode(boolean) is deprecated - " +
+                "use OmeroRawBrowserTools.createStateNode(boolean) instead");
         return OmeroRawBrowserTools.createStateNode(loggedIn);
     }
 }

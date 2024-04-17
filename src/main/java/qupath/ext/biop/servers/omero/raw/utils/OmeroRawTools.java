@@ -43,7 +43,6 @@ import fr.igred.omero.Client;
 import fr.igred.omero.annotations.GenericAnnotationWrapper;
 import fr.igred.omero.annotations.MapAnnotationWrapper;
 import fr.igred.omero.annotations.TableWrapper;
-import fr.igred.omero.annotations.TagAnnotationWrapper;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
@@ -108,6 +107,7 @@ import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
 import qupath.lib.common.GeneralTools;
 import qupath.fx.dialogs.Dialogs;
+import qupath.lib.common.LogTools;
 import qupath.lib.gui.measure.ObservableMeasurementTableData;
 import qupath.lib.objects.PathObject;
 
@@ -487,6 +487,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<AnnotationData> readOmeroAnnotations(OmeroRawClient client, DataObject obj){
+        LogTools.warnOnce(logger, "readOmeroAnnotations(OmeroRawClient, DataObject) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.getAnnotations(Client) instead");
         try {
             // read annotations linked to the image
             return client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getAnnotations(client.getSimpleClient().getCtx(), obj);
@@ -514,6 +516,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<WellData> readOmeroWells(OmeroRawClient client, long plateId){
+        LogTools.warnOnce(logger, "readOmeroWells(OmeroRawClient, long) is deprecated - " +
+                "use PlateWrapper.getWells(Client) instead");
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getWells(client.getSimpleClient().getCtx(), plateId);
         }catch(ExecutionException | DSOutOfServiceException e){
@@ -539,6 +543,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<ImageData> readOrphanedImages(OmeroRawClient client, long userId) {
+        LogTools.warnOnce(logger, "readOrphanedImages(OmeroRawClient, long) is deprecated - " +
+                "use Client.getOrphanedImages(ExperimenterWrapper) instead");
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getOrphanedImages(client.getSimpleClient().getCtx(), userId);
         } catch (ExecutionException e) {
@@ -558,8 +564,10 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<DatasetData> readOmeroOrphanedDatasets(OmeroRawClient client)  {
-        Collection<DatasetData> orphanedDatasets;
+        LogTools.warnOnce(logger, "readOmeroOrphanedDatasets(OmeroRawClient) is deprecated - " +
+                "use Client.getOrphanedDatasets(ExperimenterWrapper) instead");
 
+        Collection<DatasetData> orphanedDatasets;
         try {
             // query orphaned dataset
             List<IObject> datasetObjects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select dataset from Dataset as dataset " +
@@ -601,6 +609,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<DatasetData> readOrphanedDatasets(OmeroRawClient client, long userId) {
+        LogTools.warnOnce(logger, "readOmeroOrphanedDatasets(OmeroRawClient, long) is deprecated - " +
+                "use Client.getOrphanedDatasets(ExperimenterWrapper) instead");
         try {
             // query orphaned dataset
             List<IObject> datasetObjects = client.getSimpleClient().getGateway().getQueryService(client.getSimpleClient().getCtx()).findAllByQuery("select dataset from Dataset as dataset " +
@@ -641,6 +651,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<ProjectData> readOmeroProjects(OmeroRawClient client, List<Long> projectIds){
+        LogTools.warnOnce(logger, "readOmeroProjects(OmeroRawClient, List) is deprecated - " +
+                "use Client.getProjects(Long...) instead");
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), projectIds);
         }catch(ExecutionException | DSOutOfServiceException e){
@@ -667,6 +679,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<ProjectData> readOmeroProjectsByUser(OmeroRawClient client, long userId){
+        LogTools.warnOnce(logger, "readOmeroProjectsByUser(OmeroRawClient, long) is deprecated - " +
+                "use Client.getProjects(ExperimenterWrapper) instead");
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getProjects(client.getSimpleClient().getCtx(), userId);
         }catch(ExecutionException | DSOutOfServiceException e){
@@ -692,6 +706,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<ScreenData> readOmeroScreensByUser(OmeroRawClient client, long userId){
+        LogTools.warnOnce(logger, "readOmeroScreensByUser(OmeroRawClient, long) is deprecated - " +
+                "use Client.getScreens(ExperimenterWrapper) instead");
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getScreens(client.getSimpleClient().getCtx(), userId);
         }catch(ExecutionException | DSOutOfServiceException e){
@@ -717,6 +733,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<DatasetData> readOmeroDatasets(OmeroRawClient client, List<Long> datasetIds){
+        LogTools.warnOnce(logger, "readOmeroDatasets(OmeroRawClient, List) is deprecated - " +
+                "use Client.getDatasets(Long...) instead");
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getDatasets(client.getSimpleClient().getCtx(), datasetIds);
         }catch(ExecutionException | DSOutOfServiceException e){
@@ -742,6 +760,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<PlateData> readOmeroPlates(OmeroRawClient client, List<Long> plateIds){
+        LogTools.warnOnce(logger, "readOmeroPlates(OmeroRawClient, List) is deprecated - " +
+                "use OmeroRawTools.readPlates(OmeroRawClient, List) instead");
         List<PlateWrapper> plates;
         try{
             plates = readPlates(client, plateIds);
@@ -762,6 +782,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static void deleteAllOmeroROIs(OmeroRawClient client, long imageId) {
+        LogTools.warnOnce(logger, "deleteAllOmeroROIs(OmeroRawClient, long) is deprecated - " +
+                "use Client.delete(Collection) instead");
         try {
             // extract ROIData
             List<IObject> roiData = client.getSimpleClient().getImage(imageId).getROIs(client.getSimpleClient())
@@ -794,6 +816,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static void deleteOmeroROIs(OmeroRawClient client, Collection<ROIData> roisToDelete) {
+        LogTools.warnOnce(logger, "deleteOmeroROIs(OmeroRawClient, Collection) is deprecated - " +
+                "use Client.delete(Collection) instead");
         try {
             // Convert to IObject
             List<IObject> roiData = roisToDelete.stream().map(ROIData::asIObject).collect(Collectors.toList());
@@ -824,6 +848,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean writeOmeroROIs(OmeroRawClient client, long imageId, List<ROIData> omeroRois) {
+        LogTools.warnOnce(logger, "deleteOmeroROIs(OmeroRawClient, long, List) is deprecated - " +
+                "use ImageWrapper.saveROIs(Client, ROIWrapper...) instead");
         boolean roiSaved = false;
 
         // import ROIs on OMERO
@@ -857,6 +883,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<ROIWrapper> createOmeroROIsFromPathObjects(Collection<PathObject> pathObjects){
+        LogTools.warnOnce(logger, "createOmeroROIsFromPathObjects(Collection) is deprecated - " +
+                "will not be replaced");
         return OmeroRawShapes.createOmeroROIsFromPathObjects(pathObjects);
     }
 
@@ -869,6 +897,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<PathObject> createPathObjectsFromOmeroROIs(List<ROIWrapper> roiWrapperList){
+        LogTools.warnOnce(logger, "createPathObjectsFromOmeroROIs(List) is deprecated - " +
+                "will not be replaced");
         return OmeroRawShapes.createPathObjectsFromOmeroROIs(roiWrapperList);
     }
 
@@ -881,6 +911,7 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static String getROIComment(Shape shape){
+        LogTools.warnOnce(logger, "getROIComment(Shape) is deprecated - will not be replaced");
         return OmeroRawShapes.getROIComment(shape);
     }
 
@@ -893,6 +924,7 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<String> getROIComment(ROIData roiData) {
+        LogTools.warnOnce(logger, "getROIComment(ROIData) is deprecated - will not be replaced");
         return OmeroRawShapes.getROIComment(new ROIWrapper(roiData));
     }
 
@@ -905,6 +937,7 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static String[] parseROIComment(String comment) {
+        LogTools.warnOnce(logger, "parseROIComment(String) is deprecated - will not be replaced");
         return OmeroRawShapes.parseROIComment(comment);
     }
 
@@ -920,6 +953,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean updateKeyValuesOnOmero(List<MapAnnotationData> keyValuePairs, OmeroRawClient client) {
+        LogTools.warnOnce(logger, "updateKeyValuesOnOmero(List, OmeroRawClient) is deprecated - " +
+                "will not be replaced");
         boolean wasUpdated = true;
         try {
             // update key-values to OMERO
@@ -944,10 +979,12 @@ public class OmeroRawTools {
      * @param keyValuePairs
      * @param client
      * @return Deleting status (True if deleted ; false with error message otherwise)
-     * @deprecated use {@link GenericRepositoryObjectWrapper#link(Client, GenericAnnotationWrapper[])} instead
+     * @deprecated use {@link Client#delete(Collection)} instead
      */
     @Deprecated
     public static boolean deleteKeyValuesOnOmero(List<MapAnnotationData> keyValuePairs, OmeroRawClient client) {
+        LogTools.warnOnce(logger, "deleteKeyValuesOnOmero(List, OmeroRawClient) is deprecated - " +
+                "use Client.delete(Collection) instead");
         boolean wasDeleted = true;
         try {
             // remove current key-values
@@ -974,6 +1011,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean checkUniqueKeyInAnnotationMap(List<NamedValue> keyValues){
+        LogTools.warnOnce(logger, "checkUniqueKeyInAnnotationMap(List) is deprecated - " +
+                "will not be replaced");
         return Utils.checkUniqueKeyInAnnotationMap(keyValues);
     }
 
@@ -988,6 +1027,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean addKeyValuesOnOmero(MapAnnotationData keyValuePairs, OmeroRawClient client, long imageId) {
+        LogTools.warnOnce(logger, "addKeyValuesOnOmero(Map, OmeroRawClient, long) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.link(Client, GenericAnnotationWrapper) instead");
         boolean wasAdded = true;
         try {
             // get current image from OMERO
@@ -1019,6 +1060,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<NamedValue> readKeyValuesAsNamedValue(OmeroRawClient client, long imageId) {
+        LogTools.warnOnce(logger, "readKeyValuesAsNamedValue(OmeroRawClient, long) is deprecated - " +
+                "use ImageWrapper.getMapAnnotations(Client) and MapAnnotationWrapper.getContent() instead");
         return readKeyValues(client, imageId).stream()
                 .flatMap(e->((List<NamedValue>)(e.getContent())).stream())
                 .collect(Collectors.toList());
@@ -1034,8 +1077,10 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<MapAnnotationData> readKeyValues(OmeroRawClient client, long imageId) {
-        List<MapAnnotationData> annotations;
+        LogTools.warnOnce(logger, "readKeyValues(OmeroRawClient, long) is deprecated - " +
+                "use ImageWrapper.getMapAnnotations(Client) instead");
 
+        List<MapAnnotationData> annotations;
         try {
             // get current image from OMERO
             ImageWrapper imageWrapper = client.getSimpleClient().getImage(imageId);
@@ -1065,8 +1110,10 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<TagAnnotationData> readTags(OmeroRawClient client, long imageId) {
-        List<AnnotationData> annotations;
+        LogTools.warnOnce(logger, "readTags(OmeroRawClient, long) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.getTags(Client) instead");
 
+        List<AnnotationData> annotations;
         try {
             // get current image from OMERO
             ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
@@ -1103,6 +1150,7 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<TagAnnotationData> readUserTags(OmeroRawClient client) {
+        LogTools.warnOnce(logger, "readUserTags(OmeroRawClient) is deprecated - use Client.getTags() instead");
         List<IObject> objects;
 
         try {
@@ -1134,6 +1182,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean addTagsOnOmero(TagAnnotationData tags, OmeroRawClient client, long imageId) {
+        LogTools.warnOnce(logger, "addTagsOnOmero(TagAnnotationData, OmeroRawClient, long) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.link(Client, GenericAnnotationWrapper) instead");
         boolean wasAdded = true;
         try {
             // get current image from OMERO
@@ -1170,6 +1220,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static DatasetData createNewDataset(OmeroRawClient client, long projectId, String datasetName, String datasetDescription) {
+        LogTools.warnOnce(logger, "createNewDataset(OmeroRawClient, long, String, String) is deprecated - " +
+                "use ProjectWrapper.addDataset(Client, String, String) instead");
         try {
             ProjectWrapper projectWrapper = client.getSimpleClient().getProject(projectId);
             return projectWrapper.addDataset(client.getSimpleClient(), datasetName, datasetDescription).asDataObject();
@@ -1197,6 +1249,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static DatasetData createNewDataset(OmeroRawClient client, String datasetName, String datasetDescription){
+        LogTools.warnOnce(logger, "createNewDataset(OmeroRawClient, String, String) is deprecated - " +
+                "use new DatasetWrapper(String, String) and DatasetWrapper.saveAndUpdate(Client) instead");
         try {
             DatasetWrapper datasetWrapper = new DatasetWrapper(datasetName, datasetDescription);
             datasetWrapper.saveAndUpdate(client.getSimpleClient());
@@ -1224,6 +1278,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static DatasetData createNewDataset(OmeroRawClient client, String datasetName){
+        LogTools.warnOnce(logger, "createNewDataset(OmeroRawClient, String) is deprecated - " +
+                "use new DatasetWrapper(String, String) and DatasetWrapper.saveAndUpdate(Client) instead");
         try {
             DatasetWrapper datasetWrapper = new DatasetWrapper(datasetName,"");
             datasetWrapper.saveAndUpdate(client.getSimpleClient());
@@ -1252,6 +1308,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static DatasetData createNewDataset(OmeroRawClient client, long projectId, String datasetName){
+        LogTools.warnOnce(logger, "createNewDataset(OmeroRawClient, long, String) is deprecated - " +
+                "use ProjectWrapper.addDataset(Client, String, String) instead");
         try {
             ProjectWrapper projectWrapper = client.getSimpleClient().getProject(projectId);
             return projectWrapper.addDataset(client.getSimpleClient(), datasetName, "").asDataObject();
@@ -1279,6 +1337,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static DatasetData readOmeroDataset(OmeroRawClient client, Long datasetId){
+        LogTools.warnOnce(logger, "readOmeroDataset(OmeroRawClient, Long) is deprecated - " +
+                "use Client.getDataset(Long) instead");
         Collection<DatasetData> datasets = readOmeroDatasets(client, Collections.singletonList(datasetId));
         if(datasets.isEmpty())
             return null;
@@ -1292,6 +1352,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static String getCurrentDateAndHour(){
+        LogTools.warnOnce(logger, "getCurrentDateAndHour() is deprecated - " +
+                "use Utils.getCurrentDateAndHour()) instead");
        return Utils.getCurrentDateAndHour();
     }
 
@@ -1303,6 +1365,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static String getErrorStackTraceAsString(Exception e){
+        LogTools.warnOnce(logger, "getErrorStackTraceAsString(Exception) is deprecated - " +
+                "use Utils.getErrorStackTraceAsString(Exception)) instead");
         return Utils.getErrorStackTraceAsString(e);
     }
 
@@ -1317,6 +1381,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<Map<String, String>> splitNewAndExistingKeyValues(Map<String, String> reference, Map<String, String> target){
+        LogTools.warnOnce(logger, "splitNewAndExistingKeyValues(Map, Map) is deprecated - " +
+                "use Utils.splitNewAndExistingKeyValues(Map, Map)) instead");
         Map<String, Map<String, String>> keyMap = Utils.splitNewAndExistingKeyValues(reference, target);
 
         // add the two separate maps to a list.
@@ -1337,6 +1403,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<ChannelData> readOmeroChannels(OmeroRawClient client, long imageId){
+        LogTools.warnOnce(logger, "readOmeroChannels(OmeroRawClient, long) is deprecated - " +
+                "use ImageWrapper.getChannels(Client)) instead");
         try {
             // get channels
             return client.getSimpleClient().getGateway().getFacility(MetadataFacility.class).getChannelData(client.getSimpleClient().getCtx(), imageId);
@@ -1363,6 +1431,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static String readImageFileType(OmeroRawClient client, long imageId){
+        LogTools.warnOnce(logger, "readImageFileType(OmeroRawClient, long) is deprecated - " +
+                "use ImageWrapper.getFormat()) instead");
         try {
             ImageData imageData = client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
             return imageData.asImage().getFormat().getValue().getValue();
@@ -1390,6 +1460,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean downloadImage(OmeroRawClient client, long imageId, String path){
+        LogTools.warnOnce(logger, "downloadImage(OmeroRawClient, long, String) is deprecated - " +
+                "use ImageWrapper.download(Client, String)) instead");
         boolean wasDownloaded = true;
         try {
             if(new File(path).exists())
@@ -1424,6 +1496,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<Long> uploadImage(OmeroRawClient client, long datasetId, String path){
+        LogTools.warnOnce(logger, "uploadImage(OmeroRawClient, long, String) is deprecated - " +
+                "use DatasetWrapper.importImage(Client, String)) instead");
         DatasetWrapper dataset;
         try {
             dataset = client.getSimpleClient().getDataset(datasetId);
@@ -1448,6 +1522,8 @@ public class OmeroRawTools {
     @Deprecated
     public static List<Long> uploadImage(OmeroRawClient client, DatasetWrapper dataset, String path)
             throws AccessException, ServiceException, OMEROServerError, ExecutionException {
+        LogTools.warnOnce(logger, "uploadImage(OmeroRawClient, DatasetWrapper, String) is deprecated - " +
+                "use DatasetWrapper.importImage(Client, String)) instead");
         if(dataset == null){
             Dialogs.showErrorNotification("OMERO - Upload image", "The dataset you want to access does not exist");
             return Collections.emptyList();
@@ -1469,7 +1545,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static BufferedImage getThumbnail(OmeroRawClient client, long imageId, int prefSize) {
-
+        LogTools.warnOnce(logger, "getThumbnail(OmeroRawClient, long, int) is deprecated - " +
+                "use ImageWrapper.getThumbnail(Client, int)) instead");
         // get the current defaultPixel
         ImageWrapper imageWrapper;
         try {
@@ -1494,10 +1571,12 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean updateObjectsOnOmero(OmeroRawClient client, List<IObject> objects){
+        LogTools.warnOnce(logger, "updateObjectsOnOmero(OmeroRawClient, List) is deprecated - " +
+                "use the official API DataManagerFacility.updateObjects(SecurityContext, List, Parameters) instead");
         boolean wasAdded = true;
         try{
             // update the object on OMERO
-            client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).updateObjects(client.getSimpleClient().getCtx(), objects, null);
+            client.getSimpleClient().getDm().updateObjects(client.getSimpleClient().getCtx(), objects, null);
         } catch (ExecutionException | DSOutOfServiceException e){
             Dialogs.showErrorNotification("Update objects","Error during updating objects on OMERO.");
             logger.error(String.valueOf(e));
@@ -1523,6 +1602,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean updateObjectOnOmero(OmeroRawClient client, IObject object){
+        LogTools.warnOnce(logger, "updateObjectOnOmero(OmeroRawClient, IObject) is deprecated - " +
+                "use the official API DataManagerFacility.updateObject(SecurityContext, IObject, Parameters) instead");
         boolean wasAdded = true;
         try{
             // update the object on OMERO
@@ -1553,7 +1634,10 @@ public class OmeroRawTools {
      * @deprecated Method moved with a non-public access
      */
     @Deprecated
-    public static TableData convertMeasurementTableToOmeroTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, OmeroRawClient client, long imageId) {
+    public static TableData convertMeasurementTableToOmeroTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob,
+                                                                OmeroRawClient client, long imageId) {
+        LogTools.warnOnce(logger, "convertMeasurementTableToOmeroTable(Collection, ObservableMeasurementTableData, OmeroRawClient, long) is deprecated - " +
+                "will not be replaced");
         ImageWrapper imgWrapper;
         try {
             imgWrapper = client.getSimpleClient().getImage(imageId);
@@ -1576,6 +1660,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean addTableToOmero(TableData table, String name, OmeroRawClient client, long imageId) {
+        LogTools.warnOnce(logger, "addTableToOmero(TableData, String, OmeroRawClient, long) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.addTable(Client, TableWrapper) instead");
         boolean wasAdded = true;
         try{
             // get the current image to attach the omero.table to
@@ -1610,6 +1696,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static TableData addTableToOmero(TableData table, String name, OmeroRawClient client, DataObject container) {
+        LogTools.warnOnce(logger, "addTableToOmero(TableData, String, OmeroRawClient, DataObject) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.addTable(Client, TableWrapper) instead");
         try{
             // attach the omero.table to the image
             return client.getSimpleClient().getGateway().getFacility(TablesFacility.class).addTable(client.getSimpleClient().getCtx(), container, name, table);
@@ -1638,6 +1726,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean addAttachmentToOmero(File file, OmeroRawClient client, long imageId) {
+        LogTools.warnOnce(logger, "addAttachmentToOmero(File, OmeroRawClient, long) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.link(Client, GenericAnnotationWrapper[]) instead");
         return addAttachmentToOmero(file, client, imageId, null,"");
     }
 
@@ -1654,6 +1744,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean addAttachmentToOmero(File file, OmeroRawClient client, long imageId, String miemtype) {
+        LogTools.warnOnce(logger, "addAttachmentToOmero(File, OmeroRawClient, long, String) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.link(Client, GenericAnnotationWrapper[]) instead");
         return addAttachmentToOmero(file, client, imageId, miemtype,"");
     }
 
@@ -1671,6 +1763,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean addAttachmentToOmero(File file, OmeroRawClient client, long imageId, String miemtype, String description) {
+        LogTools.warnOnce(logger, "addAttachmentToOmero(File, OmeroRawClient, long, String, String) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.link(Client, GenericAnnotationWrapper[]) instead");
         boolean wasAdded = true;
         try{
             // get the current image to attach the omero.table to
@@ -1705,6 +1799,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static FileAnnotationData addAttachmentToOmero(File file, OmeroRawClient client, DataObject obj) {
+        LogTools.warnOnce(logger, "addAttachmentToOmero(File, OmeroRawClient, DataObject) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.link(Client, GenericAnnotationWrapper[]) instead");
         return addAttachmentToOmero(file, client, obj, null,"");
     }
 
@@ -1721,6 +1817,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static FileAnnotationData addAttachmentToOmero(File file, OmeroRawClient client, DataObject obj, String miemtype) {
+        LogTools.warnOnce(logger, "addAttachmentToOmero(File, OmeroRawClient, DataObject, String) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.link(Client, GenericAnnotationWrapper[]) instead");
         return addAttachmentToOmero(file, client, obj, miemtype,"");
     }
 
@@ -1738,6 +1836,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static FileAnnotationData addAttachmentToOmero(File file, OmeroRawClient client, DataObject obj, String miemtype, String description) {
+        LogTools.warnOnce(logger, "addAttachmentToOmero(File, OmeroRawClient, DataObject, String, String) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.link(Client, GenericAnnotationWrapper[]) instead");
         try{
             // attach the omero.table to the image
             return client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).attachFile(client.getSimpleClient().getCtx(), file, miemtype, description, file.getName(), obj).get();
@@ -1761,6 +1861,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     static AnnotationData linkAnnotationToOmero(OmeroRawClient client, AnnotationData annotationData, DataObject obj) {
+        LogTools.warnOnce(logger, "addAttachmentToOmero(OmeroRawClient, AnnotationData, DataObject) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.link(Client, GenericAnnotationWrapper[]) instead");
         try{
             // attach the omero.table to the image
             return client.getSimpleClient().getGateway().getFacility(DataManagerFacility.class).attachAnnotation(client.getSimpleClient().getCtx(), annotationData, obj);
@@ -1791,7 +1893,10 @@ public class OmeroRawTools {
      * @deprecated Method moved to a non-public class
      */
     @Deprecated
-    public static File buildCSVFileFromMeasurementTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob, long imageId, String name, String path) {
+    public static File buildCSVFileFromMeasurementTable(Collection<PathObject> pathObjects, ObservableMeasurementTableData ob,
+                                                        long imageId, String name, String path) {
+        LogTools.warnOnce(logger, "buildCSVFileFromMeasurementTable(Collection, ObservableMeasurementTableData, long, String, String) is deprecated - " +
+                "will not be replaced");
         return Utils.buildCSVFileFromMeasurementTable(pathObjects, ob, imageId, name);
     }
 
@@ -1806,6 +1911,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<FileAnnotationData> readAttachments(OmeroRawClient client, long imageId) {
+        LogTools.warnOnce(logger, "readAttachments(OmeroRawClient, long) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.getFileAnnotations(Client) instead");
         List<AnnotationData> annotations;
         try{
             // read image
@@ -1844,6 +1951,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<FileAnnotationData> readAttachments(OmeroRawClient client, DataObject parent) {
+        LogTools.warnOnce(logger, "readAttachments(OmeroRawClient, DataObject) is deprecated - " +
+                "use GenericRepositoryObjectWrapper.getFileAnnotations(Client) instead");
         List<AnnotationData> annotations;
         try{
             // get annotations
@@ -1881,6 +1990,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<FileAnnotationData> readTables(OmeroRawClient client, long imageId) {
+        LogTools.warnOnce(logger, "readTables(OmeroRawClient, long) is deprecated - " +
+                "use ImageWrapper.getTables(Client) instead");
         try{
             // read image
             ImageData image = client.getSimpleClient().getImage(imageId).asDataObject();
@@ -1909,6 +2020,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static boolean deleteFiles(OmeroRawClient client, List<FileAnnotationData> data){
+        LogTools.warnOnce(logger, "deleteFiles(OmeroRawClient, List) is deprecated - " +
+                "use Client.delete(Collection) instead");
         boolean hasBeenDeleted = false;
 
         try{
@@ -1938,6 +2051,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static ImageData readOmeroImage(OmeroRawClient client, long imageId){
+        LogTools.warnOnce(logger, "readOmeroImage(OmeroRawClient, long) is deprecated - " +
+                "use Client.getImage(Long) instead");
         try {
             return client.getSimpleClient().getGateway().getFacility(BrowseFacility.class).getImage(client.getSimpleClient().getCtx(), imageId);
         }catch(ExecutionException | DSOutOfServiceException e){
@@ -1963,6 +2078,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     private static DataObject readObject(OmeroRawClient client, String objectClassData, long id){
+        LogTools.warnOnce(logger, "readObject(OmeroRawClient, String, long) is deprecated - " +
+                "will not be replaced");
         try {
             return  client.getSimpleClient().getBrowseFacility().findObject(client.getSimpleClient().getCtx(), objectClassData, id, true);
         } catch(ExecutionException | DSOutOfServiceException e) {
@@ -1988,6 +2105,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     private static IObject readIObject(OmeroRawClient client, String objectClass, long id){
+        LogTools.warnOnce(logger, "readIObject(OmeroRawClient, String, long) is deprecated - " +
+                "will not be replaced");
         try {
             return  client.getSimpleClient().getBrowseFacility().findIObject(client.getSimpleClient().getCtx(), objectClass, id, true);
         } catch(ExecutionException | DSOutOfServiceException e) {
@@ -2013,6 +2132,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static ExperimenterWrapper getOmeroUser(OmeroRawClient client, long userId, String username){
+        LogTools.warnOnce(logger, "getOmeroUser(OmeroRawClient, long, String) is deprecated - " +
+                "use Client.getUser(long) or Client.getUser(String) instead");
         try {
             return client.getSimpleClient().getUser(userId);
         } catch (ServerError | DSOutOfServiceException e) {
@@ -2034,6 +2155,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<Experimenter> getOmeroUsersInGroup(OmeroRawClient client, long groupId){
+        LogTools.warnOnce(logger, "getOmeroUsersInGroup(OmeroRawClient, long) is deprecated - " +
+                "use Client.getGroup(long).getExperimenters() instead");
         try {
             return client.getSimpleClient().getGroup(groupId).getExperimenters().stream()
                     .map(ExperimenterWrapper::asDataObject)
@@ -2058,6 +2181,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static ExperimenterGroup getOmeroGroup(OmeroRawClient client, long groupId, String username){
+        LogTools.warnOnce(logger, "getOmeroUsersInGroup(OmeroRawClient, long, String) is deprecated - " +
+                "use Client.getGroup(long) or Client.getGroup(String) instead");
         try {
             return client.getSimpleClient().getGroup(groupId).asDataObject().asGroup();
         } catch (ServerError | DSOutOfServiceException e) {
@@ -2079,6 +2204,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static List<ExperimenterGroup> getUserOmeroGroups(OmeroRawClient client, long userId) {
+        LogTools.warnOnce(logger, "getUserOmeroGroups(OmeroRawClient, long) is deprecated - " +
+                "use Client.getUser(long).getGroups() instead");
         return client.getLoggedInUser().getGroups().stream()
                 .map(GroupWrapper::asDataObject)
                 .map(GroupData::asGroup)
@@ -2096,6 +2223,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static ExperimenterGroup getDefaultOmeroGroup(OmeroRawClient client, long userId) {
+        LogTools.warnOnce(logger, "getDefaultOmeroGroup(OmeroRawClient, long) is deprecated - " +
+                "use Client.getUser(long).getDefaultGroup() instead");
         try {
             return client.getSimpleClient().getGateway().getAdminService(client.getSimpleClient().getCtx()).getDefaultGroup(userId);
         } catch (ServerError | DSOutOfServiceException e) {
@@ -2112,9 +2241,12 @@ public class OmeroRawTools {
      *
      * @param client
      * @return The list of all groups on OMERO server
+     * @deprecated use {@link Client#getGroups()} if the user is admin. Otherwise, use {@link ExperimenterWrapper#getGroups()}
      */
     @Deprecated
     public static List<ExperimenterGroup> getAllOmeroGroups(OmeroRawClient client) {
+        LogTools.warnOnce(logger, "getAllOmeroGroups(OmeroRawClient) is deprecated - " +
+                "use Client.getGroups() if the user is admin ; otherwise use Client.getLoggedInUser().getGroups()");
         List<GroupWrapper >groups;
         if(client.isAdmin()) {
             try {
@@ -2146,6 +2278,8 @@ public class OmeroRawTools {
      */
     @Deprecated
     public static Collection<? extends DataObject> getParent(OmeroRawClient client, String dataType, long id){
+        LogTools.warnOnce(logger, "getParent(OmeroRawClient, String, long) is deprecated - " +
+                "use getParentContainer(OmeroRawClient, GenericRepositoryObjectWrapper, boolean) instead");
         try {
             GenericRepositoryObjectWrapper<?> container;
             switch(dataType.toLowerCase()){
@@ -2181,5 +2315,4 @@ public class OmeroRawTools {
             return Collections.emptyList();
         }
     }
-
 }
