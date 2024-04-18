@@ -3,13 +3,18 @@
 Welcome to the BIOP-OMERO extension for [QuPath](http://qupath.github.io)!
 
 This adds support for accessing images hosted on an [OMERO](https://www.openmicroscopy.org/omero/) 
-server through OMERO-ICE API.
+server through [simple-omero-client](https://github.com/GReD-Clermont/simple-omero-client) API, based on OMERO-ICE API.
 
-The extension is intended for QuPath v0.4 (at the time of writing).
-It is not compatible with earlier QuPath versions. However, the 0.2.0 version of this extension is the last compatible one with QuPath 0.3.2.
+The extension is intended for QuPath v0.5.x (at the time of writing).
+It is not compatible with earlier QuPath versions. However, the 0.7.0 version of this extension is the last compatible one with QuPath 0.4.4.
 
 ## Documentation
-You can find all the documentation on how to use this extension on our [wiki page](https://wiki-biop.epfl.ch/en/data-management/omero/qupath).
+- You can find all the documentation on how to use this extension on our [wiki page](https://wiki-biop.epfl.ch/en/data-management/omero/qupath).
+- The JavaDoc of this project is available on the [GitHub Page](https://biop.github.io/qupath-extension-biop-omero/qupath/ext/biop/servers/omero/raw/package-summary.html).
+
+### Template scripts
+- All QuPath-OMERO commands can be used in QuPath scripts (groovy language).
+Template scripts that make the use of the scripting API are available on our [GitHub - qupath-scripts](https://github.com/BIOP/qupath-scripts/tree/main/Extensions/OMERO).
 
 ## Installing
 
@@ -29,7 +34,7 @@ The extension will then be copied to a location inside that directory.
 
 ## Building
 
-You can build the extension using OpenJDK 11 or later with
+You can build the extension using OpenJDK 17 or later with
 
 ```bash
 gradlew clean build
