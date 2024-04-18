@@ -28,6 +28,11 @@ The extension will then be copied to a location inside that directory.
 - The `OMERO-java dependencies` are required to make this extension working. Download the .zip file from the [OMERO download page](https://www.openmicroscopy.org/omero/downloads/), under "OMERO Java". Unzip it and copy "libs" folder in your extension directory.
 
 
+> WARNING
+>
+> Due to an unexpected bug in QuPath 0.5.0, the dependencies nested in sub-folder are not read anymore. 
+> This bug is now fixed in QuPath 0.5.1.
+
 *Update*
 - You might then need to restart QuPath (but not your computer).
 
