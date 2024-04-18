@@ -45,8 +45,11 @@ import qupath.lib.objects.PathObject;
  * Command to write path objects back to the OMERO server where the
  * current image is hosted.
  *
- * @author Melvin Gelbard
  * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Melvin Gelbard
+ *
  *
  */
 public class OmeroRawWriteAnnotationObjectsCommand implements Runnable {

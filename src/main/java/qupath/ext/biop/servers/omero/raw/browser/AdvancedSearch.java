@@ -57,8 +57,10 @@ import java.util.stream.Collectors;
  * Class that handles the advanced search dialog to make a deeper research of which image to import.
  * Note: This feature is not implemented anymore.
  *
- * @author Melvin Gelbard
  * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Melvin Gelbard
  */
 class AdvancedSearch {
     private final TableView<SearchResult> resultsTableView = new TableView<>();

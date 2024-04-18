@@ -33,8 +33,10 @@ import java.util.concurrent.ExecutionException;
 /**
  * Class that handles the More info dialog to make appear all the annotations linked to the selected image / container
  *
- * @author Melvin Gelbard
  * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Melvin Gelbard
  */
 class AdvancedObjectInfo {
     private static final String BOLD = "-fx-font-weight: bold";

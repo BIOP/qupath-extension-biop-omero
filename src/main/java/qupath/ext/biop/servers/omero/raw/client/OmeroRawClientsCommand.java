@@ -61,8 +61,11 @@ import qupath.fx.utils.GridPaneUtils;
  * Command to manually manage OMERO web clients. This offers the possibility to log in/off
  * and 'forget' OMERO raw clients.
  *
- * @author Melvin Gelbard
  * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Melvin Gelbard
+ *
  */
 public class OmeroRawClientsCommand implements Runnable {
 

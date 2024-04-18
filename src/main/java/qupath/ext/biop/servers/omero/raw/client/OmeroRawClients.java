@@ -35,11 +35,13 @@ import java.util.Set;
 
 /**
  * Class to keep track of active OMERO clients.
- * 
- * @author Melvin Gelbard
- * @author Nicolas Chiaruttini
+ *
  * @author Olivier Burri
- *  *
+ * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Melvin Gelbard
+ *
  */
 public class OmeroRawClients {
 

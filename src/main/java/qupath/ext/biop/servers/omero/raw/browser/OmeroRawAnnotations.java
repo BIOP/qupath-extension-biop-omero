@@ -52,8 +52,10 @@ import qupath.lib.common.LogTools;
  * Note: Tables annotations are ignored (the Table harmonica in OMERO webclient)
  * but the OMERO.tables are still fetched.
  *
- * @author Melvin Gelbard
  * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Melvin Gelbard
  */
 final class OmeroRawAnnotations {
 

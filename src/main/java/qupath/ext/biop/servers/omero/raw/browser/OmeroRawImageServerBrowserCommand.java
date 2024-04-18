@@ -108,8 +108,10 @@ import qupath.lib.projects.ProjectImageEntry;
 /**
  * Command to browse a specified OMERO server and import images from that server
  *
- * @author Melvin Gelbard
  * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Melvin Gelbard
  */
 public class OmeroRawImageServerBrowserCommand implements Runnable {
     private final static Logger logger = LoggerFactory.getLogger(OmeroRawImageServerBrowserCommand.class);

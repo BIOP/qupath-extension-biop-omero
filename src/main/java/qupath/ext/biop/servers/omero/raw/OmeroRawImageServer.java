@@ -120,7 +120,11 @@ import java.util.stream.Collectors;
  * we were able to adapt the reader pooling and the parallelization to our OmeroRawImageServer, to make
  * it faster and more efficient.
  * 
- * @author Olivier Burri and Rémy Dornier
+ * @author Olivier Burri
+ * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Peter Bankhead
  *
  */
 public class OmeroRawImageServer extends AbstractTileableImageServer implements PathObjectReader {

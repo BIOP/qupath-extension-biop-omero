@@ -92,7 +92,16 @@ import qupath.lib.roi.RectangleROI;
 import qupath.lib.roi.RoiTools;
 import qupath.lib.roi.interfaces.ROI;
 
-
+/**
+ * Handles the conversion between PathObjects and OMERO-ROIs
+ *
+ * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Melvin Gelbard
+ * @author Peter Bankhead
+ *
+ */
 public class OmeroRawShapes {
 
     private final static Logger logger = LoggerFactory.getLogger(OmeroRawShapes.class);

@@ -65,7 +65,12 @@ import java.util.Objects;
  * Class representing an OMERO Raw Client. This class takes care of
  * logging in, keeping the connection alive and logging out.
  *
- * @author Olivier Burri and Rémy Dornier
+ * @author Olivier Burri
+ * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Melvin Gelbard
+ *
  */
 public class OmeroRawClient {
     final private static Logger logger = LoggerFactory.getLogger(OmeroRawClient.class);

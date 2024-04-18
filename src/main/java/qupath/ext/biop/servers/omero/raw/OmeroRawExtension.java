@@ -65,6 +65,12 @@ import qupath.fx.utils.GridPaneUtils;
 
 /**
  * Extension to access images hosted on OMERO.
+ *
+ * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Peter Bankhead
+ * @author Melvin Gelbard
  */
 public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 	
