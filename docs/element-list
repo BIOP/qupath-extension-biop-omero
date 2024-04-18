@@ -1,1 +1,5 @@
 qupath.ext.biop.servers.omero.raw
+qupath.ext.biop.servers.omero.raw.browser
+qupath.ext.biop.servers.omero.raw.client
+qupath.ext.biop.servers.omero.raw.command
+qupath.ext.biop.servers.omero.raw.utils

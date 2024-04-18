@@ -3,13 +3,18 @@
 Welcome to the BIOP-OMERO extension for [QuPath](http://qupath.github.io)!
 
 This adds support for accessing images hosted on an [OMERO](https://www.openmicroscopy.org/omero/) 
-server through OMERO-ICE API.
+server through [simple-omero-client](https://github.com/GReD-Clermont/simple-omero-client) API, based on OMERO-ICE API.
 
 The extension is intended for QuPath v0.5.x (at the time of writing).
 It is not compatible with earlier QuPath versions. However, the 0.7.0 version of this extension is the last compatible one with QuPath 0.4.4.
 
 ## Documentation
-You can find all the documentation on how to use this extension on our [wiki page](https://wiki-biop.epfl.ch/en/data-management/omero/qupath).
+- You can find all the documentation on how to use this extension on our [wiki page](https://wiki-biop.epfl.ch/en/data-management/omero/qupath).
+- The JavaDoc of this project is available on the [GitHub Page](https://biop.github.io/qupath-extension-biop-omero/qupath/ext/biop/servers/omero/raw/package-summary.html).
+
+### Template scripts
+- All QuPath-OMERO commands can be used in QuPath scripts (groovy language).
+Template scripts that make the use of the scripting API are available on our [GitHub - qupath-scripts](https://github.com/BIOP/qupath-scripts/tree/main/Extensions/OMERO).
 
 ## Installing
 
@@ -27,6 +32,11 @@ The extension will then be copied to a location inside that directory.
 > Due to an unexpected bug in QuPath 0.5.0, the dependencies nested in sub-folder are not read anymore. Alternatively, and until this QuPath bug will be fixed, instead of the ``libs`` folder, you can add the ``OMERO-Fiji plugin Image J / Fiji - omero_ij-5.8.3-all.jar``. This fat jar replaces the ``libs`` folder. It can be dowloaded from here https://www.openmicroscopy.org/omero/downloads/.
 
 
+
+> WARNING
+>
+> Due to an unexpected bug in QuPath 0.5.0, the dependencies nested in sub-folder are not read anymore. 
+> This bug is now fixed in QuPath 0.5.1.
 
 *Update*
 - You might then need to restart QuPath (but not your computer).

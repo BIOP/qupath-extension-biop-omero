@@ -12,7 +12,7 @@ ext.qupathVersion = gradle.ext.qupathVersion
 archivesBaseName = 'qupath-extension-biop-omero'
 description = "QuPath extension to support image reading using OMERO's Java API."
 group = "ch.epfl.biop"
-version = "0.8.2-SNAPHOT"
+version = "1.0.0-SNAPSHOT"
 
 repositories {
   maven{
@@ -28,17 +28,12 @@ configurations {
 }
 
 dependencies {
-    //implementation libs.commons.text
-   // implementation "commons-io:commons-io:2.11.0"
     implementation "io.github.qupath:qupath-fxtras:0.1.0"
     implementation "io.github.qupath:qupath-core:${qupathVersion}"
     implementation "io.github.qupath:qupath-gui-fx:${qupathVersion}"
 
-    implementation "org.openmicroscopy:omero-gateway:5.8.1"
-    implementation "fr.igred:simple-omero-client:5.16.0"
-
-    //testImplementation libs.junit
-    //testRuntimeOnly libs.junit.engine
+    implementation "org.openmicroscopy:omero-gateway:5.9.0"
+    implementation "fr.igred:simple-omero-client:5.18.0"
 }
 
 processResources {

@@ -2,6 +2,10 @@ package qupath.ext.biop.servers.omero.raw;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import qupath.ext.biop.servers.omero.raw.client.OmeroRawClient;
+import qupath.ext.biop.servers.omero.raw.client.OmeroRawClients;
+import qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools;
+import qupath.fx.dialogs.Dialogs;
 import qupath.lib.images.servers.ImageServer;
 import qupath.lib.images.servers.ImageServerBuilder;
 
@@ -21,6 +25,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+/**
+ * Builder for ImageServers that make use of the OMERO-java library.
+ *
+ * @author Olivier Burri
+ * @author Rémy Dornier
+ *
+ * Based on the initial work of
+ * @author Peter Bankhead
+ *
+ */
 public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedImage> {
 
     final private static Logger logger = LoggerFactory.getLogger(OmeroRawImageServerBuilder.class);
@@ -121,8 +135,10 @@ public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedIm
                 URI serverUri = OmeroRawTools.getServerURI(uri);
                 OmeroRawClient client = OmeroRawClients.getClientFromServerURI(serverUri);
                 return new OmeroRawImageServer(uri, client, args);
+            } catch (IOException e) {
+                Dialogs.showErrorNotification("OMERO raw server", uri + " - " + e.getLocalizedMessage());
             } catch (Exception e) {
-                Utils.errorLog(logger,"OMERO Raw server", "Could not build server " + uri, e,true);
+                e.printStackTrace();
             }
         }
         return null;
@@ -139,7 +155,7 @@ public class OmeroRawImageServerBuilder implements ImageServerBuilder<BufferedIm
             try {
                 uris = getURIs(uri, args);
             } catch (IOException e) {
-                Utils.errorLog(logger,"OMERO Raw server","Could not get server URIs", e, true);
+                Dialogs.showErrorNotification("OMERO Raw server", e.getLocalizedMessage());
             }
 
             for (var subURI : uris) {
