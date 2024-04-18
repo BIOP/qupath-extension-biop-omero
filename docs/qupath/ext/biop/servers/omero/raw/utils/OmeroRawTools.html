@@ -290,7 +290,7 @@ loadScripts(document, 'script');</script>
  <a href="../client/OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw.client">OmeroRawClient</a>&nbsp;client)</code></div>
 <div class="col-last odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4 method-summary-table-tab6">
 <div class="block"><span class="deprecated-label">Deprecated.</span>
-<div class="deprecation-comment">use <code>AnnotatableWrapper.link(Client, GenericAnnotationWrapper[])</code> instead</div>
+<div class="deprecation-comment">use <code>Client.delete(Collection)</code> instead</div>
 </div>
 </div>
 <div class="col-first even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4 method-summary-table-tab6"><code>static void</code></div>
@@ -313,7 +313,9 @@ loadScripts(document, 'script');</script>
 <div class="col-first even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4 method-summary-table-tab6"><code>static <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a>&lt;omero.model.ExperimenterGroup&gt;</code></div>
 <div class="col-second even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4 method-summary-table-tab6"><code><a href="#getAllOmeroGroups(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient)" class="member-name-link">getAllOmeroGroups</a><wbr>(<a href="../client/OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw.client">OmeroRawClient</a>&nbsp;client)</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4 method-summary-table-tab6">
-<div class="block"><span class="deprecated-label">Deprecated.</span></div>
+<div class="block"><span class="deprecated-label">Deprecated.</span>
+<div class="deprecation-comment">use <code>Client.getGroups()</code> if the user is admin.</div>
+</div>
 </div>
 <div class="col-first odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4 method-summary-table-tab6"><code>static <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a></code></div>
 <div class="col-second odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4 method-summary-table-tab6"><code><a href="#getCurrentDateAndHour()" class="member-name-link">getCurrentDateAndHour</a>()</code></div>
@@ -1224,7 +1226,7 @@ omero.ServerError</span></div>
 </span><span class="modifiers">public static</span>&nbsp;<span class="return-type">boolean</span>&nbsp;<span class="element-name">deleteKeyValuesOnOmero</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a>&lt;omero.gateway.model.MapAnnotationData&gt;&nbsp;keyValuePairs,
  <a href="../client/OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw.client">OmeroRawClient</a>&nbsp;client)</span></div>
 <div class="deprecation-block"><span class="deprecated-label">Deprecated.</span>
-<div class="deprecation-comment">use <code>AnnotatableWrapper.link(Client, GenericAnnotationWrapper[])</code> instead</div>
+<div class="deprecation-comment">use <code>Client.delete(Collection)</code> instead</div>
 </div>
 <div class="block">Delete specified key value pairs on OMERO server</div>
 <dl class="notes">
@@ -2132,7 +2134,9 @@ fr.igred.omero.exception.OMEROServerError,
 <h3>getAllOmeroGroups</h3>
 <div class="member-signature"><span class="annotations"><a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Deprecated.html" title="class or interface in java.lang" class="external-link">@Deprecated</a>
 </span><span class="modifiers">public static</span>&nbsp;<span class="return-type"><a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a>&lt;omero.model.ExperimenterGroup&gt;</span>&nbsp;<span class="element-name">getAllOmeroGroups</span><wbr><span class="parameters">(<a href="../client/OmeroRawClient.html" title="class in qupath.ext.biop.servers.omero.raw.client">OmeroRawClient</a>&nbsp;client)</span></div>
-<div class="deprecation-block"><span class="deprecated-label">Deprecated.</span></div>
+<div class="deprecation-block"><span class="deprecated-label">Deprecated.</span>
+<div class="deprecation-comment">use <code>Client.getGroups()</code> if the user is admin. Otherwise, use <code>ExperimenterWrapper.getGroups()</code></div>
+</div>
 <div class="block">get all the groups on OMERO server. This functionality is reserved to Admin people. In case you are not
  Admin, <code>ExperimenterWrapper.getGroups()</code> method is called instead.</div>
 <dl class="notes">

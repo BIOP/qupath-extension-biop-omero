@@ -119,7 +119,7 @@ loadScripts(document, 'script');</script>
 </div>
 <div class="col-summary-item-name even-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addMetadata(java.util.Map)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting.addMetadata<wbr>(Map&lt;String, String&gt;)</a></div>
 <div class="col-last even-row-color">
-<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addTagsToQuPath(qupath.lib.projects.ProjectImageEntry,java.util.List,qupath.ext.biop.servers.omero.raw.utils.Utils.UpdatePolicy,boolean)"><code>OmeroRawScripting.addTagsToQuPath(ProjectImageEntry, List, Utils.UpdatePolicy, boolean)</code></a> instead</div>
+<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addKeyValuesToQuPath(qupath.lib.projects.ProjectImageEntry,java.util.Map,qupath.ext.biop.servers.omero.raw.utils.Utils.UpdatePolicy,boolean)"><code>OmeroRawScripting.addKeyValuesToQuPath(ProjectImageEntry, Map, Utils.UpdatePolicy, boolean)</code></a> instead</div>
 </div>
 <div class="col-summary-item-name odd-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addOmeroKeyValues(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting.addOmeroKeyValues<wbr>(OmeroRawImageServer)</a></div>
 <div class="col-last odd-row-color">
@@ -170,7 +170,9 @@ loadScripts(document, 'script');</script>
 <div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/client/OmeroRawClient.html#getSimpleClient()"><code>OmeroRawClient.getSimpleClient()</code></a> instead (accessible from <a href="qupath/ext/biop/servers/omero/raw/OmeroRawImageServer.html#getClient()"><code>OmeroRawImageServer.getClient()</code></a>)</div>
 </div>
 <div class="col-summary-item-name odd-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#importOmeroKeyValues(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting.importOmeroKeyValues<wbr>(OmeroRawImageServer)</a></div>
-<div class="col-last odd-row-color"></div>
+<div class="col-last odd-row-color">
+<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addKeyValuesToQuPath(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,qupath.ext.biop.servers.omero.raw.utils.Utils.UpdatePolicy,boolean)"><code>OmeroRawScripting.addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)</code></a> instead</div>
+</div>
 <div class="col-summary-item-name even-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#importOmeroROIsToQuPath(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting.importOmeroROIsToQuPath<wbr>(OmeroRawImageServer)</a></div>
 <div class="col-last even-row-color">
 <div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addROIsToQuPath(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.addROIsToQuPath(OmeroRawImageServer, boolean, String, boolean)</code></a> instead</div>
@@ -184,7 +186,9 @@ loadScripts(document, 'script');</script>
 <div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addROIsToQuPath(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.addROIsToQuPath(OmeroRawImageServer, boolean, String, boolean)</code></a> instead</div>
 </div>
 <div class="col-summary-item-name odd-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#importOmeroTags(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting.importOmeroTags<wbr>(OmeroRawImageServer)</a></div>
-<div class="col-last odd-row-color"></div>
+<div class="col-last odd-row-color">
+<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addTagsToQuPath(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,qupath.ext.biop.servers.omero.raw.utils.Utils.UpdatePolicy,boolean)"><code>OmeroRawScripting.addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)</code></a> instead</div>
+</div>
 <div class="col-summary-item-name even-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#linkFile(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,omero.gateway.model.FileAnnotationData,omero.gateway.model.DataObject)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting.linkFile<wbr>(OmeroRawClient, FileAnnotationData, DataObject)</a></div>
 <div class="col-last even-row-color">
 <div class="deprecation-comment">use <code>AnnotatableWrapper.link(Client, GenericAnnotationWrapper[])</code> instead</div>
@@ -235,11 +239,11 @@ loadScripts(document, 'script');</script>
 </div>
 <div class="col-summary-item-name even-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementTable(java.util.Collection,qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,qupath.lib.images.ImageData)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting.sendDetectionMeasurementTable<wbr>(Collection&lt;PathObject&gt;, OmeroRawImageServer, ImageData&lt;BufferedImage&gt;)</a></div>
 <div class="col-last even-row-color">
-<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.sendDetectionMeasurementToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)</code></a> instead</div>
+<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementsToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.sendDetectionMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)</code></a> instead</div>
 </div>
 <div class="col-summary-item-name odd-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementTable(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,qupath.lib.images.ImageData)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting.sendDetectionMeasurementTable<wbr>(OmeroRawImageServer, ImageData&lt;BufferedImage&gt;)</a></div>
 <div class="col-last odd-row-color">
-<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.sendDetectionMeasurementToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)</code></a> instead</div>
+<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementsToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.sendDetectionMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)</code></a> instead</div>
 </div>
 <div class="col-summary-item-name even-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementTableAsCSV(java.util.Collection,qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,qupath.lib.images.ImageData)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting.sendDetectionMeasurementTableAsCSV<wbr>(Collection&lt;PathObject&gt;, OmeroRawImageServer, ImageData&lt;BufferedImage&gt;)</a></div>
 <div class="col-last even-row-color">
@@ -427,7 +431,7 @@ loadScripts(document, 'script');</script>
 </div>
 <div class="col-summary-item-name even-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawTools.html#deleteKeyValuesOnOmero(java.util.List,qupath.ext.biop.servers.omero.raw.client.OmeroRawClient)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools.deleteKeyValuesOnOmero<wbr>(List&lt;MapAnnotationData&gt;, OmeroRawClient)</a></div>
 <div class="col-last even-row-color">
-<div class="deprecation-comment">use <code>AnnotatableWrapper.link(Client, GenericAnnotationWrapper[])</code> instead</div>
+<div class="deprecation-comment">use <code>Client.delete(Collection)</code> instead</div>
 </div>
 <div class="col-summary-item-name odd-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawTools.html#deleteOmeroROIs(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,java.util.Collection)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools.deleteOmeroROIs<wbr>(OmeroRawClient, Collection&lt;ROIData&gt;)</a></div>
 <div class="col-last odd-row-color">
@@ -438,7 +442,9 @@ loadScripts(document, 'script');</script>
 <div class="deprecation-comment">use <code>ImageWrapper.download(Client, String)</code> instead</div>
 </div>
 <div class="col-summary-item-name odd-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawTools.html#getAllOmeroGroups(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient)">qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools.getAllOmeroGroups<wbr>(OmeroRawClient)</a></div>
-<div class="col-last odd-row-color"></div>
+<div class="col-last odd-row-color">
+<div class="deprecation-comment">use <code>Client.getGroups()</code> if the user is admin. Otherwise, use <code>ExperimenterWrapper.getGroups()</code></div>
+</div>
 <div class="col-summary-item-name even-row-color"><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawTools.html#getCurrentDateAndHour()">qupath.ext.biop.servers.omero.raw.utils.OmeroRawTools.getCurrentDateAndHour()</a></div>
 <div class="col-last even-row-color">
 <div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/Utils.html#getCurrentDateAndHour()"><code>Utils.getCurrentDateAndHour()</code></a> instead</div>

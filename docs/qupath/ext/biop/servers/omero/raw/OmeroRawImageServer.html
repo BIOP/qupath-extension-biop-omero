@@ -90,7 +90,12 @@ implements qupath.lib.objects.PathObjectReader</span></div>
 <div class="block">ImageServer that reads pixels using the OMERO-JAVA gateway
  <p>
  Note that this ImageServer provides access to the raw data (not JPEG rendered).
- Fluorescence and bright-field images from OMERO can be open with it.</div>
+ Fluorescence and bright-field images from OMERO can be open with it.
+ <br>
+ <br>
+ Thanks to the code written by Peter Bankhead and the QuPath team for the BioFormatsImageServer,
+ we were able to adapt the reader pooling and the parallelization to our OmeroRawImageServer, to make
+ it faster and more efficient.</div>
 </section>
 <section class="summary">
 <ul class="summary-list">
@@ -227,7 +232,8 @@ implements qupath.lib.objects.PathObjectReader</span></div>
                       throws <span class="exceptions">omero.ServerError,
 omero.gateway.exception.DSOutOfServiceException,
 <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ExecutionException.html" title="class or interface in java.util.concurrent" class="external-link">ExecutionException</a>,
-omero.gateway.exception.DSAccessException</span></div>
+omero.gateway.exception.DSAccessException,
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/io/IOException.html" title="class or interface in java.io" class="external-link">IOException</a></span></div>
 <div class="block">read image metadata and build a QuPath ImageServerMetadata object.</div>
 <dl class="notes">
 <dt>Throws:</dt>
@@ -235,6 +241,7 @@ omero.gateway.exception.DSAccessException</span></div>
 <dd><code>omero.gateway.exception.DSOutOfServiceException</code></dd>
 <dd><code><a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ExecutionException.html" title="class or interface in java.util.concurrent" class="external-link">ExecutionException</a></code></dd>
 <dd><code>omero.gateway.exception.DSAccessException</code></dd>
+<dd><code><a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/io/IOException.html" title="class or interface in java.io" class="external-link">IOException</a></code></dd>
 </dl>
 </section>
 </li>

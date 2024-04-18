@@ -130,7 +130,7 @@ loadScripts(document, 'script');</script>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addMetadata(java.util.Map)" class="member-name-link">addMetadata(Map&lt;String, String&gt;)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
 <dd>
 <div class="deprecation-block"><span class="deprecated-label">Deprecated.</span>
-<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addTagsToQuPath(qupath.lib.projects.ProjectImageEntry,java.util.List,qupath.ext.biop.servers.omero.raw.utils.Utils.UpdatePolicy,boolean)"><code>OmeroRawScripting.addTagsToQuPath(ProjectImageEntry, List, Utils.UpdatePolicy, boolean)</code></a> instead</div>
+<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addKeyValuesToQuPath(qupath.lib.projects.ProjectImageEntry,java.util.Map,qupath.ext.biop.servers.omero.raw.utils.Utils.UpdatePolicy,boolean)"><code>OmeroRawScripting.addKeyValuesToQuPath(ProjectImageEntry, Map, Utils.UpdatePolicy, boolean)</code></a> instead</div>
 </div>
 </dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addOmeroKeyValues(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer)" class="member-name-link">addOmeroKeyValues(OmeroRawImageServer)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
@@ -441,7 +441,7 @@ loadScripts(document, 'script');</script>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawTools.html#deleteKeyValuesOnOmero(java.util.List,qupath.ext.biop.servers.omero.raw.client.OmeroRawClient)" class="member-name-link">deleteKeyValuesOnOmero(List&lt;MapAnnotationData&gt;, OmeroRawClient)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawTools.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawTools</a></dt>
 <dd>
 <div class="deprecation-block"><span class="deprecated-label">Deprecated.</span>
-<div class="deprecation-comment">use <code>AnnotatableWrapper.link(Client, GenericAnnotationWrapper[])</code> instead</div>
+<div class="deprecation-comment">use <code>Client.delete(Collection)</code> instead</div>
 </div>
 </dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawTools.html#deleteOmeroROIs(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient,java.util.Collection)" class="member-name-link">deleteOmeroROIs(OmeroRawClient, Collection&lt;ROIData&gt;)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawTools.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawTools</a></dt>
@@ -491,7 +491,9 @@ loadScripts(document, 'script');</script>
 </dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawTools.html#getAllOmeroGroups(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient)" class="member-name-link">getAllOmeroGroups(OmeroRawClient)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawTools.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawTools</a></dt>
 <dd>
-<div class="deprecation-block"><span class="deprecated-label">Deprecated.</span></div>
+<div class="deprecation-block"><span class="deprecated-label">Deprecated.</span>
+<div class="deprecation-comment">use <code>Client.getGroups()</code> if the user is admin. Otherwise, use <code>ExperimenterWrapper.getGroups()</code></div>
+</div>
 </dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/browser/OmeroRawBrowserTools.html#getAvailableGroupUsersMap(qupath.ext.biop.servers.omero.raw.client.OmeroRawClient)" class="member-name-link">getAvailableGroupUsersMap(OmeroRawClient)</a> - Static method in class qupath.ext.biop.servers.omero.raw.browser.<a href="qupath/ext/biop/servers/omero/raw/browser/OmeroRawBrowserTools.html" title="class in qupath.ext.biop.servers.omero.raw.browser">OmeroRawBrowserTools</a></dt>
 <dd>
@@ -751,7 +753,9 @@ loadScripts(document, 'script');</script>
 <dl class="index">
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#importOmeroKeyValues(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer)" class="member-name-link">importOmeroKeyValues(OmeroRawImageServer)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
 <dd>
-<div class="deprecation-block"><span class="deprecated-label">Deprecated.</span></div>
+<div class="deprecation-block"><span class="deprecated-label">Deprecated.</span>
+<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addKeyValuesToQuPath(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,qupath.ext.biop.servers.omero.raw.utils.Utils.UpdatePolicy,boolean)"><code>OmeroRawScripting.addKeyValuesToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)</code></a> instead</div>
+</div>
 </dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#importOmeroROIsToQuPath(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer)" class="member-name-link">importOmeroROIsToQuPath(OmeroRawImageServer)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
 <dd>
@@ -773,7 +777,9 @@ loadScripts(document, 'script');</script>
 </dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#importOmeroTags(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer)" class="member-name-link">importOmeroTags(OmeroRawImageServer)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
 <dd>
-<div class="deprecation-block"><span class="deprecated-label">Deprecated.</span></div>
+<div class="deprecation-block"><span class="deprecated-label">Deprecated.</span>
+<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#addTagsToQuPath(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,qupath.ext.biop.servers.omero.raw.utils.Utils.UpdatePolicy,boolean)"><code>OmeroRawScripting.addTagsToQuPath(OmeroRawImageServer, Utils.UpdatePolicy, boolean)</code></a> instead</div>
+</div>
 </dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/Utils.html#infoLog(org.slf4j.Logger,java.lang.String,java.lang.String,boolean)" class="member-name-link">infoLog(Logger, String, String, boolean)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/Utils.html" title="class in qupath.ext.biop.servers.omero.raw.utils">Utils</a></dt>
 <dd>
@@ -1256,16 +1262,20 @@ loadScripts(document, 'script');</script>
 <dd>
 <div class="block">Send pathObjects' measurements to OMERO as a CSV file with a default table name referring to annotation</div>
 </dd>
+<dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementsToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)" class="member-name-link">sendDetectionMeasurementsToOmero(OmeroRawImageServer, Collection&lt;PathObject&gt;, ImageData&lt;BufferedImage&gt;, boolean, String, boolean)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
+<dd>
+<div class="block">Send pathObjects' measurements to OMERO as an OMERO.table with a default table name referring to detections</div>
+</dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementTable(java.util.Collection,qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,qupath.lib.images.ImageData)" class="member-name-link">sendDetectionMeasurementTable(Collection&lt;PathObject&gt;, OmeroRawImageServer, ImageData&lt;BufferedImage&gt;)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
 <dd>
 <div class="deprecation-block"><span class="deprecated-label">Deprecated.</span>
-<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.sendDetectionMeasurementToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)</code></a> instead</div>
+<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementsToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.sendDetectionMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)</code></a> instead</div>
 </div>
 </dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementTable(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,qupath.lib.images.ImageData)" class="member-name-link">sendDetectionMeasurementTable(OmeroRawImageServer, ImageData&lt;BufferedImage&gt;)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
 <dd>
 <div class="deprecation-block"><span class="deprecated-label">Deprecated.</span>
-<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.sendDetectionMeasurementToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)</code></a> instead</div>
+<div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementsToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.sendDetectionMeasurementsToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)</code></a> instead</div>
 </div>
 </dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementTableAsCSV(java.util.Collection,qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,qupath.lib.images.ImageData)" class="member-name-link">sendDetectionMeasurementTableAsCSV(Collection&lt;PathObject&gt;, OmeroRawImageServer, ImageData&lt;BufferedImage&gt;)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
@@ -1279,10 +1289,6 @@ loadScripts(document, 'script');</script>
 <div class="deprecation-block"><span class="deprecated-label">Deprecated.</span>
 <div class="deprecation-comment">use <a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementsAsCSVToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)"><code>OmeroRawScripting.sendDetectionMeasurementsAsCSVToOmero(OmeroRawImageServer, Collection, ImageData, boolean, String, boolean)</code></a> instead</div>
 </div>
-</dd>
-<dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionMeasurementToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer,java.util.Collection,qupath.lib.images.ImageData,boolean,java.lang.String,boolean)" class="member-name-link">sendDetectionMeasurementToOmero(OmeroRawImageServer, Collection&lt;PathObject&gt;, ImageData&lt;BufferedImage&gt;, boolean, String, boolean)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
-<dd>
-<div class="block">Send pathObjects' measurements to OMERO as an OMERO.table with a default table name referring to detections</div>
 </dd>
 <dt><a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html#sendDetectionsToOmero(qupath.ext.biop.servers.omero.raw.OmeroRawImageServer)" class="member-name-link">sendDetectionsToOmero(OmeroRawImageServer)</a> - Static method in class qupath.ext.biop.servers.omero.raw.utils.<a href="qupath/ext/biop/servers/omero/raw/utils/OmeroRawScripting.html" title="class in qupath.ext.biop.servers.omero.raw.utils">OmeroRawScripting</a></dt>
 <dd>
