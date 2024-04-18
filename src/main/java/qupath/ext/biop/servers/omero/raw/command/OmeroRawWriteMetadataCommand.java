@@ -72,8 +72,8 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
         rbTagKeepMetadata.setToggleGroup(tagGroup);
         rbTagKeepMetadata.setSelected(true);
 
-        RadioButton rbTagDeleteMetadata = new RadioButton("Delete and add new");
-        rbTagDeleteMetadata.setToggleGroup(tagGroup);
+        RadioButton rbTagUnlinkMetadata = new RadioButton("Unlink and add new");
+        rbTagUnlinkMetadata.setToggleGroup(tagGroup);
 
         CheckBox cbKeyValues = new CheckBox("Key-values");
         cbKeyValues.setSelected(true);
@@ -87,7 +87,7 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
         cbTags.setSelected(true);
         cbTags.selectedProperty().addListener((v, o, n) -> {
             rbTagKeepMetadata.setDisable(!cbTags.isSelected());
-            rbTagDeleteMetadata.setDisable(!cbTags.isSelected());
+            rbTagUnlinkMetadata.setDisable(!cbTags.isSelected());
         });
 
         int row = 0;
@@ -101,7 +101,7 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
         pane.add(new Label("--------------------------------"), 1, row++);
         pane.add(rbTagKeepMetadata, 1, row++);
         pane.add(cbTags, 0, row);
-        pane.add(rbTagDeleteMetadata, 1, row);
+        pane.add(rbTagUnlinkMetadata, 1, row);
 
         pane.setHgap(5);
         pane.setVgap(5);
@@ -122,7 +122,7 @@ public class OmeroRawWriteMetadataCommand  implements Runnable{
         Utils.UpdatePolicy tagPolicy;
         if(!cbTags.isSelected())
             tagPolicy = Utils.UpdatePolicy.NO_UPDATE;
-        else if (rbTagDeleteMetadata.isSelected())
+        else if (rbTagUnlinkMetadata.isSelected())
             tagPolicy = Utils.UpdatePolicy.DELETE_KEYS;
         else tagPolicy = Utils.UpdatePolicy.KEEP_KEYS;
 
