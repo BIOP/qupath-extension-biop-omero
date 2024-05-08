@@ -447,7 +447,9 @@ public class Utils {
         }
 
         // create omero Table
-        return new TableData(columns, measurements);
+        TableData tableData = new TableData(columns, measurements);
+        tableData.setNumberOfRows(pathObjects.size());
+        return tableData;
     }
 
     /**
