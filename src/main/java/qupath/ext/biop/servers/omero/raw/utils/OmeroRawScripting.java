@@ -930,13 +930,13 @@ public class OmeroRawScripting {
                 }
                 try{
                     // link the file if it has already been uploaded once. Upload it otherwise
-                    if (attachedFileWrapper.getFileID() > 0)
+                    if (attachedFileWrapper.getId() > 0)
                         parent.linkIfNotLinked(client.getSimpleClient(), attachedFileWrapper);
                     else {
                         long fileId = parent.addFile(client.getSimpleClient(), parentCSVFile);
                         Optional<FileAnnotationWrapper> optParentFile = parent.getFileAnnotations(client.getSimpleClient())
                                 .stream()
-                                .filter(e->e.getFileID() == fileId)
+                                .filter(e->e.getId() == fileId)
                                 .findFirst();
 
                         if(optParentFile.isPresent())
@@ -1020,7 +1020,7 @@ public class OmeroRawScripting {
 
             try{
                 // link the file if it has already been uploaded once. Upload it otherwise
-                if (attachedFileWrapper != null && attachedFileWrapper.getFileID() > 0)
+                if (attachedFileWrapper != null && attachedFileWrapper.getId() > 0)
                     parent.linkIfNotLinked(client.getSimpleClient(), attachedFileWrapper);
                 else {
                     // add the new table
@@ -1029,7 +1029,7 @@ public class OmeroRawScripting {
                             .getAvailableTables(client.getSimpleClient().getCtx(), parent.asDataObject())
                             .stream()
                             .map(FileAnnotationWrapper::new)
-                            .filter(e -> e.getFileID() == parent.getId())
+                            .filter(e -> e.getId() == omeroTable.getId())
                             .findFirst();
                     if(optParentTable.isPresent())
                         attachedFileWrapper = optParentTable.get();
