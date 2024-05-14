@@ -502,16 +502,7 @@ final class OmeroRawObjects {
         protected Owner(ExperimenterWrapper experimenterWrapper) {
             this.id = experimenterWrapper.getId();
             this.firstName = experimenterWrapper.getFirstName()==null ? "" : experimenterWrapper.getFirstName();
-
-            // TODO remove the try/catch when the omero.ij plugin integrate the version 5.9.0 of java gateway
-            // this.middleName = experimenterWrapper.getMiddleName() == null ? "" : experimenterWrapper.getMiddleName();
-            String middleName = "";
-            try{
-                middleName = experimenterWrapper.getMiddleName();
-            }catch (Exception e){
-
-            }
-            this.middleName = middleName;
+            this.middleName = experimenterWrapper.getMiddleName() == null ? "" : experimenterWrapper.getMiddleName();
             this.lastName = experimenterWrapper.getLastName()==null ? "" : experimenterWrapper.getLastName();
 
             this.emailAddress = experimenterWrapper.getEmail()==null ? "" : experimenterWrapper.getEmail();;
