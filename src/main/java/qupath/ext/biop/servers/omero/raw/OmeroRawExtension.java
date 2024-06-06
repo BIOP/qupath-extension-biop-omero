@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javafx.beans.property.StringProperty;
+import org.controlsfx.control.action.Action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +37,6 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import qupath.ext.biop.servers.omero.raw.browser.OmeroRawImageServerBrowserCommand;
@@ -77,8 +77,6 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 	 * To handle the different stages of browsers (only allow one per OMERO server)
 	 */
 	private static final Map<OmeroRawClient, OmeroRawImageServerBrowserCommand> rawBrowsers = new HashMap<>();
-
-
 
 	private static boolean alreadyInstalled = false;
 	
@@ -144,24 +142,17 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 			for (OmeroRawClient client : activeServers) {
 				if (client == null)
 					continue;
-				MenuItem item = new MenuItem(client.getServerURI() + "...");
-				item.setOnAction(e2 -> {
-					var browser = rawBrowsers.get(client);
-					if (browser == null || browser.getStage() == null) {
-						browser = new OmeroRawImageServerBrowserCommand(qupath, client);
-						rawBrowsers.put(client, browser);
-						browser.run();
-					} else
-						browser.getStage().requestFocus();
-				});
-				browseServerMenu.getItems().add(item);
+				var browser = rawBrowsers.get(client);
+				if (browser == null || browser.getStage() == null) {
+					browser = new OmeroRawImageServerBrowserCommand(qupath, client);
+					Action action = ActionTools.createAction(new OmeroRawImageServerBrowserCommand(qupath, client), client.getServerURI() + "...");
+					rawBrowsers.put(client, browser);
+					browseServerMenu.getItems().add(ActionTools.createMenuItem(action));
+				} else
+					browser.getStage().requestFocus();
 			}
-
-			Menu newServerMenu = new Menu("New server...");
-			newServerMenu.setOnAction(e3->{
-				new OmeroRawServerCommand(qupath);
-			});
-			browseServerMenu.getItems().add(newServerMenu);
+			Action action = ActionTools.createAction(new OmeroRawServerCommand(qupath), "New server...");
+			browseServerMenu.getItems().add(ActionTools.createMenuItem(action));
 		};
 
 		// Ensure the menu is populated (every time the parent menu is opened)
@@ -188,7 +179,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 		return QuPathExtension.super.getQuPathVersion();
 	}
 
-	private static class OmeroRawServerCommand {
+	private static class OmeroRawServerCommand implements Runnable {
 		private static StringProperty omeroDefaultServerAddress;
 		private final QuPathGUI qupath;
 
@@ -197,9 +188,7 @@ public class OmeroRawExtension implements QuPathExtension, GitHubProject {
 
 			// Add the default OMERO server address to the QuPath Preferences
 			omeroDefaultServerAddress = PathPrefs.createPersistentPreference("omeroDefaultServer", "https://omero-server.epfl.ch");
-			run();
 		}
-
 
 		public void run() {
 			// get default server
