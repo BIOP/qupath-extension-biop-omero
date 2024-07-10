@@ -1167,9 +1167,10 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param imageServer ImageServer of an image loaded from OMERO
+     * @param imageData ImageData QuPath object of the current image
      * @param qpNotif true to display a QuPath notification
      */
-    public static void copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer imageServer, boolean qpNotif) {
+    public static void copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData, boolean qpNotif) {
         // get the OMERO rendering settings to get channel info
         RenderingDef renderingSettings;
         try {
@@ -1194,17 +1195,13 @@ public class OmeroRawScripting {
             return;
         }
 
-        // get current channels from QuPath
-        ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
-
         // check if both images has the same number of channels
-        if(omeroNChannels != qpChannels.size()){
+        if(omeroNChannels != imageServer.nChannels()){
             Utils.warnLog(logger, "OMERO - Channels contrast",
                     "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")", qpNotif);
             return;
         }
 
-        ImageData<BufferedImage> imageData = QPEx.getQuPath().getImageData();
         for(int c = 0; c < imageServer.nChannels(); c++) {
             // get the min-max per channel from OMERO
             ChannelBinding binding = renderingSettings.getChannelBinding(c);
@@ -1216,9 +1213,12 @@ public class OmeroRawScripting {
         }
 
         // Update the thumbnail
-        updateQuPathThumbnail();
+        try{
+            updateQuPathThumbnail();
+        }catch (IOException e){
+            Utils.errorLog(logger,"QuPath - Update Thumbnail", "Cannot update QuPath thumbnail ", e, qpNotif);
+        }
     }
-
 
     /**
      * Set the color of each channel on QuPath, based on OMERO settings.<br>
@@ -1231,9 +1231,10 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param imageServer ImageServer of an image loaded from OMERO
+     * @param imageData ImageData QuPath object of the current image
      * @param qpNotif true to display a QuPath notification
      */
-    public static void copyOmeroChannelsColorToQuPath(OmeroRawImageServer imageServer, boolean qpNotif){
+    public static void copyOmeroChannelsColorToQuPath(OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData, boolean qpNotif){
         // get the OMERO rendering settings to get channel info
         RenderingDef renderingSettings;
         try {
@@ -1258,11 +1259,8 @@ public class OmeroRawScripting {
             return;
         }
 
-        // get current channels from QuPath
-        ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
-
         // check if both images has the same number of channels
-        if(omeroNChannels != qpChannels.size()){
+        if(omeroNChannels != imageServer.nChannels()){
             Utils.warnLog(logger, "OMERO - Channels color",
                     "The image on OMERO has not the same number of channels ("+omeroNChannels+" as the one in QuPath ("+imageServer.nChannels()+")", qpNotif);
             return;
@@ -1277,36 +1275,36 @@ public class OmeroRawScripting {
         }
 
         // set QuPath channels color
-        QPEx.setChannelColors(QPEx.getQuPath().getImageData(), colors.toArray(new Integer[0]));
+        QPEx.setChannelColors(imageData, colors.toArray(new Integer[0]));
 
         // Update the thumbnail
-        updateQuPathThumbnail();
+        try{
+            updateQuPathThumbnail();
+        }catch (IOException e){
+            Utils.errorLog(logger,"QuPath - Update Thumbnail", "Cannot update QuPath thumbnail ", e, qpNotif);
+        }
     }
 
     /**
      * Update QuPath thumbnail
      */
-    private static void updateQuPathThumbnail(){
-        try {
-            // saved changes
-            QPEx.getQuPath().getProject().syncChanges();
+    private static void updateQuPathThumbnail() throws IOException {
+        // saved changes
+        QPEx.getQuPath().getProject().syncChanges();
 
-            // get the current image data
-            ImageData<BufferedImage> newImageData = QPEx.getQuPath().getViewer().getImageDisplay().getImageData();
+        // get the current image data
+        ImageData<BufferedImage> newImageData = QPEx.getQuPath().getViewer().getImageDisplay().getImageData();
 
-            // generate thumbnail
-            BufferedImage thumbnail = QPEx.getQuPath().getViewer().getRGBThumbnail();
+        // generate thumbnail
+        BufferedImage thumbnail = QPEx.getQuPath().getViewer().getRGBThumbnail();
 
-            // get and save the new thumbnail
-            ProjectImageEntry<BufferedImage> entry = QPEx.getQuPath().getProject().getEntry(newImageData);
-            entry.setThumbnail(thumbnail);
-            entry.saveImageData(newImageData);
+        // get and save the new thumbnail
+        ProjectImageEntry<BufferedImage> entry = QPEx.getQuPath().getProject().getEntry(newImageData);
+        entry.setThumbnail(thumbnail);
+        entry.saveImageData(newImageData);
 
-            // save changes
-            QPEx.getQuPath().getProject().syncChanges();
-        }catch (IOException e){
-            throw new RuntimeException(e);
-        }
+        // save changes
+        QPEx.getQuPath().getProject().syncChanges();
     }
 
     /**
@@ -1319,9 +1317,10 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param imageServer ImageServer of an image loaded from OMERO
+     * @param imageData ImageData QuPath object of the current image
      * @param qpNotif true to display a QuPath notification
      */
-    public static void copyOmeroChannelsNameToQuPath(OmeroRawImageServer imageServer, boolean qpNotif){
+    public static void copyOmeroChannelsNameToQuPath(OmeroRawImageServer imageServer, ImageData<BufferedImage> imageData, boolean qpNotif){
         // get the number of the channels in OMERO
         List<ChannelWrapper> omeroChannels;
         try {
@@ -1331,11 +1330,8 @@ public class OmeroRawScripting {
             return;
         }
 
-        // get current channels from QuPath
-        ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
-
         // check if both images has the same number of channels
-        if(omeroChannels.size() != qpChannels.size()){
+        if(omeroChannels.size() != imageServer.nChannels()){
            Utils.warnLog(logger, "OMERO - Channels Name",
                    "The image on OMERO has not the same number of channels ("+omeroChannels.size()+" as the one in QuPath ("+imageServer.nChannels()+")", qpNotif);
             return;
@@ -1349,7 +1345,7 @@ public class OmeroRawScripting {
         }
 
         // set QuPath channels name
-        QPEx.setChannelNames(QPEx.getQuPath().getImageData(), names.toArray(new String[0]));
+        QPEx.setChannelNames(imageData, names.toArray(new String[0]));
     }
 
     /**
@@ -1358,7 +1354,7 @@ public class OmeroRawScripting {
      * Channel indices are taken as reference.
      * <p>
      * <ul>
-     * <li> Only works for fluorescence images </li>
+     * <li> Only works for fluorescence images and NOT batchable </li>
      * </ul>
      * <p>
      *
@@ -1367,6 +1363,50 @@ public class OmeroRawScripting {
      * @return Sending status (true if the image and thumbnail on OMERO has been updated ; false if there were troubles during the sending process)
      */
     public static boolean sendQuPathChannelsDisplayRangeToOmero(OmeroRawImageServer imageServer, boolean qpNotif){
+        // get current channels from QuPath
+        ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
+
+        int nChannels = imageServer.nChannels();
+        double[] min = new double[nChannels];
+        double[] max = new double[nChannels];
+
+        for(int c = 0; c < nChannels; c++) {
+            // get min/max display
+            min[c] = qpChannels.get(c).getMinDisplay();
+            max[c] = qpChannels.get(c).getMaxDisplay();
+        }
+
+        return sendChannelsDisplayRangeToOmero(imageServer, min, max, qpNotif);
+    }
+
+    /**
+     * Set a minimum and maximum display range value of each channel on OMERO.<br>
+     * OMERO image and thumbnail are updated accordingly. <br>
+     * Channel indices are taken as reference.
+     * <p>
+     * <ul>
+     * <li> Only works for fluorescence images</li>
+     * </ul>
+     * <p>
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @param min Array of size nChannels with the minDisplayRange for each channel
+     * @param max Array of size nChannels with the maxDisplayRange for each channel
+     * @param qpNotif true to display a QuPath notification
+     * @return Sending status (true if the image and thumbnail on OMERO has been updated ; false if there were troubles during the sending process)
+     */
+    public static boolean sendChannelsDisplayRangeToOmero(OmeroRawImageServer imageServer, double[] min, double[] max, boolean qpNotif){
+        // get the number of channel of the current image
+        int nChannels = imageServer.nChannels();
+
+        // check any channel size mismatch
+        if(min.length != max.length || min.length != nChannels){
+            Utils.errorLog(logger,"OMERO - Channels contrast", "The number of channels of the current image ("+nChannels+") is not equal to " +
+                    "the number of display range you want to send ("+min.length+" & "+max.length+")." +
+                    "Please make them equal", qpNotif);
+            return false;
+        }
+
         // get the OMERO rendering settings to get channel info
         RenderingDef renderingSettings;
         try {
@@ -1391,25 +1431,20 @@ public class OmeroRawScripting {
             return false;
         }
 
-        // get current channels from QuPath
-        ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
-
         // check if both images has the same number of channels
-        if(omeroNChannels != qpChannels.size()){
+        if(omeroNChannels != nChannels){
             Utils.warnLog(logger, "OMERO - Channels",
-                    "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroNChannels+")", qpNotif);
+                    "The image on QuPath has not the same number of channels ("+nChannels+" as the one in OMERO ("+omeroNChannels+")", qpNotif);
             return false;
         }
 
-        for(int c = 0; c < imageServer.nChannels(); c++) {
-            // get min/max display
-            double minDisplayRange = qpChannels.get(c).getMinDisplay();
-            double maxDisplayRange = qpChannels.get(c).getMaxDisplay();
-
-            // set the rendering settings with new min/max values
-            ChannelBinding binding = renderingSettings.getChannelBinding(c);
-            binding.setInputStart(rtypes.rdouble(minDisplayRange));
-            binding.setInputEnd(rtypes.rdouble(maxDisplayRange));
+        for(int c = 0; c < nChannels; c++) {
+            if(!Double.isNaN(min[c]) && !Double.isNaN(max[c])) {
+                // set the rendering settings with new min/max values
+                ChannelBinding binding = renderingSettings.getChannelBinding(c);
+                binding.setInputStart(rtypes.rdouble(min[c]));
+                binding.setInputEnd(rtypes.rdouble(max[c]));
+            }
         }
 
         // update the image on OMERO first
@@ -1425,8 +1460,8 @@ public class OmeroRawScripting {
         successfulUpdate = successfulUpdate && OmeroRawTools.updateOmeroThumbnail(imageServer.getClient(), imageServer.getId(), renderingSettings.getId().getValue());
 
         return successfulUpdate;
-    }
 
+    }
 
     /**
      * Set the name of each channel on OMERO, based on QuPath settings.
@@ -1452,11 +1487,8 @@ public class OmeroRawScripting {
             return false;
         }
 
-        // get current channels from QuPath
-        ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
-
         // check if both images has the same number of channels
-        if(omeroChannels.size() != qpChannels.size()){ // can use imageServer.nChannels() to get the real number of channel
+        if(omeroChannels.size() != imageServer.nChannels()){ // can use imageServer.nChannels() to get the real number of channel
             Utils.warnLog(logger,"OMERO - Channels",
                     "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroChannels.size()+")", qpNotif);
             return false;
@@ -1523,11 +1555,8 @@ public class OmeroRawScripting {
             return false;
         }
 
-        // get current channels from QuPath
-        ObservableList<ChannelDisplayInfo> qpChannels = QPEx.getQuPath().getViewer().getImageDisplay().availableChannels();
-
         // check if both images has the same number of channels
-        if(omeroNChannels != qpChannels.size()){ // can use imageServer.nChannels() to get the real number of channel
+        if(omeroNChannels != imageServer.nChannels()){ // can use imageServer.nChannels() to get the real number of channel
             Utils.warnLog(logger, "OMERO - Channels",
                     "The image on QuPath has not the same number of channels ("+imageServer.nChannels()+" as the one in OMERO ("+omeroNChannels+")", qpNotif);
             return false;
@@ -1535,7 +1564,7 @@ public class OmeroRawScripting {
 
         for(int c = 0; c < imageServer.nChannels(); c++) {
             // get min/max display
-            Integer colorInt = qpChannels.get(c).getColor();
+            Integer colorInt = imageServer.getChannel(c).getColor();
             Color color = new Color(colorInt);
 
             // set the rendering settings with new min/max values
@@ -1573,7 +1602,7 @@ public class OmeroRawScripting {
         // get the image
         ImageWrapper image = imageServer.getImageWrapper();
         if(image != null) {
-            image.setName(QPEx.getCurrentImageName());
+            image.setName(imageServer.getMetadata().getName());
 
             // update the image on OMERO
             boolean successfulUpdate =  true;
@@ -2656,13 +2685,35 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param imageServer ImageServer of an image loaded from OMERO
-     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer, ImageData, boolean)} instead
      */
     @Deprecated
     public static void setChannelsDisplayRangeFromOmeroChannel(OmeroRawImageServer imageServer) {
         LogTools.warnOnce(logger, "setChannelsDisplayRangeFromOmeroChannel(OmeroRawImageServer) is deprecated - " +
-                "use copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer, boolean) instead");
-        copyOmeroChannelsDisplayRangeToQuPath(imageServer, true);
+                "use copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer, ImageData, boolean) instead");
+        copyOmeroChannelsDisplayRangeToQuPath(imageServer, QPEx.getQuPath().getImageData(), true);
+    }
+
+    /**
+     * Set the minimum and maximum display range value of each channel on QuPath, based on OMERO settings.<br>
+     * QuPath image and thumbnail are updated accordingly.<br>
+     * Channel indices are taken as reference.
+     *
+     * <p>
+     * <ul>
+     * <li> Only works for fluorescence images </li>
+     * </ul>
+     * <p>
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @param qpNotif true to display a QuPath notification
+     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer, ImageData, boolean)} instead
+     */
+    @Deprecated
+    public static void copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer imageServer, boolean qpNotif) {
+        LogTools.warnOnce(logger, "copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer, boolean) is deprecated - " +
+                "use copyOmeroChannelsDisplayRangeToQuPath(OmeroRawImageServer, ImageData, boolean) instead");
+        copyOmeroChannelsDisplayRangeToQuPath(imageServer, QPEx.getQuPath().getImageData(), qpNotif);
     }
 
 
@@ -2677,13 +2728,34 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param imageServer ImageServer of an image loaded from OMERO
-     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsColorToQuPath(OmeroRawImageServer, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsColorToQuPath(OmeroRawImageServer, ImageData, boolean)} instead
      */
     @Deprecated
     public static void setChannelsColorFromOmeroChannel(OmeroRawImageServer imageServer){
         LogTools.warnOnce(logger, "setChannelsColorFromOmeroChannel(OmeroRawImageServer) is deprecated - " +
-                "use copyOmeroChannelsColorToQuPath(OmeroRawImageServer, boolean) instead");
-        copyOmeroChannelsColorToQuPath(imageServer, true);
+                "use copyOmeroChannelsColorToQuPath(OmeroRawImageServer, ImageData, boolean) instead");
+        copyOmeroChannelsColorToQuPath(imageServer, QPEx.getQuPath().getImageData(), true);
+    }
+
+    /**
+     * Set the color of each channel on QuPath, based on OMERO settings.<br>
+     * QuPath image and thumbnail are updated accordingly.<br>
+     * Channel indices are taken as reference.
+     * <p>
+     * <ul>
+     * <li> Only works for fluorescence images </li>
+     * </ul>
+     * <p>
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @param qpNotif true to display a QuPath notification
+     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsColorToQuPath(OmeroRawImageServer, ImageData, boolean)} instead
+     */
+    @Deprecated
+    public static void copyOmeroChannelsColorToQuPath(OmeroRawImageServer imageServer,  boolean qpNotif){
+        LogTools.warnOnce(logger, "copyOmeroChannelsColorToQuPath(OmeroRawImageServer, boolean) is deprecated - " +
+                "use copyOmeroChannelsColorToQuPath(OmeroRawImageServer, ImageData, boolean) instead");
+        copyOmeroChannelsColorToQuPath(imageServer, QPEx.getQuPath().getImageData(), qpNotif);
     }
 
 
@@ -2697,13 +2769,33 @@ public class OmeroRawScripting {
      * <p>
      *
      * @param imageServer ImageServer of an image loaded from OMERO
-     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsNameToQuPath(OmeroRawImageServer, boolean)} instead
+     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsNameToQuPath(OmeroRawImageServer, ImageData, boolean)} instead
      */
     @Deprecated
     public static void setChannelsNameFromOmeroChannel(OmeroRawImageServer imageServer){
         LogTools.warnOnce(logger, "setChannelsNameFromOmeroChannel(OmeroRawImageServer) is deprecated - " +
-                "use copyOmeroChannelsNameToQuPath(OmeroRawImageServer, boolean) instead");
-        copyOmeroChannelsNameToQuPath(imageServer, true);
+                "use copyOmeroChannelsNameToQuPath(OmeroRawImageServer, ImageData, boolean) instead");
+        copyOmeroChannelsNameToQuPath(imageServer, QPEx.getQuPath().getImageData(), true);
+    }
+
+    /**
+     * Set the name of each channel on QuPath, based on OMERO settings.
+     * Channel indices are taken as reference.
+     * <p>
+     * <ul>
+     * <li> Only works for fluorescence images </li>
+     * </ul>
+     * <p>
+     *
+     * @param imageServer ImageServer of an image loaded from OMERO
+     * @param qpNotif true to display a QuPath notification
+     * @deprecated use {@link OmeroRawScripting#copyOmeroChannelsNameToQuPath(OmeroRawImageServer, ImageData, boolean)} instead
+     */
+    @Deprecated
+    public static void copyOmeroChannelsNameToQuPath(OmeroRawImageServer imageServer, boolean qpNotif){
+        LogTools.warnOnce(logger, "copyOmeroChannelsNameToQuPath(OmeroRawImageServer, boolean) is deprecated - " +
+                "use copyOmeroChannelsNameToQuPath(OmeroRawImageServer, ImageData, boolean) instead");
+        copyOmeroChannelsColorToQuPath(imageServer, QPEx.getQuPath().getImageData(), qpNotif);
     }
 
 

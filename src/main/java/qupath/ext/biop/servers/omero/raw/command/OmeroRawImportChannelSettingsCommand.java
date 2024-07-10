@@ -7,6 +7,8 @@ import qupath.ext.biop.servers.omero.raw.OmeroRawImageServer;
 import qupath.ext.biop.servers.omero.raw.utils.OmeroRawScripting;
 import qupath.lib.gui.QuPathGUI;
 import qupath.fx.dialogs.Dialogs;
+import qupath.lib.gui.scripting.QPEx;
+import qupath.lib.images.ImageData;
 import qupath.lib.images.servers.ImageServer;
 
 import java.awt.image.BufferedImage;
@@ -67,13 +69,15 @@ public class OmeroRawImportChannelSettingsCommand implements Runnable {
         boolean channelDisplayRange = cbChannelDisplayRange.isSelected();
         boolean channelColor = cbChannelColor.isSelected();
 
+        ImageData<BufferedImage> imageData = QPEx.getQuPath().getImageData();
+
         // set OMERO display settings on QuPath image
         if(channelDisplayRange)
-            OmeroRawScripting.copyOmeroChannelsDisplayRangeToQuPath((OmeroRawImageServer)imageServer, true);
+            OmeroRawScripting.copyOmeroChannelsDisplayRangeToQuPath((OmeroRawImageServer)imageServer, imageData, true);
         if(channelColor)
-            OmeroRawScripting.copyOmeroChannelsColorToQuPath((OmeroRawImageServer)imageServer, true);
+            OmeroRawScripting.copyOmeroChannelsColorToQuPath((OmeroRawImageServer)imageServer, imageData, true);
         if(channelNames)
-            OmeroRawScripting.copyOmeroChannelsNameToQuPath((OmeroRawImageServer)imageServer, true);
+            OmeroRawScripting.copyOmeroChannelsNameToQuPath((OmeroRawImageServer)imageServer, imageData, true);
 
         Dialogs.showInfoNotification("Channel settings import","Channel settings successfully set the current image");
     }
