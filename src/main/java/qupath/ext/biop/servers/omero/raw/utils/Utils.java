@@ -465,6 +465,7 @@ public class Utils {
                                                                   Collection<PathObject> pathObjects,
                                                                   long imageId){
         int headersSize = parentTable.keySet().size();
+
         if(headersSize == 0){
             // building the first measurement
             parentTable.put(IMAGE_ID_HEADER, new ArrayList<>());
@@ -475,12 +476,32 @@ public class Utils {
                 else
                     parentTable.put(header, new ArrayList<>());
             }
-        } else if(headersSize != (ob.getAllNames().size() + 1)){
-            warnLog(logger,"Parent Table - Compatibility issue","Size of headers ("+ob.getAllNames().size()+
-                    ") is different from existing table size ("+headersSize+"). Parent table is not populated", true);
-            return;
+        } else {
+            List<String> parentTableHeaders = new ArrayList<>(parentTable.keySet());
+            for(String obHeader : ob.getAllNames()){
+                // build the same header as in the list
+                String listHeader;
+                if(ob.isNumericMeasurement(obHeader))
+                    listHeader = NUMERIC_FIELD_ID + obHeader;
+                else listHeader = obHeader;
+
+                // check if the current ob header is already in the parent table
+                if(!parentTableHeaders.contains(listHeader)){
+                    List<String> featureList = new ArrayList<>();
+
+                    // populate the previous line with the default value for the new header
+                    if(ob.isNumericMeasurement(obHeader))
+                        for(int i = 0; i < parentTable.get(IMAGE_ID_HEADER).size(); i++)
+                            featureList.add(NUMERIC_FIELD_ID + Double.NaN);
+                    else
+                        for(int i = 0; i < parentTable.get(IMAGE_ID_HEADER).size(); i++)
+                            featureList.add("null");
+                    parentTable.put(listHeader, featureList);
+                }
+            }
         }
 
+        List<String> obHeaders = ob.getAllNames();
         // for all annotations = rows
         for (PathObject pathObject : pathObjects) {
             // add image id
@@ -498,10 +519,19 @@ public class Utils {
                 }
 
                 if (col.contains(NUMERIC_FIELD_ID)){
-                    parentTable.get(col).add(NUMERIC_FIELD_ID +
-                            ob.getNumericValue(pathObject, col.replace(NUMERIC_FIELD_ID,"")));
+                    double numericValue;
+                    if(obHeaders.contains(col.replace(NUMERIC_FIELD_ID,"")))
+                        numericValue = ob.getNumericValue(pathObject, col.replace(NUMERIC_FIELD_ID,""));
+                    else
+                        numericValue = Double.NaN;
+                    parentTable.get(col).add(NUMERIC_FIELD_ID + numericValue);
                 } else {
-                    parentTable.get(col).add(String.valueOf(ob.getStringValue(pathObject, col))); // need to keep the empty space because of null values
+                    String stringValue;
+                    if(obHeaders.contains(col.replace(NUMERIC_FIELD_ID,"")))
+                        stringValue = ob.getStringValue(pathObject, col);
+                    else
+                        stringValue = null;
+                    parentTable.get(col).add(String.valueOf(stringValue));
                 }
             }
         }
