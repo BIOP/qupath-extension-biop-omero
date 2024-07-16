@@ -400,7 +400,8 @@ public class OmeroRawTools {
                 // update the thumbnail
                 store.createThumbnails();
             } catch (ServerError e) {
-                Utils.errorLog(logger,"OMERO Thumbnail", "Error during thumbnail creation but thumbnail is updated", e,false);
+                // this is turn into a debug mode because it is always thrown even if the thumbnail is updated
+                Utils.debugLog(logger,"OMERO Thumbnail", "Error during thumbnail creation but thumbnail is updated", e);
             }
 
         } catch (NullPointerException | ServerError e) {

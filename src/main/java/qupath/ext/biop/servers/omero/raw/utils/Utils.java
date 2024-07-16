@@ -160,6 +160,25 @@ public class Utils {
     }
 
     /**
+     * Debug Logger to inform in the logger window
+     * @param title notification title
+     * @param message notification message
+     * @param e the exception
+     */
+    public static void debugLog(Logger logger, String title, String message, Exception e){
+        logger.debug("["+title+"] -- "+message + "\n" + e + "\n"+ getErrorStackTraceAsString(e));
+    }
+
+    /**
+     * Debug Logger to inform in the logger window
+     * @param title notification title
+     * @param message notification message
+     */
+    public static void debugLog(Logger logger, String title, String message){
+        logger.debug("["+title+"] -- "+message);
+    }
+
+    /**
      * Splits the "target" map into two parts : one part containing key/values that are referenced in the "reference" map and
      * the other containing remaining key/values that are not referenced in the "reference".
      * <p>
