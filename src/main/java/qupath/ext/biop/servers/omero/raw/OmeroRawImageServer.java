@@ -395,8 +395,7 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 			Set<String> uniqueNames = new HashSet<>(channelsNames);
 
 			if (nChannels == 3 && pixelType == PixelType.UINT8 &&
-					(nNullChannelName == 3 || channels.equals(ImageChannel.getDefaultRGBChannels()) || (imageFormat.equals("CellSens") &&
-							uniqueNames.size() == 1))) {
+					(nNullChannelName == 3 || channels.equals(ImageChannel.getDefaultRGBChannels()) || uniqueNames.size() == 1)) {
 
 				// generate histogram of image
 				BufferedImage smallThumbnail = imageWrapper.getThumbnail(client.getSimpleClient(), 256);
