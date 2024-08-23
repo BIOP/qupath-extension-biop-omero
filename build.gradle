@@ -12,7 +12,7 @@ ext.qupathVersion = gradle.ext.qupathVersion
 archivesBaseName = 'qupath-extension-biop-omero'
 description = "QuPath extension to support image reading using OMERO's Java API."
 group = "ch.epfl.biop"
-version = "1.0.3-SNAPSHOT"
+version = "1.0.3"
 
 repositories {
   maven{
