@@ -130,20 +130,20 @@ public class OmeroRawBrowserTools {
                     logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
                 }
 
-                // get all screens
-                try {
-                    list.addAll(getScreenItems(client,parent,user,userGroup));
-                }catch(ServiceException | AccessException | ExecutionException e){
-                    Dialogs.showErrorNotification("Reading screens", "Impossible to retrieve screens from your account");
-                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
-                }
-
                 // read orphaned dataset
                 try {
                     list.addAll(getOrphanedDatasetItems(client,parent,user,userGroup));
                 }catch(ServiceException | AccessException | ExecutionException | OMEROServerError e){
                     Dialogs.showErrorNotification("Reading orphaned dataset",
                             "Impossible to retrieve orphaned dataset from your account");
+                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
+                }
+
+                // get all screens
+                try {
+                    list.addAll(getScreenItems(client,parent,user,userGroup));
+                }catch(ServiceException | AccessException | ExecutionException e){
+                    Dialogs.showErrorNotification("Reading screens", "Impossible to retrieve screens from your account");
                     logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
                 }
 
