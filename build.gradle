@@ -33,7 +33,7 @@ dependencies {
     implementation "io.github.qupath:qupath-gui-fx:${qupathVersion}"
 
     implementation "org.openmicroscopy:omero-gateway:5.9.1"
-    implementation "fr.igred:simple-omero-client:5.18.0"
+    implementation "fr.igred:simple-omero-client:5.19.0"
 }
 
 processResources {
