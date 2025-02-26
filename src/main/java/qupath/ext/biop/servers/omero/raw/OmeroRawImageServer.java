@@ -992,7 +992,12 @@ public class OmeroRawImageServer extends AbstractTileableImageServer implements 
 					try{
 						ipReader.getReader().setResolutionLevel(realLevel);
 					}catch(ServerError e){
-						throw convertToIOException(e);
+						if(e instanceof omero.InternalException &&
+								e.message.contains("Cannot set resolution levels on a ROMIO pixel buffer")) {
+                            logger.warn("The image has a ROMIO pixel buffer (OMERO <= 4)Resolution level " +
+									"are not supported and are therefore not set. \n" + e);
+						}else
+							throw convertToIOException(e);
 					}
 
 					// Recalculate TileWidth and Height in case they exceed the limits of the dataset
