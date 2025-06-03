@@ -110,21 +110,21 @@ public class OmeroRawShapes {
     /**
      * Create a PathObject of type annotation or detection from a QuPath ROI object
      * without any class and with the default red color.
-     * See {@link #createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass)} for the full documentation.
+     * See {@link #createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass, String roiName)} for the full documentation.
      *
      * @param roi roi to convert
      * @param roiType annotation or detection type
      * @return a new pathObject
      */
     public static PathObject createPathObjectFromQuPathRoi(ROI roi, String roiType){
-        return createPathObjectFromQuPathRoi(roi, roiType,"");
+        return createPathObjectFromQuPathRoi(roi, roiType,"", "");
     }
 
     /**
      * Create a PathObject of type annotation or detection from a QuPath ROI object, with a certain color. If the
      * color is yellow (i.e. default color on OMERO), it is automatically converted to QuPath default red color.
      * No class is assigned to the new PathObject.
-     * See {@link #createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass)} for the full documentation.
+     * See {@link #createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass, String roiName)} for the full documentation.
      *
      * @param roi roi to convert
      * @param roiType annotation or detection type
@@ -132,7 +132,7 @@ public class OmeroRawShapes {
      * @return a new pathObject
      */
     public static PathObject createPathObjectFromQuPathRoi(ROI roi, String roiType, Color color){
-        PathObject pathObject = createPathObjectFromQuPathRoi(roi, roiType, "");
+        PathObject pathObject = createPathObjectFromQuPathRoi(roi, roiType, "", "");
 
         // check if the color is not the default color (yellow) for selected objects
         if(color == null || color.equals(Color.YELLOW))
@@ -156,7 +156,7 @@ public class OmeroRawShapes {
      * @param roiClass pathClasses assigned to the roi
      * @return a new pathObject
      */
-    public static PathObject createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass){
+    public static PathObject createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass, String roiName){
         PathObject pathObject;
         boolean isValidClass = !(roiClass == null || roiClass.isEmpty() || roiClass.equalsIgnoreCase("noclass"));
 
@@ -199,6 +199,9 @@ public class OmeroRawShapes {
 
         if(!isValidClass)
             pathObject.setColor(Color.RED.getRGB());
+
+        if(!roiName.equals("NoName"))
+            pathObject.setName(roiName);
 
         return pathObject;
     }
@@ -379,7 +382,7 @@ public class OmeroRawShapes {
             // Build the OMERO object
             RectangleWrapper rectangle = new RectangleWrapper(roi.getBoundsX(), roi.getBoundsY(), roi.getBoundsWidth(), roi.getBoundsHeight());
             // Write in comments the type of PathObject as well as the assigned class if there is one
-            rectangle.setText(setRoiComment(src, objectID, parentID));
+            rectangle.setText(setRoiComment(src, objectID, parentID, src.getName()));
 
             // set the ROI position in the image
             rectangle.setC(roi.getC());
@@ -389,7 +392,7 @@ public class OmeroRawShapes {
 
         } else if (roi instanceof EllipseROI) {
             EllipseWrapper ellipse = new EllipseWrapper(roi.getCentroidX(), roi.getCentroidY(), roi.getBoundsWidth()/2, roi.getBoundsHeight()/2);
-            ellipse.setText(setRoiComment(src, objectID, parentID));
+            ellipse.setText(setRoiComment(src, objectID, parentID, src.getName()));
             ellipse.setC(roi.getC());
             ellipse.setT(roi.getT());
             ellipse.setZ(roi.getZ());
@@ -398,7 +401,7 @@ public class OmeroRawShapes {
         } else if (roi instanceof LineROI) {
             LineROI lineRoi = (LineROI)roi;
             LineWrapper line = new LineWrapper(lineRoi.getX1(), lineRoi.getY1(), lineRoi.getX2(), lineRoi.getY2());
-            line.setText(setRoiComment(src, objectID, parentID));
+            line.setText(setRoiComment(src, objectID, parentID, src.getName()));
             line.setC(roi.getC());
             line.setT(roi.getT());
             line.setZ(roi.getZ());
@@ -408,7 +411,7 @@ public class OmeroRawShapes {
             List<Point2D.Double> points = new ArrayList<>();
             roi.getAllPoints().forEach(point2->points.add(new Point2D.Double(point2.getX(), point2.getY())));
             PolylineWrapper polyline = new PolylineWrapper(points);
-            polyline.setText(setRoiComment(src, objectID, parentID));
+            polyline.setText(setRoiComment(src, objectID, parentID, src.getName()));
             polyline.setC(roi.getC());
             polyline.setT(roi.getT());
             polyline.setZ(roi.getZ());
@@ -418,7 +421,7 @@ public class OmeroRawShapes {
             List<Point2D.Double> points = new ArrayList<>();
             roi.getAllPoints().forEach(point2->points.add(new Point2D.Double(point2.getX(), point2.getY())));
             PolygonWrapper polygon = new PolygonWrapper(points);
-            polygon.setText(setRoiComment(src, objectID, parentID));
+            polygon.setText(setRoiComment(src, objectID, parentID, src.getName()));
             polygon.setC(roi.getC());
             polygon.setT(roi.getT());
             polygon.setZ(roi.getZ());
@@ -429,7 +432,7 @@ public class OmeroRawShapes {
 
             for (Point2 roiPoint : roiPoints) {
                 PointWrapper point = new PointWrapper(roiPoint.getX(), roiPoint.getY());
-                point.setText(setRoiComment(src, objectID, parentID));
+                point.setText(setRoiComment(src, objectID, parentID, src.getName()));
                 point.setC(roi.getC());
                 point.setT(roi.getT());
                 point.setZ(roi.getZ());
@@ -467,15 +470,16 @@ public class OmeroRawShapes {
      *
      * @return formatted comment
      */
-    private static String setRoiComment(PathObject src, String objectID, String parentID){
+    private static String setRoiComment(PathObject src, String objectID, String parentID, String name){
 
         // format classes to OMERO-compatible string
         String pathClass = src.getPathClass() == null ? "NoClass" : src.getPathClass().toString().replaceAll(":","&");
+        String roiName = (name == null || name.isEmpty()) ? "NoName" : name;
 
         if (src.isDetection()) {
-             return "Detection:"+pathClass+":"+objectID+":"+parentID;
+             return "Detection:"+pathClass+":"+objectID+":"+parentID+":"+roiName;
         } else {
-            return "Annotation:"+pathClass+":"+objectID+":"+parentID;
+            return "Annotation:"+pathClass+":"+objectID+":"+parentID+":"+roiName;
         }
     }
 
@@ -599,13 +603,14 @@ public class OmeroRawShapes {
             String roiClass = roiCommentParsed[1];
             double roiId = Double.parseDouble(roiCommentParsed[2]);
             double parentId = Double.parseDouble(roiCommentParsed[3]);
+            String roiName = roiCommentParsed[4];
 
             // convert OMERO ROIs to QuPath ROIs
             ROI qpROI = OmeroRawShapes.convertOmeroROIsToQuPathROIs(roiWrapper);
 
             if(qpROI != null) {
                 // convert QuPath ROI to QuPath Annotation or detection Object (according to type).
-                idObjectMap.put(roiId, OmeroRawShapes.createPathObjectFromQuPathRoi(qpROI, roiType, roiClass));
+                idObjectMap.put(roiId, OmeroRawShapes.createPathObjectFromQuPathRoi(qpROI, roiType, roiClass, roiName));
 
                 // populate parent map with current_object/parent ids
                 idParentIdMap.put(roiId, parentId);
@@ -700,12 +705,13 @@ public class OmeroRawShapes {
         String roiClass = "NoClass";
         String roiType = "annotation";
         String roiParent =  "0";
+        String roiName = "NoName";
         String roiID =  "-"+System.nanoTime();
 
         // split the string
         String[] tokens = (comment.isBlank() || comment.isEmpty()) ? null : comment.split(":");
         if(tokens == null)
-            return new String[]{roiType, roiClass, roiID, roiParent};
+            return new String[]{roiType, roiClass, roiID, roiParent, roiName};
 
         // get ROI type
         if (tokens.length > 0)
@@ -735,7 +741,11 @@ public class OmeroRawShapes {
             }
         }
 
-        return new String[]{roiType, roiClass, roiID, roiParent};
+        // get the name
+        if(tokens.length > 4)
+            roiName = tokens[4];
+
+        return new String[]{roiType, roiClass, roiID, roiParent, roiName};
     }
 
     /**
