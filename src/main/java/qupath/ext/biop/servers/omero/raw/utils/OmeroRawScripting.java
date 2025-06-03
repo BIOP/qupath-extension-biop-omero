@@ -105,6 +105,7 @@ public class OmeroRawScripting {
             return new ArrayList<>();
 
         List<ROIWrapper> filteredROIs = OmeroRawShapes.filterByOwner(imageServer.getClient(), roiWrappers, owner);
+        OmeroRawShapes.loadLockedStatus(imageServer.getClient(), filteredROIs);
 
         return OmeroRawShapes.createPathObjectsFromOmeroROIs(filteredROIs);
     }
@@ -132,6 +133,7 @@ public class OmeroRawScripting {
             return new ArrayList<>();
 
         List<ROIWrapper> filteredROIs = OmeroRawShapes.filterByOwner(client, roiWrappers, owner);
+        OmeroRawShapes.loadLockedStatus(client, filteredROIs);
 
         return OmeroRawShapes.createPathObjectsFromOmeroROIs(filteredROIs);
 

@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import fr.igred.omero.Client;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.meta.ExperimenterWrapper;
@@ -49,6 +50,9 @@ import fr.igred.omero.roi.PolylineWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 import fr.igred.omero.roi.RectangleWrapper;
 import javafx.collections.ObservableList;
+import omero.RBool;
+import omero.RType;
+import omero.ServerError;
 import omero.gateway.model.EllipseData;
 import omero.gateway.model.LineData;
 import omero.gateway.model.PointData;
@@ -110,21 +114,21 @@ public class OmeroRawShapes {
     /**
      * Create a PathObject of type annotation or detection from a QuPath ROI object
      * without any class and with the default red color.
-     * See {@link #createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass, String roiName)} for the full documentation.
+     * See {@link #createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass, String roiName, boolean isLocked)} for the full documentation.
      *
      * @param roi roi to convert
      * @param roiType annotation or detection type
      * @return a new pathObject
      */
     public static PathObject createPathObjectFromQuPathRoi(ROI roi, String roiType){
-        return createPathObjectFromQuPathRoi(roi, roiType,"", "");
+        return createPathObjectFromQuPathRoi(roi, roiType,"", "", false);
     }
 
     /**
      * Create a PathObject of type annotation or detection from a QuPath ROI object, with a certain color. If the
      * color is yellow (i.e. default color on OMERO), it is automatically converted to QuPath default red color.
      * No class is assigned to the new PathObject.
-     * See {@link #createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass, String roiName)} for the full documentation.
+     * See {@link #createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass, String roiName, boolean isLocked)} for the full documentation.
      *
      * @param roi roi to convert
      * @param roiType annotation or detection type
@@ -132,7 +136,7 @@ public class OmeroRawShapes {
      * @return a new pathObject
      */
     public static PathObject createPathObjectFromQuPathRoi(ROI roi, String roiType, Color color){
-        PathObject pathObject = createPathObjectFromQuPathRoi(roi, roiType, "", "");
+        PathObject pathObject = createPathObjectFromQuPathRoi(roi, roiType, "", "", false);
 
         // check if the color is not the default color (yellow) for selected objects
         if(color == null || color.equals(Color.YELLOW))
@@ -141,7 +145,6 @@ public class OmeroRawShapes {
 
         return pathObject;
     }
-
 
     /**
      * Create a PathObject of type annotation or detection from a QuPath ROI object.
@@ -156,7 +159,24 @@ public class OmeroRawShapes {
      * @param roiClass pathClasses assigned to the roi
      * @return a new pathObject
      */
-    public static PathObject createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass, String roiName){
+    public static PathObject createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass){
+        return createPathObjectFromQuPathRoi(roi, roiType, roiClass, "", false);
+    }
+
+    /**
+     * Create a PathObject of type annotation or detection from a QuPath ROI object.
+     * with the specified class. If the class is not a valid class, no class is assigned to the pathObject and
+     * the default red color is assigned to it.
+     * <br>
+     * Currently, pathObjects of "cell" type are not supported and are considered as detections.
+     * All pathObjects of other type (i.e. non recognized types) are automatically assigned to annotation type.
+     *
+     * @param roi roi to convert
+     * @param roiType annotation or detection type
+     * @param roiClass pathClasses assigned to the roi
+     * @return a new pathObject
+     */
+    public static PathObject createPathObjectFromQuPathRoi(ROI roi, String roiType, String roiClass, String roiName, boolean isLocked){
         PathObject pathObject;
         boolean isValidClass = !(roiClass == null || roiClass.isEmpty() || roiClass.equalsIgnoreCase("noclass"));
 
@@ -202,6 +222,8 @@ public class OmeroRawShapes {
 
         if(!roiName.equals("NoName"))
             pathObject.setName(roiName);
+
+        pathObject.setLocked(isLocked);
 
         return pathObject;
     }
@@ -388,6 +410,7 @@ public class OmeroRawShapes {
             rectangle.setC(roi.getC());
             rectangle.setT(roi.getT());
             rectangle.setZ(roi.getZ());
+            ((Shape)(rectangle.asDataObject().asIObject())).setLocked(omero.rtypes.rbool(src.isLocked()));
             shapes.add(rectangle);
 
         } else if (roi instanceof EllipseROI) {
@@ -396,6 +419,7 @@ public class OmeroRawShapes {
             ellipse.setC(roi.getC());
             ellipse.setT(roi.getT());
             ellipse.setZ(roi.getZ());
+            ((Shape)(ellipse.asDataObject().asIObject())).setLocked(omero.rtypes.rbool(src.isLocked()));
             shapes.add(ellipse);
 
         } else if (roi instanceof LineROI) {
@@ -405,6 +429,7 @@ public class OmeroRawShapes {
             line.setC(roi.getC());
             line.setT(roi.getT());
             line.setZ(roi.getZ());
+            ((Shape)(line.asDataObject().asIObject())).setLocked(omero.rtypes.rbool(src.isLocked()));
             shapes.add(line);
 
         } else if (roi instanceof PolylineROI) {
@@ -415,6 +440,7 @@ public class OmeroRawShapes {
             polyline.setC(roi.getC());
             polyline.setT(roi.getT());
             polyline.setZ(roi.getZ());
+            ((Shape)(polyline.asDataObject().asIObject())).setLocked(omero.rtypes.rbool(src.isLocked()));
             shapes.add(polyline);
 
         } else if (roi instanceof PolygonROI) {
@@ -425,6 +451,7 @@ public class OmeroRawShapes {
             polygon.setC(roi.getC());
             polygon.setT(roi.getT());
             polygon.setZ(roi.getZ());
+            ((Shape)(polygon.asDataObject().asIObject())).setLocked(omero.rtypes.rbool(src.isLocked()));
             shapes.add(polygon);
 
         } else if (roi instanceof PointsROI) {
@@ -436,6 +463,7 @@ public class OmeroRawShapes {
                 point.setC(roi.getC());
                 point.setT(roi.getT());
                 point.setZ(roi.getZ());
+                ((Shape)(point.asDataObject().asIObject())).setLocked(omero.rtypes.rbool(src.isLocked()));
                 shapes.add(point);
             }
 
@@ -449,8 +477,12 @@ public class OmeroRawShapes {
 
             // process each individual shape
             for (ROI value : rois) {
-                if(!(value ==null))
-                    shapes.addAll(convertQuPathRoiToOmeroRoi(PathObjects.createAnnotationObject(value, src.getPathClass()), objectID, parentID));
+                if(!(value ==null)) {
+                    PathObject childObject = PathObjects.createAnnotationObject(value, src.getPathClass());
+                    childObject.setLocked(src.isLocked());
+                    childObject.setName(src.getName());
+                    shapes.addAll(convertQuPathRoiToOmeroRoi(childObject, objectID, parentID));
+                }
             }
 
         } else {
@@ -581,6 +613,15 @@ public class OmeroRawShapes {
         Map<Double,PathObject> idObjectMap = new HashMap<>();
 
         for (ROIWrapper roiWrapper : roiWrapperList) {
+            // check if the roi was locked
+            boolean isLocked = false;
+            for(GenericShapeWrapper<? extends ShapeData>  shape : roiWrapper.getShapes()) {
+                if (((Shape) (shape.asDataObject().asIObject())).getLocked().getValue()) {
+                    isLocked = true;
+                    break;
+                }
+            }
+
             // get the comment attached to OMERO ROIs
             List<String> roiCommentsList = getROIComment(roiWrapper);
 
@@ -610,7 +651,7 @@ public class OmeroRawShapes {
 
             if(qpROI != null) {
                 // convert QuPath ROI to QuPath Annotation or detection Object (according to type).
-                idObjectMap.put(roiId, OmeroRawShapes.createPathObjectFromQuPathRoi(qpROI, roiType, roiClass, roiName));
+                idObjectMap.put(roiId, OmeroRawShapes.createPathObjectFromQuPathRoi(qpROI, roiType, roiClass, roiName, isLocked));
 
                 // populate parent map with current_object/parent ids
                 idParentIdMap.put(roiId, parentId);
@@ -843,5 +884,31 @@ public class OmeroRawShapes {
                 filteredROI.add(roi);
         }
         return filteredROI;
+    }
+
+    /**
+     * Force loading the lock status of the OMERO shapes, as it is not by-default loaded when getting the ROIs
+     * from an image
+     * @param client
+     * @param rois
+     */
+    protected static void loadLockedStatus(OmeroRawClient client, List<ROIWrapper> rois){
+
+        rois.forEach(roiWrapper -> {
+            roiWrapper.getShapes().forEach(shape -> {
+                try {
+                    boolean isLocked = ((RBool)(client.getSimpleClient()
+                            .getQueryService()
+                            .projection("select s.locked from Shape s where s.id=" + shape.getId(), null)
+                            .get(0)
+                            .get(0)))
+                            .getValue();
+                    ((Shape) (shape.asDataObject().asIObject())).setLocked(omero.rtypes.rbool(isLocked));
+                }catch (ServiceException | ServerError e){
+                    Utils.errorLog(logger, "OMERO - ROIs",
+                            "Impossible to load locked status for shape "+shape.getId() + " ; roi "+roiWrapper.getId(), e, false);
+                }
+            });
+        });
     }
 }
