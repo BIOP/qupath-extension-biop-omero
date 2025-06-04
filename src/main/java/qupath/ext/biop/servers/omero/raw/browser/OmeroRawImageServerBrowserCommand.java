@@ -88,7 +88,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
-import omero.gateway.exception.DSAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.biop.servers.omero.raw.OmeroRawExtension;
@@ -149,6 +148,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
     private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> projectMap;
     private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> screenMap;
     private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> plateMap;
+    private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> runMap;
     private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> wellMap;
     private Map<OmeroRawObjects.OmeroRawObject, List<OmeroRawObjects.OmeroRawObject>> datasetMap;
     private Map<OmeroRawObjects.Owner, List<OmeroRawObjects.OmeroRawObject>> orphanedFolderMap;
@@ -180,6 +180,13 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             "Group",
             "Num. plates"};
     private final String[] plateAttributes = new String[] {
+            "Name",
+            "Id",
+            "Description",
+            "Owner",
+            "Group",
+            "Num. runs"};
+    private final String[] runAttributes = new String[] {
             "Name",
             "Id",
             "Description",
@@ -240,6 +247,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
         orphanedFolderMap = new ConcurrentHashMap<>();
         screenMap = new ConcurrentHashMap<>();
         plateMap = new ConcurrentHashMap<>();
+        runMap = new ConcurrentHashMap<>();
         wellMap = new ConcurrentHashMap<>();
         datasetMap = new ConcurrentHashMap<>();
         executorTable = Executors.newSingleThreadExecutor(ThreadTools.createThreadFactory("children-loader", true));
@@ -460,6 +468,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     return new ReadOnlyObjectWrapper<>(screenAttributes[cellData.getValue()]);
                 else if (type == OmeroRawObjects.OmeroRawObjectType.PLATE)
                     return new ReadOnlyObjectWrapper<>(plateAttributes[cellData.getValue()]);
+                else if (type == OmeroRawObjects.OmeroRawObjectType.RUN)
+                    return new ReadOnlyObjectWrapper<>(runAttributes[cellData.getValue()]);
                 else if (type == OmeroRawObjects.OmeroRawObjectType.WELL)
                     return new ReadOnlyObjectWrapper<>(wellAttributes[cellData.getValue()]);
                 else if (type == OmeroRawObjects.OmeroRawObjectType.IMAGE)
@@ -750,6 +760,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             case PROJECT:
             case SCREEN:
             case PLATE:
+            case RUN:
                 var temp = getChildren(parent, group, owner);
                 List<OmeroRawObjects.OmeroRawObject> out = new ArrayList<>();
                 for (var subTemp: temp) {
@@ -817,6 +828,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
             return screenMap.get(parentObj);
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.PLATE && plateMap.containsKey(parentObj))
             return plateMap.get(parentObj);
+        else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.RUN && runMap.containsKey(parentObj))
+            return runMap.get(parentObj);
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.WELL && wellMap.containsKey(parentObj))
             return wellMap.get(parentObj);
         else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.DATASET && datasetMap.containsKey(parentObj))
@@ -852,6 +865,8 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
            screenMap.put(parentObj, children);
         }else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.PLATE) {
             plateMap.put(parentObj, children);
+        }else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.RUN) {
+            runMap.put(parentObj, children);
         }else if (parentObj.getType() == OmeroRawObjects.OmeroRawObjectType.WELL) {
             wellMap.put(parentObj, children);
         }
@@ -1029,6 +1044,11 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                 for (int index = 0; index < plateAttributes.length; index++) plateIndices[index] = index;
                 indexList = FXCollections.observableArrayList(plateIndices);
 
+            } else if (selectedItems.get(0).getValue().getType().equals(OmeroRawObjects.OmeroRawObjectType.RUN)) {
+                Integer[] runIndices = new Integer[runAttributes.length];
+                for (int index = 0; index < runAttributes.length; index++) runIndices[index] = index;
+                indexList = FXCollections.observableArrayList(runIndices);
+
             } else if (selectedItems.get(0).getValue().getType().equals(OmeroRawObjects.OmeroRawObjectType.WELL)) {
                 Integer[] wellIndices = new Integer[wellAttributes.length];
                 for (int index = 0; index < wellAttributes.length; index++) wellIndices[index] = index;
@@ -1183,6 +1203,7 @@ public class OmeroRawImageServerBrowserCommand implements Runnable {
                     item.getType() == OmeroRawObjects.OmeroRawObjectType.DATASET ||
                     item.getType() == OmeroRawObjects.OmeroRawObjectType.PLATE ||
                     item.getType() == OmeroRawObjects.OmeroRawObjectType.SCREEN ||
+                    item.getType() == OmeroRawObjects.OmeroRawObjectType.RUN ||
                     item.getType() == OmeroRawObjects.OmeroRawObjectType.WELL ||
                     item.getType() == OmeroRawObjects.OmeroRawObjectType.ORPHANED_FOLDER)
                 name = item.getName() + " (" + item.getNChildren() + ")";

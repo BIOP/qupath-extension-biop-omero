@@ -7,6 +7,7 @@ import fr.igred.omero.meta.ExperimenterWrapper;
 import fr.igred.omero.meta.GroupWrapper;
 import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.ImageWrapper;
+import fr.igred.omero.repository.PlateAcquisitionWrapper;
 import fr.igred.omero.repository.PlateWrapper;
 import fr.igred.omero.repository.ProjectWrapper;
 import fr.igred.omero.repository.ScreenWrapper;
@@ -183,7 +184,16 @@ public class OmeroRawBrowserTools {
 
             case PLATE:
                 try {
-                    list.addAll(getWellItems(client, parent, user, userGroup));
+                    list.addAll(getRunItems(parent, user, userGroup));
+                }catch(ServiceException | AccessException | ExecutionException e){
+                    Dialogs.showErrorNotification("Reading wells",
+                            "Impossible to retrieve wells from plate '"+parent.getName()+"'");
+                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
+                }
+                break;
+            case RUN:
+                try {
+                    list.addAll(getWellItems(client, parent.getParent(), parent, user, userGroup));
                 }catch(ServiceException | AccessException | ExecutionException e){
                     Dialogs.showErrorNotification("Reading wells",
                             "Impossible to retrieve wells from plate '"+parent.getName()+"'");
@@ -192,7 +202,14 @@ public class OmeroRawBrowserTools {
                 break;
 
             case WELL:
-                list.addAll(getWellImageItems(parent, user, userGroup));
+                try {
+                    list.addAll(getWellImageItems(client, parent, user, userGroup));
+                }catch(ServiceException | AccessException | ExecutionException e){
+                    Dialogs.showErrorNotification("Reading wells",
+                            "Impossible to retrieve wells from plate '"+parent.getName()+"'");
+                    logger.error(e + "\n"+ Utils.getErrorStackTraceAsString(e));
+                }
+
                 break;
         }
         list.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
@@ -376,21 +393,32 @@ public class OmeroRawBrowserTools {
      * @throws ServiceException
      * @throws ExecutionException
      */
-    private static List<OmeroRawObjects.OmeroRawObject> getWellImageItems(OmeroRawObjects.OmeroRawObject parent,
-                                                                             ExperimenterWrapper user, GroupWrapper userGroup){
+    private static List<OmeroRawObjects.OmeroRawObject> getWellImageItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
+                                                                             ExperimenterWrapper user, GroupWrapper userGroup)
+            throws AccessException, ServiceException, ExecutionException {
         // get the current project to have access to the child datasets
         WellWrapper wellWrapper = (WellWrapper)parent.getWrapper();
+        PlateAcquisitionWrapper plateAcquisitionWrapper = (PlateAcquisitionWrapper)parent.getParent().getWrapper();
         List<OmeroRawObjects.OmeroRawObject> imageItems = new ArrayList<>();
 
         // if the current well has some images
+        int nChild = 0;
         if(parent.getNChildren() > 0) {
+            List<Long> currentRunWellSamples = plateAcquisitionWrapper.getWellSamples(client.getSimpleClient())
+                    .stream()
+                    .map(WellSampleWrapper::getId)
+                    .collect(Collectors.toList());
             // get child images
             for (WellSampleWrapper wSample : wellWrapper.getWellSamples()) {
-                ImageWrapper image = wSample.getImage();
-                imageItems.add(new OmeroRawObjects.Image(image, image.getId(),
-                        OmeroRawObjects.OmeroRawObjectType.IMAGE, parent, user, userGroup));
+                if(currentRunWellSamples.contains(wSample.getId())) {
+                    nChild++;
+                    ImageWrapper image = wSample.getImage();
+                    imageItems.add(new OmeroRawObjects.Image(image, image.getId(),
+                            OmeroRawObjects.OmeroRawObjectType.IMAGE, parent, user, userGroup));
+                }
             }
         }
+        ((OmeroRawObjects.Well)parent).setChildCount(nChild);
         return imageItems;
     }
 
@@ -433,9 +461,8 @@ public class OmeroRawBrowserTools {
     }
 
     /**
-     * returns the list of {@link OmeroRawObjects.OmeroRawObject} wells for a given plate
+     * returns the list of {@link OmeroRawObjects.OmeroRawObject} plateAcquisition for the given user
      *
-     * @param client
      * @param parent
      * @param user
      * @param userGroup
@@ -444,20 +471,45 @@ public class OmeroRawBrowserTools {
      * @throws ServiceException
      * @throws ExecutionException
      */
-    private static List<OmeroRawObjects.OmeroRawObject> getWellItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject parent,
-                                ExperimenterWrapper user, GroupWrapper userGroup)
+    private static List<OmeroRawObjects.OmeroRawObject> getRunItems(OmeroRawObjects.OmeroRawObject parent,
+                                                                    ExperimenterWrapper user, GroupWrapper userGroup)
+            throws AccessException, ServiceException, ExecutionException {
+        List<OmeroRawObjects.OmeroRawObject> runList = new ArrayList<>();
+        ((PlateWrapper)(parent.getWrapper())).getPlateAcquisitions().forEach(runWrapper -> {
+            runList.add(new OmeroRawObjects.PlateAcquisition(runWrapper, runWrapper.getId(),
+                    OmeroRawObjects.OmeroRawObjectType.RUN, parent, user, userGroup));
+        });
+        runList.sort(Comparator.comparing(OmeroRawObjects.OmeroRawObject::getName));
+        return runList;
+    }
+
+    /**
+     * returns the list of {@link OmeroRawObjects.OmeroRawObject} wells for a given plate
+     *
+     * @param client
+     * @param plate
+     * @param run
+     * @param user
+     * @param userGroup
+     * @return
+     * @throws AccessException
+     * @throws ServiceException
+     * @throws ExecutionException
+     */
+    private static List<OmeroRawObjects.OmeroRawObject> getWellItems(OmeroRawClient client, OmeroRawObjects.OmeroRawObject plate,
+                                                                     OmeroRawObjects.OmeroRawObject run, ExperimenterWrapper user, GroupWrapper userGroup)
             throws AccessException, ServiceException, ExecutionException {
         // get the current project to have access to the child datasets
-        PlateWrapper plateWrapper = (PlateWrapper)parent.getWrapper();
+        PlateWrapper plateWrapper = (PlateWrapper)plate.getWrapper();
         List<OmeroRawObjects.OmeroRawObject> wellItems = new ArrayList<>();
 
         // get well for the current plate
         Collection<WellWrapper> wellDataList = plateWrapper.getWells(client.getSimpleClient());
 
-        if(parent.getNChildren() > 0) {
+        if(plate.getNChildren() > 0) {
             for(WellWrapper well : wellDataList)
-                wellItems.add(new OmeroRawObjects.Well(well, well.getId(), 0,
-                        OmeroRawObjects.OmeroRawObjectType.WELL, parent, user, userGroup));
+                wellItems.add(new OmeroRawObjects.Well(well, well.getId(),
+                        OmeroRawObjects.OmeroRawObjectType.WELL, run, user, userGroup));
         }
         return wellItems;
     }
@@ -547,6 +599,11 @@ public class OmeroRawBrowserTools {
                 entry.putMetadataValue("plate-id",String.valueOf(obj.getId()));
                 addContainersAsMetadataFields(entry, obj.getParent());
                 break;
+            case RUN:
+                entry.putMetadataValue("run-name",obj.getName());
+                entry.putMetadataValue("run-id",String.valueOf(obj.getId()));
+                addContainersAsMetadataFields(entry, obj.getParent());
+                break;
             case WELL:
                 entry.putMetadataValue("well-name",obj.getName());
                 entry.putMetadataValue("well-id",String.valueOf(obj.getId()));
@@ -578,6 +635,9 @@ public class OmeroRawBrowserTools {
 
             // Load screen icon
             map.put(OmeroRawObjects.OmeroRawObjectType.SCREEN, ImageIO.read(OmeroRawBrowserTools.class.getClassLoader().getResource("images/folder_screen16.png")));
+
+            // Load image icon
+            map.put(OmeroRawObjects.OmeroRawObjectType.RUN, ImageIO.read(OmeroRawBrowserTools.class.getClassLoader().getResource("images/image16.png")));
 
             // Load plate icon
             map.put(OmeroRawObjects.OmeroRawObjectType.PLATE, ImageIO.read(OmeroRawBrowserTools.class.getClassLoader().getResource("images/folder_plate16.png")));

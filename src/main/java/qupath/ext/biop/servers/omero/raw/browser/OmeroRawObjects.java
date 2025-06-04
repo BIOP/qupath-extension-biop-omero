@@ -59,7 +59,7 @@ final class OmeroRawObjects {
         PLATE("Plate"),
         WELL("Well"),
         SCREEN("Screen"),
-        PLATE_ACQUISITION("Plate acquisition"),
+        RUN("Run"),
         ORPHANED_FOLDER("Orphaned Folder"),
 
         // Default if unknown
@@ -364,7 +364,6 @@ final class OmeroRawObjects {
 
 
     protected static class Plate extends OmeroRawObject {
-        private final int plateAquisitionCount;
         private final int childCount;
 
 
@@ -375,8 +374,7 @@ final class OmeroRawObjects {
 
 
         protected Plate(PlateWrapper plateWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
-            this.plateAquisitionCount = plateWrapper.asDataObject().asPlate().sizeOfPlateAcquisitions();
-            this.childCount = plateWrapper.asDataObject().asPlate().sizeOfWells();
+            this.childCount = plateWrapper.asDataObject().asPlate().sizeOfPlateAcquisitions();
 
             super.setWrapper(plateWrapper);
             super.setDescription(plateWrapper.getDescription());
@@ -390,20 +388,18 @@ final class OmeroRawObjects {
     }
 
 
-    // TODo see how to deal with that => not really understandable
     protected static class PlateAcquisition extends OmeroRawObject {
-        private final int timePoint;
+        private final int childCount;
 
         @Override
         int getNChildren() {
-            return 0;
+            return this.childCount;
         }
 
 
-        protected PlateAcquisition(PlateAcquisitionWrapper plateAcquisitionWrapper, long id, int timePoint,
+        protected PlateAcquisition(PlateAcquisitionWrapper plateAcquisitionWrapper, long id,
                                 OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
-            this.timePoint = timePoint;
-
+            this.childCount = ((PlateWrapper)parent.getWrapper()).asDataObject().asPlate().sizeOfWells();
             super.setWrapper(plateAcquisitionWrapper);
             super.setDescription(plateAcquisitionWrapper.getDescription());
             super.setId(id);
@@ -417,24 +413,17 @@ final class OmeroRawObjects {
 
 
     protected static class Well extends OmeroRawObject {
-        private final int childCount;
-        private final int timePoint;
-
+        private int childCount;
 
         @Override
         int getNChildren() {
             return childCount;
         }
-        int getTimePoint() {
-            return timePoint;
-        }
+        void setChildCount(int nChild){this.childCount = nChild;}
 
 
-        protected Well(WellWrapper wellWrapper, long id, int timePoint, OmeroRawObjectType type, OmeroRawObject parent,
-                    ExperimenterWrapper user, GroupWrapper group) {
+        protected Well(WellWrapper wellWrapper, long id, OmeroRawObjectType type, OmeroRawObject parent, ExperimenterWrapper user, GroupWrapper group) {
             this.childCount = wellWrapper.asDataObject().asWell().sizeOfWellSamples();
-            this.timePoint = timePoint;
-
             super.setWrapper(wellWrapper);
             super.setDescription(wellWrapper.getDescription());
             super.setId(id);
@@ -443,6 +432,17 @@ final class OmeroRawObjects {
             super.setParent(parent);
             super.setOwner(new Owner(user));
             super.setGroup(new Group(group, group.getId(), group.getName()));
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this)
+                return true;
+
+            if (!(obj instanceof OmeroRawObject))
+                return false;
+
+            return super.id == ((OmeroRawObject)obj).getId() && ((OmeroRawObject) obj).parent == this.getParent();
         }
     }
 
