@@ -403,7 +403,7 @@ final class OmeroRawObjects {
             super.setWrapper(plateAcquisitionWrapper);
             super.setDescription(plateAcquisitionWrapper.getDescription());
             super.setId(id);
-            super.setName(plateAcquisitionWrapper.getName());
+            super.setName(plateAcquisitionWrapper.getName().isEmpty() ? "Run "+id : plateAcquisitionWrapper.getName());
             super.setType(type.toString());
             super.setParent(parent);
             super.setOwner(new Owner(user));
