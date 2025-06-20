@@ -896,18 +896,20 @@ public class OmeroRawShapes {
 
         rois.forEach(roiWrapper -> {
             roiWrapper.getShapes().forEach(shape -> {
+                boolean isLocked = false;
                 try {
-                    boolean isLocked = ((RBool)(client.getSimpleClient()
+                    isLocked = ((RBool)(client.getSimpleClient()
                             .getQueryService()
                             .projection("select s.locked from Shape s where s.id=" + shape.getId(), null)
                             .get(0)
                             .get(0)))
                             .getValue();
-                    ((Shape) (shape.asDataObject().asIObject())).setLocked(omero.rtypes.rbool(isLocked));
-                }catch (ServiceException | ServerError e){
-                    Utils.errorLog(logger, "OMERO - ROIs",
-                            "Impossible to load locked status for shape "+shape.getId() + " ; roi "+roiWrapper.getId(), e, false);
+                }catch (Exception e){
+                    Utils.warnLog(logger, "OMERO - ROIs",
+                            "Impossible to load locked status for shape "+shape.getId()
+                                    + " ; roi "+roiWrapper.getId() + " ; set it to false", e, false);
                 }
+                ((Shape) (shape.asDataObject().asIObject())).setLocked(omero.rtypes.rbool(isLocked));
             });
         });
     }
