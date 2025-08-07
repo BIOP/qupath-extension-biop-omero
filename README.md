@@ -1,3 +1,8 @@
+# REPOSITORY STATUS - DEPRECATION NOTICE
+
+QuPath 0.6 is out. We strongly recommend to use the [official extension](https://github.com/qupath/qupath-extension-omero).
+If you want to convert your previous projects to use the official extension, please use the script located in https://github.com/BIOP/qupath-scripts/blob/main/Extensions/OMERO/Update_project_to_official_omero_extension.groovy
+
 # QuPath BIOP-OMERO extension
 
 Welcome to the BIOP-OMERO extension for [QuPath](http://qupath.github.io)!
